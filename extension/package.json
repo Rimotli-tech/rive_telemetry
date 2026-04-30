@@ -1,0 +1,34 @@
+{
+  "name": "rive-telemetry",
+  "displayName": "RiveTelemetry",
+  "description": "Developer tooling for inspecting and debugging Rive runtime behavior.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:riveTelemetry.openPanel"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "riveTelemetry.openPanel",
+        "title": "RiveTelemetry: Open Panel"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "check": "tsc --noEmit -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.9.3"
+  }
+}

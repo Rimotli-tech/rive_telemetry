@@ -1,0 +1,20 @@
+name: rive_telemetry
+description: "Flutter bridge and debugger wrapper for RiveTelemetry."
+version: 0.0.1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.10.7
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  rive: ^0.13.20
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
