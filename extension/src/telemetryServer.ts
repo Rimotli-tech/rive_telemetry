@@ -4,15 +4,21 @@ import {
   RiveTelemetryCommand,
   RiveTelemetryInput,
   RiveTelemetryPayload,
+  RiveTelemetryServerStatus,
 } from './types';
 
 type TelemetryListener = (payload: RiveTelemetryPayload) => void;
+type StatusListener = (status: RiveTelemetryServerStatus) => void;
 
 export class TelemetryServer implements vscode.Disposable {
   private server?: WebSocketServer;
   private latestPayload?: RiveTelemetryPayload;
+  private serverRunning = false;
+  private serverError: string | null = null;
+  private lastTelemetryAt: string | null = null;
   private readonly clients = new Set<WebSocket>();
   private readonly listeners = new Set<TelemetryListener>();
+  private readonly statusListeners = new Set<StatusListener>();
   private readonly output: vscode.OutputChannel;
 
   constructor(
@@ -26,6 +32,15 @@ export class TelemetryServer implements vscode.Disposable {
     return this.latestPayload;
   }
 
+  get status(): RiveTelemetryServerStatus {
+    return {
+      clientCount: this.clients.size,
+      serverRunning: this.serverRunning,
+      serverError: this.serverError,
+      lastTelemetryAt: this.lastTelemetryAt,
+    };
+  }
+
   start(): void {
     if (this.server) {
       return;
@@ -36,14 +51,18 @@ export class TelemetryServer implements vscode.Disposable {
       this.server = server;
 
       server.on('listening', () => {
+        this.serverRunning = true;
+        this.serverError = null;
         this.output.appendLine(
           `RiveTelemetry WebSocket server listening on ws://localhost:${this.port}`,
         );
+        this.notifyStatus();
       });
 
       server.on('connection', (socket) => {
         this.clients.add(socket);
         this.output.appendLine('RiveTelemetry client connected');
+        this.notifyStatus();
 
         socket.on('message', (data) => {
           this.handleMessage(data.toString());
@@ -52,15 +71,19 @@ export class TelemetryServer implements vscode.Disposable {
         socket.on('close', () => {
           this.clients.delete(socket);
           this.output.appendLine('RiveTelemetry client disconnected');
+          this.notifyStatus();
         });
 
         socket.on('error', (error) => {
           this.clients.delete(socket);
           this.output.appendLine(`RiveTelemetry client error: ${error.message}`);
+          this.notifyStatus();
         });
       });
 
       server.on('error', (error: NodeJS.ErrnoException) => {
+        this.serverRunning = false;
+        this.serverError = error.message;
         this.output.appendLine(`RiveTelemetry server error: ${error.message}`);
         if (error.code === 'EADDRINUSE') {
           vscode.window.showWarningMessage(
@@ -69,13 +92,17 @@ export class TelemetryServer implements vscode.Disposable {
         }
         server.close();
         this.server = undefined;
+        this.notifyStatus();
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      this.serverRunning = false;
+      this.serverError = message;
       this.output.appendLine(`RiveTelemetry server failed to start: ${message}`);
       vscode.window.showWarningMessage(
         `RiveTelemetry WebSocket server failed to start: ${message}`,
       );
+      this.notifyStatus();
     }
   }
 
@@ -84,6 +111,15 @@ export class TelemetryServer implements vscode.Disposable {
     return {
       dispose: () => {
         this.listeners.delete(listener);
+      },
+    };
+  }
+
+  onStatus(listener: StatusListener): vscode.Disposable {
+    this.statusListeners.add(listener);
+    return {
+      dispose: () => {
+        this.statusListeners.delete(listener);
       },
     };
   }
@@ -118,12 +154,14 @@ export class TelemetryServer implements vscode.Disposable {
 
   dispose(): void {
     this.listeners.clear();
+    this.statusListeners.clear();
     for (const client of this.clients) {
       client.close();
     }
     this.clients.clear();
     this.server?.close();
     this.server = undefined;
+    this.serverRunning = false;
   }
 
   private handleMessage(rawMessage: string): void {
@@ -141,8 +179,17 @@ export class TelemetryServer implements vscode.Disposable {
     }
 
     this.latestPayload = parsed;
+    this.lastTelemetryAt = new Date().toISOString();
     for (const listener of this.listeners) {
       listener(parsed);
+    }
+    this.notifyStatus();
+  }
+
+  private notifyStatus(): void {
+    const status = this.status;
+    for (const listener of this.statusListeners) {
+      listener(status);
     }
   }
 }

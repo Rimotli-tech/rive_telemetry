@@ -13,6 +13,13 @@ export interface RiveTelemetryPayload {
   inputs: RiveTelemetryInput[];
 }
 
+export interface RiveTelemetryServerStatus {
+  clientCount: number;
+  serverRunning: boolean;
+  serverError: string | null;
+  lastTelemetryAt: string | null;
+}
+
 export type RiveTelemetryCommand =
   | {
       type: 'setInput';

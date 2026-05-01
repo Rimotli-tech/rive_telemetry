@@ -1,12 +1,17 @@
 import * as vscode from 'vscode';
 import { TelemetryServer } from './telemetryServer';
-import { RiveTelemetryCommand, RiveTelemetryPayload } from './types';
+import {
+  RiveTelemetryCommand,
+  RiveTelemetryPayload,
+  RiveTelemetryServerStatus,
+} from './types';
 
 export class RiveTelemetryPanel {
   private static currentPanel: RiveTelemetryPanel | undefined;
 
   private readonly panel: vscode.WebviewPanel;
   private readonly telemetrySubscription: vscode.Disposable;
+  private readonly statusSubscription: vscode.Disposable;
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -14,10 +19,16 @@ export class RiveTelemetryPanel {
   ) {
     this.panel = panel;
     this.panel.webview.options = { enableScripts: true };
-    this.panel.webview.html = getWebviewHtml(this.telemetryServer.latest);
+    this.panel.webview.html = getWebviewHtml(
+      this.telemetryServer.latest,
+      this.telemetryServer.status,
+    );
 
     this.telemetrySubscription = this.telemetryServer.onTelemetry((payload) => {
-      this.update(payload);
+      this.updateTelemetry(payload);
+    });
+    this.statusSubscription = this.telemetryServer.onStatus((status) => {
+      this.updateStatus(status);
     });
 
     this.panel.webview.onDidReceiveMessage((message: unknown) => {
@@ -41,7 +52,8 @@ export class RiveTelemetryPanel {
   ): void {
     if (RiveTelemetryPanel.currentPanel) {
       RiveTelemetryPanel.currentPanel.panel.reveal(vscode.ViewColumn.One);
-      RiveTelemetryPanel.currentPanel.update(telemetryServer.latest);
+      RiveTelemetryPanel.currentPanel.updateTelemetry(telemetryServer.latest);
+      RiveTelemetryPanel.currentPanel.updateStatus(telemetryServer.status);
       return;
     }
 
@@ -62,15 +74,23 @@ export class RiveTelemetryPanel {
 
   dispose(): void {
     this.telemetrySubscription.dispose();
+    this.statusSubscription.dispose();
     if (RiveTelemetryPanel.currentPanel === this) {
       RiveTelemetryPanel.currentPanel = undefined;
     }
   }
 
-  private update(payload: RiveTelemetryPayload | undefined): void {
+  private updateTelemetry(payload: RiveTelemetryPayload | undefined): void {
     this.panel.webview.postMessage({
       type: 'telemetry',
       payload: payload ?? null,
+    });
+  }
+
+  private updateStatus(status: RiveTelemetryServerStatus): void {
+    this.panel.webview.postMessage({
+      type: 'serverStatus',
+      status,
     });
   }
 }
@@ -115,8 +135,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
+function getWebviewHtml(
+  payload: RiveTelemetryPayload | undefined,
+  status: RiveTelemetryServerStatus,
+): string {
   const initialPayload = JSON.stringify(payload ?? null);
+  const initialStatus = JSON.stringify(status);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -150,6 +174,9 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
     .receiving .dot {
       background: var(--vscode-charts-green);
     }
+    .failed .dot {
+      background: var(--vscode-charts-red);
+    }
     dl {
       display: grid;
       grid-template-columns: max-content minmax(0, 1fr);
@@ -172,6 +199,7 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
       padding: 8px 10px;
       border-bottom: 1px solid var(--vscode-panel-border);
       text-align: left;
+      vertical-align: middle;
     }
     th {
       color: var(--vscode-descriptionForeground);
@@ -183,14 +211,6 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
     button, input {
       font: inherit;
     }
-    input[type="number"] {
-      width: 88px;
-      padding: 4px 6px;
-      color: var(--vscode-input-foreground);
-      background: var(--vscode-input-background);
-      border: 1px solid var(--vscode-input-border);
-      border-radius: 4px;
-    }
     button {
       padding: 4px 10px;
       color: var(--vscode-button-foreground);
@@ -199,10 +219,25 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
       border-radius: 4px;
       cursor: pointer;
     }
-    button:hover {
+    button:hover:not(:disabled) {
       background: var(--vscode-button-hoverBackground);
     }
-    .empty, .command-status {
+    button:disabled, input:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+    input[type="number"] {
+      width: 72px;
+      padding: 4px 6px;
+      color: var(--vscode-input-foreground);
+      background: var(--vscode-input-background);
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 4px;
+    }
+    input[type="range"] {
+      width: 140px;
+    }
+    .empty, .command-status, .meta {
       color: var(--vscode-descriptionForeground);
     }
     .empty {
@@ -212,12 +247,62 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
       margin-top: 12px;
       min-height: 18px;
     }
+    .control {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .switch {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .switch input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .track {
+      width: 38px;
+      height: 20px;
+      border-radius: 999px;
+      background: var(--vscode-input-background);
+      border: 1px solid var(--vscode-input-border);
+      position: relative;
+    }
+    .track::after {
+      content: "";
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--vscode-descriptionForeground);
+      position: absolute;
+      left: 3px;
+      top: 2px;
+      transition: transform 120ms ease;
+    }
+    .switch input:checked + .track {
+      background: var(--vscode-button-background);
+    }
+    .switch input:checked + .track::after {
+      transform: translateX(18px);
+      background: var(--vscode-button-foreground);
+    }
     tr.command-sent {
       animation: flash 700ms ease-out;
+    }
+    tr.value-changed {
+      animation: valueFlash 900ms ease-out;
     }
     @keyframes flash {
       from { background: var(--vscode-list-activeSelectionBackground); }
       to { background: transparent; }
+    }
+    @keyframes valueFlash {
+      from { outline: 1px solid var(--vscode-charts-green); }
+      to { outline: 1px solid transparent; }
     }
   </style>
 </head>
@@ -228,49 +313,75 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
     const vscode = acquireVsCodeApi();
     const app = document.getElementById('app');
     let latestPayload = ${initialPayload};
-    let lastCommandAt = null;
+    let serverStatus = ${initialStatus};
+    let lastCommandStatus = '';
     let highlightedInput = null;
+    let changedInputs = new Set();
+    let previousValues = new Map();
 
     window.addEventListener('message', (event) => {
       if (event.data?.type === 'telemetry') {
+        markChangedInputs(event.data.payload);
         latestPayload = event.data.payload;
         render();
+      } else if (event.data?.type === 'serverStatus') {
+        serverStatus = event.data.status;
+        render();
       } else if (event.data?.type === 'commandSent') {
-        lastCommandAt = event.data.timestamp;
+        lastCommandStatus = 'Command sent: ' + event.data.timestamp;
         render();
       } else if (event.data?.type === 'commandFailed') {
-        lastCommandAt = 'No connected Flutter client';
+        lastCommandStatus = 'No connected runtime client';
         render();
       }
     });
 
     function render() {
+      const serverFailed = Boolean(serverStatus.serverError);
+      const hasClients = serverStatus.clientCount > 0;
+      const receiving = Boolean(latestPayload) && !serverFailed;
+      const controlsDisabled = !hasClients || serverFailed;
+      const statusClass = serverFailed ? 'failed' : receiving ? 'receiving' : '';
+      const statusText = serverFailed
+        ? 'Server failed to start'
+        : receiving
+          ? 'Receiving telemetry'
+          : 'Waiting for telemetry...';
+
       if (!latestPayload) {
         app.innerHTML = \`
-          <div class="status">
+          <div class="status \${statusClass}">
             <span class="dot"></span>
-            <span>Waiting for telemetry...</span>
+            <span>\${escapeHtml(statusText)}</span>
           </div>
+          <dl>
+            <dt>Connected clients</dt><dd>\${serverStatus.clientCount}</dd>
+            <dt>Last telemetry received</dt><dd>\${escapeHtml(serverStatus.lastTelemetryAt ?? 'never')}</dd>
+            \${serverFailed ? '<dt>Server error</dt><dd>' + escapeHtml(serverStatus.serverError) + '</dd>' : ''}
+          </dl>
           <p class="empty">Run the Flutter demo to stream Rive state machine inputs.</p>
         \`;
         return;
       }
 
       const rows = latestPayload.inputs.map((input) => \`
-        <tr data-input-name="\${escapeAttribute(input.name)}" class="\${highlightedInput === input.name ? 'command-sent' : ''}">
+        <tr data-input-name="\${escapeAttribute(input.name)}" class="\${rowClass(input)}">
           <td><code>\${escapeHtml(input.name)}</code></td>
           <td>\${escapeHtml(input.type)}</td>
           <td><code>\${escapeHtml(formatValue(input.value))}</code></td>
-          <td>\${renderControl(input)}</td>
+          <td>\${renderControl(input, controlsDisabled)}</td>
         </tr>
       \`).join('');
 
       app.innerHTML = \`
-        <div class="status receiving">
+        <div class="status \${statusClass}">
           <span class="dot"></span>
-          <span>Receiving telemetry</span>
+          <span>\${escapeHtml(statusText)}</span>
         </div>
         <dl>
+          <dt>Connected clients</dt><dd>\${serverStatus.clientCount}</dd>
+          <dt>Last telemetry received</dt><dd>\${escapeHtml(serverStatus.lastTelemetryAt ?? 'never')}</dd>
+          \${serverFailed ? '<dt>Server error</dt><dd>' + escapeHtml(serverStatus.serverError) + '</dd>' : ''}
           <dt>Source</dt><dd>\${escapeHtml(latestPayload.source)}</dd>
           <dt>Timestamp</dt><dd>\${escapeHtml(latestPayload.timestamp)}</dd>
           <dt>State machine</dt><dd>\${escapeHtml(latestPayload.stateMachine)}</dd>
@@ -282,33 +393,59 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
           </thead>
           <tbody>\${rows}</tbody>
         </table>
-        <div class="command-status">
-          \${lastCommandAt ? 'Command sent: ' + escapeHtml(lastCommandAt) : ''}
-        </div>
+        <div class="command-status">\${escapeHtml(lastCommandStatus)}</div>
       \`;
 
       bindControls();
+      if (changedInputs.size > 0) {
+        window.setTimeout(() => {
+          changedInputs.clear();
+          render();
+        }, 900);
+      }
     }
 
-    function renderControl(input) {
+    function rowClass(input) {
+      const classes = [];
+      if (highlightedInput === input.name) {
+        classes.push('command-sent');
+      }
+      if (changedInputs.has(input.name)) {
+        classes.push('value-changed');
+      }
+      return classes.join(' ');
+    }
+
+    function renderControl(input, disabled) {
+      const disabledAttr = disabled ? 'disabled' : '';
       if (input.type === 'boolean') {
         return \`
-          <label>
-            <input type="checkbox" data-control="boolean" data-input-name="\${escapeAttribute(input.name)}" \${input.value ? 'checked' : ''}>
-            set
+          <label class="switch">
+            <input type="checkbox" data-control="boolean" data-input-name="\${escapeAttribute(input.name)}" \${input.value ? 'checked' : ''} \${disabledAttr}>
+            <span class="track"></span>
+            <span>\${input.value ? 'true' : 'false'}</span>
           </label>
         \`;
       }
 
       if (input.type === 'number') {
+        const value = Number(input.value ?? 0);
         return \`
-          <input type="number" data-control="number" data-input-name="\${escapeAttribute(input.name)}" value="\${escapeAttribute(input.value ?? 0)}" step="1">
+          <span class="control">
+            <button type="button" data-control="number-step" data-delta="-1" data-input-name="\${escapeAttribute(input.name)}" \${disabledAttr}>-</button>
+            <input type="range" data-control="number-range" data-input-name="\${escapeAttribute(input.name)}" min="0" max="100" step="1" value="\${escapeAttribute(value)}" \${disabledAttr}>
+            <button type="button" data-control="number-step" data-delta="1" data-input-name="\${escapeAttribute(input.name)}" \${disabledAttr}>+</button>
+            <input type="number" data-control="number" data-input-name="\${escapeAttribute(input.name)}" value="\${escapeAttribute(value)}" step="1" \${disabledAttr}>
+          </span>
         \`;
       }
 
       if (input.type === 'trigger') {
         return \`
-          <button type="button" data-control="trigger" data-input-name="\${escapeAttribute(input.name)}">Fire</button>
+          <span class="control">
+            <span class="meta">\${escapeHtml(input.name)}</span>
+            <button type="button" data-control="trigger" data-input-name="\${escapeAttribute(input.name)}" \${disabledAttr}>Fire</button>
+          </span>
         \`;
       }
 
@@ -328,25 +465,33 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
         });
       });
 
-      app.querySelectorAll('[data-control="number"]').forEach((control) => {
+      app.querySelectorAll('[data-control="number"], [data-control="number-range"]').forEach((control) => {
         const sendNumber = () => {
           const value = Number(control.value);
           if (Number.isNaN(value)) {
             return;
           }
-          sendCommand({
-            type: 'setInput',
-            stateMachine: latestPayload.stateMachine,
-            inputName: control.dataset.inputName,
-            inputType: 'number',
-            value,
-          });
+          sendNumberCommand(control.dataset.inputName, value);
         };
         control.addEventListener('change', sendNumber);
+        control.addEventListener('input', () => {
+          if (control.dataset.control === 'number-range') {
+            sendNumber();
+          }
+        });
         control.addEventListener('keydown', (event) => {
           if (event.key === 'Enter') {
             sendNumber();
           }
+        });
+      });
+
+      app.querySelectorAll('[data-control="number-step"]').forEach((control) => {
+        control.addEventListener('click', () => {
+          const inputName = control.dataset.inputName;
+          const current = latestPayload.inputs.find((input) => input.name === inputName);
+          const delta = Number(control.dataset.delta ?? 0);
+          sendNumberCommand(inputName, Number(current?.value ?? 0) + delta);
         });
       });
 
@@ -361,6 +506,16 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
       });
     }
 
+    function sendNumberCommand(inputName, value) {
+      sendCommand({
+        type: 'setInput',
+        stateMachine: latestPayload.stateMachine,
+        inputName,
+        inputType: 'number',
+        value,
+      });
+    }
+
     function sendCommand(payload) {
       highlightedInput = payload.inputName;
       vscode.postMessage({
@@ -372,6 +527,22 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
         highlightedInput = null;
         render();
       }, 700);
+    }
+
+    function markChangedInputs(nextPayload) {
+      if (!nextPayload) {
+        return;
+      }
+
+      const nextValues = new Map();
+      for (const input of nextPayload.inputs) {
+        const signature = JSON.stringify([input.type, input.value]);
+        nextValues.set(input.name, signature);
+        if (previousValues.has(input.name) && previousValues.get(input.name) !== signature) {
+          changedInputs.add(input.name);
+        }
+      }
+      previousValues = nextValues;
     }
 
     function formatValue(value) {
@@ -391,6 +562,10 @@ function getWebviewHtml(payload: RiveTelemetryPayload | undefined): string {
       return escapeHtml(value);
     }
 
+    if (latestPayload) {
+      markChangedInputs(latestPayload);
+      changedInputs.clear();
+    }
     render();
   </script>
 </body>

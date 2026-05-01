@@ -39,12 +39,24 @@ const ws_1 = __importStar(require("ws"));
 class TelemetryServer {
     constructor(output, port = 8080) {
         this.port = port;
+        this.serverRunning = false;
+        this.serverError = null;
+        this.lastTelemetryAt = null;
         this.clients = new Set();
         this.listeners = new Set();
+        this.statusListeners = new Set();
         this.output = output;
     }
     get latest() {
         return this.latestPayload;
+    }
+    get status() {
+        return {
+            clientCount: this.clients.size,
+            serverRunning: this.serverRunning,
+            serverError: this.serverError,
+            lastTelemetryAt: this.lastTelemetryAt,
+        };
     }
     start() {
         if (this.server) {
@@ -54,36 +66,48 @@ class TelemetryServer {
             const server = new ws_1.WebSocketServer({ port: this.port });
             this.server = server;
             server.on('listening', () => {
+                this.serverRunning = true;
+                this.serverError = null;
                 this.output.appendLine(`RiveTelemetry WebSocket server listening on ws://localhost:${this.port}`);
+                this.notifyStatus();
             });
             server.on('connection', (socket) => {
                 this.clients.add(socket);
                 this.output.appendLine('RiveTelemetry client connected');
+                this.notifyStatus();
                 socket.on('message', (data) => {
                     this.handleMessage(data.toString());
                 });
                 socket.on('close', () => {
                     this.clients.delete(socket);
                     this.output.appendLine('RiveTelemetry client disconnected');
+                    this.notifyStatus();
                 });
                 socket.on('error', (error) => {
                     this.clients.delete(socket);
                     this.output.appendLine(`RiveTelemetry client error: ${error.message}`);
+                    this.notifyStatus();
                 });
             });
             server.on('error', (error) => {
+                this.serverRunning = false;
+                this.serverError = error.message;
                 this.output.appendLine(`RiveTelemetry server error: ${error.message}`);
                 if (error.code === 'EADDRINUSE') {
                     vscode.window.showWarningMessage(`RiveTelemetry could not start because port ${this.port} is already in use.`);
                 }
                 server.close();
                 this.server = undefined;
+                this.notifyStatus();
             });
         }
         catch (error) {
             const message = error instanceof Error ? error.message : String(error);
+            this.serverRunning = false;
+            this.serverError = message;
             this.output.appendLine(`RiveTelemetry server failed to start: ${message}`);
             vscode.window.showWarningMessage(`RiveTelemetry WebSocket server failed to start: ${message}`);
+            this.notifyStatus();
         }
     }
     onTelemetry(listener) {
@@ -91,6 +115,14 @@ class TelemetryServer {
         return {
             dispose: () => {
                 this.listeners.delete(listener);
+            },
+        };
+    }
+    onStatus(listener) {
+        this.statusListeners.add(listener);
+        return {
+            dispose: () => {
+                this.statusListeners.delete(listener);
             },
         };
     }
@@ -115,12 +147,14 @@ class TelemetryServer {
     }
     dispose() {
         this.listeners.clear();
+        this.statusListeners.clear();
         for (const client of this.clients) {
             client.close();
         }
         this.clients.clear();
         this.server?.close();
         this.server = undefined;
+        this.serverRunning = false;
     }
     handleMessage(rawMessage) {
         let parsed;
@@ -136,8 +170,16 @@ class TelemetryServer {
             return;
         }
         this.latestPayload = parsed;
+        this.lastTelemetryAt = new Date().toISOString();
         for (const listener of this.listeners) {
             listener(parsed);
+        }
+        this.notifyStatus();
+    }
+    notifyStatus() {
+        const status = this.status;
+        for (const listener of this.statusListeners) {
+            listener(status);
         }
     }
 }
