@@ -36,12 +36,29 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
+const panel_1 = require("./panel");
+const telemetryServer_1 = require("./telemetryServer");
+let telemetryServer;
+let outputChannel;
 function activate(context) {
     console.log('RiveTelemetry extension activated');
+    outputChannel = vscode.window.createOutputChannel('RiveTelemetry');
+    telemetryServer = new telemetryServer_1.TelemetryServer(outputChannel);
+    telemetryServer.start();
     const disposable = vscode.commands.registerCommand('riveTelemetry.openPanel', () => {
         console.log('RiveTelemetry panel command triggered');
+        if (!telemetryServer) {
+            outputChannel?.appendLine('RiveTelemetry server is not available');
+            return;
+        }
+        panel_1.RiveTelemetryPanel.show(context, telemetryServer);
     });
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(disposable, telemetryServer, outputChannel);
 }
-function deactivate() { }
+function deactivate() {
+    telemetryServer?.dispose();
+    outputChannel?.dispose();
+    telemetryServer = undefined;
+    outputChannel = undefined;
+}
 //# sourceMappingURL=extension.js.map
