@@ -13,7 +13,6 @@ dependencies:
   rive: ^0.14.2
   rive_telemetry:
     path: ../package
-  web_socket_channel: ^3.0.0
 
 dev_dependencies:
   flutter_test:
