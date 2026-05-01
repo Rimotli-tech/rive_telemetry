@@ -218,6 +218,24 @@ class _DemoHomePageState extends State<DemoHomePage> {
     }
   }
 
+  void _toggleBooleanInput(rive.BooleanInput input) {
+    input.value = !input.value;
+    _riveController?.scheduleRepaint();
+    _broadcastRiveState();
+  }
+
+  void _stepNumberInput(rive.NumberInput input, double delta) {
+    input.value = input.value + delta;
+    _riveController?.scheduleRepaint();
+    _broadcastRiveState();
+  }
+
+  void _fireTriggerInput(rive.TriggerInput input) {
+    input.fire();
+    _riveController?.scheduleRepaint();
+    _broadcastRiveState();
+  }
+
   void _onRiveFailed(Object error) {
     _logStateMachineWarning(error);
     if (!mounted || (!_stateMachineFound && _stateMachine == null)) {
@@ -251,7 +269,8 @@ class _DemoHomePageState extends State<DemoHomePage> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              Expanded(
+              Flexible(
+                flex: 5,
                 child: Center(
                   child: RiveDebugger(
                     child: rive.RiveWidgetBuilder(
@@ -287,7 +306,14 @@ class _DemoHomePageState extends State<DemoHomePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              _InputControlPanel(
+                inputs: _stateMachine?.inputs ?? const [],
+                onToggleBoolean: _toggleBooleanInput,
+                onStepNumber: _stepNumberInput,
+                onFireTrigger: _fireTriggerInput,
+              ),
+              const SizedBox(height: 12),
               _DebugStatusPanel(
                 socketConnected: _socketConnected,
                 stateMachineFound: _stateMachineFound,
@@ -319,6 +345,183 @@ class _RiveErrorMessage extends StatelessWidget {
         error.toString(),
         style: const TextStyle(color: Colors.red),
         textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
+
+class _InputControlPanel extends StatelessWidget {
+  const _InputControlPanel({
+    required this.inputs,
+    required this.onToggleBoolean,
+    required this.onStepNumber,
+    required this.onFireTrigger,
+  });
+
+  final List<rive.Input> inputs;
+  final ValueChanged<rive.BooleanInput> onToggleBoolean;
+  final void Function(rive.NumberInput input, double delta) onStepNumber;
+  final ValueChanged<rive.TriggerInput> onFireTrigger;
+
+  @override
+  Widget build(BuildContext context) {
+    if (inputs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Debug controls',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: inputs.map((input) {
+            if (input is rive.BooleanInput) {
+              return _BooleanInputControl(
+                input: input,
+                onPressed: () => onToggleBoolean(input),
+              );
+            }
+
+            if (input is rive.NumberInput) {
+              return _NumberInputControl(
+                input: input,
+                onStep: (delta) => onStepNumber(input, delta),
+              );
+            }
+
+            if (input is rive.TriggerInput) {
+              return _TriggerInputControl(
+                input: input,
+                onPressed: () => onFireTrigger(input),
+              );
+            }
+
+            return _ControlChip(label: '${input.name}: unsupported');
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _BooleanInputControl extends StatelessWidget {
+  const _BooleanInputControl({required this.input, required this.onPressed});
+
+  final rive.BooleanInput input;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ControlChip(
+      label: '${input.name}: ${input.value}',
+      child: Switch(
+        value: input.value,
+        onChanged: (_) => onPressed(),
+        activeColor: const Color(0xFF2566B9),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+}
+
+class _NumberInputControl extends StatelessWidget {
+  const _NumberInputControl({required this.input, required this.onStep});
+
+  final rive.NumberInput input;
+  final ValueChanged<double> onStep;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ControlChip(
+      label: '${input.name}: ${input.value.toStringAsFixed(1)}',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _TinyButton(label: '-', onPressed: () => onStep(-1)),
+          const SizedBox(width: 4),
+          _TinyButton(label: '+', onPressed: () => onStep(1)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TriggerInputControl extends StatelessWidget {
+  const _TriggerInputControl({required this.input, required this.onPressed});
+
+  final rive.TriggerInput input;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ControlChip(
+      label: input.name,
+      child: _TinyButton(label: 'fire', onPressed: onPressed),
+    );
+  }
+}
+
+class _ControlChip extends StatelessWidget {
+  const _ControlChip({required this.label, this.child});
+
+  final String label;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1D2730),
+        border: Border.all(color: const Color(0xFF33414D)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+          if (child != null) ...[const SizedBox(width: 8), child!],
+        ],
+      ),
+    );
+  }
+}
+
+class _TinyButton extends StatelessWidget {
+  const _TinyButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 28,
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          backgroundColor: const Color(0xFF2566B9),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 11)),
       ),
     );
   }
