@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:rive/rive.dart' as rive;
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -21,6 +22,7 @@ class RiveDebugger extends StatefulWidget {
     this.socketUrl = 'ws://localhost:8080',
     this.pollingInterval = const Duration(milliseconds: 250),
     this.debugPrintJson = true,
+    this.enabled,
   });
 
   final Widget child;
@@ -30,6 +32,7 @@ class RiveDebugger extends StatefulWidget {
   final String socketUrl;
   final Duration pollingInterval;
   final bool debugPrintJson;
+  final bool? enabled;
 
   @override
   State<RiveDebugger> createState() => _RiveDebuggerState();
@@ -42,9 +45,23 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   String? _previousInputSignature;
   bool _socketConnected = false;
 
+  bool get _isTelemetryEnabled {
+    if (widget.enabled == false) {
+      return false;
+    }
+    if (widget.enabled == true) {
+      return true;
+    }
+    return !kReleaseMode;
+  }
+
   @override
   void initState() {
     super.initState();
+    if (!_isTelemetryEnabled) {
+      return;
+    }
+
     _connectSocket();
     _configureStateMachine();
   }
@@ -52,6 +69,22 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   @override
   void didUpdateWidget(covariant RiveDebugger oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    final wasTelemetryEnabled =
+        oldWidget.enabled == true ||
+        (oldWidget.enabled == null && !kReleaseMode);
+    final isTelemetryEnabled = _isTelemetryEnabled;
+
+    if (!isTelemetryEnabled) {
+      _resetTelemetry();
+      return;
+    }
+
+    if (!wasTelemetryEnabled) {
+      _connectSocket();
+      _configureStateMachine();
+      return;
+    }
 
     if (widget.socketUrl != oldWidget.socketUrl) {
       _resetSocket();
@@ -61,7 +94,8 @@ class _RiveDebuggerState extends State<RiveDebugger> {
     if (widget.stateMachine != oldWidget.stateMachine ||
         widget.pollingInterval != oldWidget.pollingInterval ||
         widget.source != oldWidget.source ||
-        widget.stateMachineName != oldWidget.stateMachineName) {
+        widget.stateMachineName != oldWidget.stateMachineName ||
+        widget.debugPrintJson != oldWidget.debugPrintJson) {
       _configureStateMachine();
     }
   }
@@ -80,6 +114,10 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   }
 
   void _connectSocket() {
+    if (!_isTelemetryEnabled) {
+      return;
+    }
+
     if (widget.socketUrl.isEmpty) {
       return;
     }
@@ -98,9 +136,15 @@ class _RiveDebuggerState extends State<RiveDebugger> {
 
       socket.ready
           .then((_) {
+            if (!_isTelemetryEnabled || _socket != socket) {
+              return;
+            }
             _socketConnected = true;
           })
           .catchError((Object error) {
+            if (_socket != socket) {
+              return;
+            }
             debugPrint('RiveTelemetry WebSocket unavailable: $error');
             _markSocketDisconnected();
           });
@@ -118,13 +162,25 @@ class _RiveDebuggerState extends State<RiveDebugger> {
     _socket = null;
   }
 
+  void _resetTelemetry() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    _previousInputSignature = null;
+    _resetSocket();
+  }
+
   void _markSocketDisconnected() {
     _socketConnected = false;
   }
 
   void _configureStateMachine() {
     _pollTimer?.cancel();
+    _pollTimer = null;
     _previousInputSignature = null;
+
+    if (!_isTelemetryEnabled) {
+      return;
+    }
 
     if (widget.stateMachine == null) {
       return;
@@ -142,6 +198,15 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   }
 
   Map<String, dynamic> _buildTelemetryPayload() {
+    if (!_isTelemetryEnabled) {
+      return {
+        'source': widget.source,
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+        'stateMachine': widget.stateMachineName,
+        'inputs': const [],
+      };
+    }
+
     return {
       'source': widget.source,
       'timestamp': DateTime.now().toUtc().toIso8601String(),
@@ -167,11 +232,19 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   }
 
   String _buildInputSignature() {
+    if (!_isTelemetryEnabled) {
+      return jsonEncode(const []);
+    }
+
     final inputs = widget.stateMachine?.inputs.map(_serializeInput).toList();
     return jsonEncode(inputs ?? const []);
   }
 
   void _broadcastRiveState() {
+    if (!_isTelemetryEnabled) {
+      return;
+    }
+
     final payload = _buildTelemetryPayload();
     final compactJson = jsonEncode(payload);
 

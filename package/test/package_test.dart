@@ -7,7 +7,7 @@ void main() {
     await tester.pumpWidget(
       const Directionality(
         textDirection: TextDirection.ltr,
-        child: RiveDebugger(socketUrl: '', child: Text('placeholder')),
+        child: RiveDebugger(enabled: false, child: Text('placeholder')),
       ),
     );
 

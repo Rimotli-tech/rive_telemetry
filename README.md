@@ -8,14 +8,27 @@ RiveTelemetry is a developer tool for inspecting and debugging Rive runtime beha
 - `package/` contains the Flutter bridge/debugger wrapper.
 - `demo/` contains the Flutter web demo app.
 
-## Day 1 Scope
+## Current Scope
 
-The current goal is only architectural scaffolding for the monorepo:
+RiveTelemetry currently includes the initial monorepo scaffold plus a reusable
+Flutter debugger wrapper:
 
 - baseline project structure
 - dependency wiring
-- placeholder Flutter debugger wrapper
-- minimal Flutter web demo
 - minimal VS Code extension command scaffold
+- Flutter `RiveDebugger` wrapper for broadcasting Rive state-machine input telemetry
+- demo app that renders a Rive file and passes its active state machine into `RiveDebugger`
 
-Future work will add runtime telemetry, WebSocket transport, VS Code panels, and production-safe environment gating.
+`RiveDebugger` is dev-only by default. Release builds automatically disable
+telemetry so it does not open WebSockets, poll inputs, print logs, or send data.
+Use `enabled` to explicitly override behavior during local validation.
+
+```dart
+RiveDebugger(
+  stateMachine: stateMachine,
+  child: RiveWidget(controller: controller),
+)
+```
+
+Future work will add VS Code panels, incoming commands, richer telemetry, and
+additional production-safe controls.

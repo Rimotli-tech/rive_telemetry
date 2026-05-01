@@ -1,39 +1,39 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# rive_telemetry
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+Flutter bridge package for RiveTelemetry.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+`RiveDebugger` wraps an existing Rive widget and broadcasts state-machine input
+telemetry during development. It returns its child unchanged, so rendering stays
+owned by the app.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+Telemetry is dev-only by default. In release builds, `RiveDebugger` disables
+itself automatically and will not open WebSockets, start timers, serialize
+inputs, print logs, or send data.
 
-## Features
+Use `enabled` to override the default:
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+- `enabled: false` always disables telemetry.
+- `enabled: true` forces telemetry on.
+- omitted/null enables telemetry only outside release mode.
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
 ```dart
-const like = 'sample';
+RiveDebugger(
+  stateMachine: stateMachine,
+  child: RiveWidget(controller: controller),
+)
 ```
 
-## Additional information
+Optional configuration:
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+```dart
+RiveDebugger(
+  source: 'demo-flutter-web',
+  stateMachineName: 'State Machine 1',
+  socketUrl: 'ws://localhost:8080',
+  enabled: true,
+  stateMachine: stateMachine,
+  child: RiveWidget(controller: controller),
+)
+```

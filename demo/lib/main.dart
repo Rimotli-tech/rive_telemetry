@@ -153,6 +153,9 @@ class _DemoHomePageState extends State<DemoHomePage> {
 
                           return SizedBox.expand(
                             child: RiveDebugger(
+                              // Release builds disable telemetry by default;
+                              // the demo opts in for local Day 4 validation.
+                              enabled: true,
                               source: 'demo-flutter-web',
                               stateMachineName: kStateMachineName,
                               stateMachine: _stateMachine,
