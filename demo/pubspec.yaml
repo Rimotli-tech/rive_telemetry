@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  rive: ^0.13.20
+  rive: ^0.14.2
   rive_telemetry:
     path: ../package
 
