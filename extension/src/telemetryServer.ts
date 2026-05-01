@@ -1,12 +1,17 @@
 import * as vscode from 'vscode';
-import { WebSocketServer } from 'ws';
-import { RiveTelemetryInput, RiveTelemetryPayload } from './types';
+import WebSocket, { WebSocketServer } from 'ws';
+import {
+  RiveTelemetryCommand,
+  RiveTelemetryInput,
+  RiveTelemetryPayload,
+} from './types';
 
 type TelemetryListener = (payload: RiveTelemetryPayload) => void;
 
 export class TelemetryServer implements vscode.Disposable {
   private server?: WebSocketServer;
   private latestPayload?: RiveTelemetryPayload;
+  private readonly clients = new Set<WebSocket>();
   private readonly listeners = new Set<TelemetryListener>();
   private readonly output: vscode.OutputChannel;
 
@@ -37,6 +42,7 @@ export class TelemetryServer implements vscode.Disposable {
       });
 
       server.on('connection', (socket) => {
+        this.clients.add(socket);
         this.output.appendLine('RiveTelemetry client connected');
 
         socket.on('message', (data) => {
@@ -44,10 +50,12 @@ export class TelemetryServer implements vscode.Disposable {
         });
 
         socket.on('close', () => {
+          this.clients.delete(socket);
           this.output.appendLine('RiveTelemetry client disconnected');
         });
 
         socket.on('error', (error) => {
+          this.clients.delete(socket);
           this.output.appendLine(`RiveTelemetry client error: ${error.message}`);
         });
       });
@@ -80,8 +88,40 @@ export class TelemetryServer implements vscode.Disposable {
     };
   }
 
+  sendCommand(command: RiveTelemetryCommand): boolean {
+    const openClients = [...this.clients].filter(
+      (client) => client.readyState === WebSocket.OPEN,
+    );
+
+    if (openClients.length === 0) {
+      this.output.appendLine(
+        'RiveTelemetry command ignored because no Flutter client is connected',
+      );
+      vscode.window.showWarningMessage(
+        'RiveTelemetry has no connected Flutter client.',
+      );
+      return false;
+    }
+
+    const message = JSON.stringify(command);
+    for (const client of openClients) {
+      try {
+        client.send(message);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        this.output.appendLine(`RiveTelemetry command send failed: ${detail}`);
+      }
+    }
+
+    return true;
+  }
+
   dispose(): void {
     this.listeners.clear();
+    for (const client of this.clients) {
+      client.close();
+    }
+    this.clients.clear();
     this.server?.close();
     this.server = undefined;
   }

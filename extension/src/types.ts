@@ -12,3 +12,24 @@ export interface RiveTelemetryPayload {
   stateMachine: string;
   inputs: RiveTelemetryInput[];
 }
+
+export type RiveTelemetryCommand =
+  | {
+      type: 'setInput';
+      stateMachine: string;
+      inputName: string;
+      inputType: 'boolean';
+      value: boolean;
+    }
+  | {
+      type: 'setInput';
+      stateMachine: string;
+      inputName: string;
+      inputType: 'number';
+      value: number;
+    }
+  | {
+      type: 'fireTrigger';
+      stateMachine: string;
+      inputName: string;
+    };

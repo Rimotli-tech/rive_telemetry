@@ -126,7 +126,7 @@ class _RiveDebuggerState extends State<RiveDebugger> {
       final socket = WebSocketChannel.connect(Uri.parse(widget.socketUrl));
       _socket = socket;
       _socketSubscription = socket.stream.listen(
-        (_) {},
+        _handleSocketMessage,
         onError: (Object error) {
           debugPrint('RiveTelemetry WebSocket error: $error');
           _markSocketDisconnected();
@@ -262,5 +262,105 @@ class _RiveDebuggerState extends State<RiveDebugger> {
       debugPrint('RiveTelemetry WebSocket send failed: $error');
       _markSocketDisconnected();
     }
+  }
+
+  void _handleSocketMessage(dynamic message) {
+    if (!_isTelemetryEnabled) {
+      return;
+    }
+
+    if (widget.stateMachine == null) {
+      return;
+    }
+
+    final rawMessage = message is String ? message : message.toString();
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(rawMessage);
+    } catch (error) {
+      debugPrint('RiveTelemetry ignored malformed command: $error');
+      return;
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      return;
+    }
+
+    final applied = switch (decoded['type']) {
+      'setInput' => _applySetInputCommand(decoded),
+      'fireTrigger' => _applyFireTriggerCommand(decoded),
+      _ => false,
+    };
+
+    if (!applied) {
+      return;
+    }
+
+    widget.stateMachine?.requestAdvance();
+    _broadcastRiveState();
+  }
+
+  bool _applySetInputCommand(Map<String, dynamic> command) {
+    if (command['stateMachine'] != widget.stateMachineName) {
+      return false;
+    }
+
+    final inputName = command['inputName'];
+    final inputType = command['inputType'];
+    if (inputName is! String || inputType is! String) {
+      return false;
+    }
+
+    final input = _inputByName(inputName);
+    if (input == null) {
+      return false;
+    }
+
+    final value = command['value'];
+    if (input is rive.BooleanInput && inputType == 'boolean' && value is bool) {
+      input.value = value;
+      return true;
+    }
+
+    if (input is rive.NumberInput && inputType == 'number' && value is num) {
+      input.value = value.toDouble();
+      return true;
+    }
+
+    return false;
+  }
+
+  bool _applyFireTriggerCommand(Map<String, dynamic> command) {
+    if (command['stateMachine'] != widget.stateMachineName) {
+      return false;
+    }
+
+    final inputName = command['inputName'];
+    if (inputName is! String) {
+      return false;
+    }
+
+    final input = _inputByName(inputName);
+    if (input is! rive.TriggerInput) {
+      return false;
+    }
+
+    input.fire();
+    return true;
+  }
+
+  rive.Input? _inputByName(String name) {
+    final stateMachine = widget.stateMachine;
+    if (stateMachine == null) {
+      return null;
+    }
+
+    for (final input in stateMachine.inputs) {
+      if (input.name == name) {
+        return input;
+      }
+    }
+
+    return null;
   }
 }

@@ -35,10 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TelemetryServer = void 0;
 const vscode = __importStar(require("vscode"));
-const ws_1 = require("ws");
+const ws_1 = __importStar(require("ws"));
 class TelemetryServer {
     constructor(output, port = 8080) {
         this.port = port;
+        this.clients = new Set();
         this.listeners = new Set();
         this.output = output;
     }
@@ -56,14 +57,17 @@ class TelemetryServer {
                 this.output.appendLine(`RiveTelemetry WebSocket server listening on ws://localhost:${this.port}`);
             });
             server.on('connection', (socket) => {
+                this.clients.add(socket);
                 this.output.appendLine('RiveTelemetry client connected');
                 socket.on('message', (data) => {
                     this.handleMessage(data.toString());
                 });
                 socket.on('close', () => {
+                    this.clients.delete(socket);
                     this.output.appendLine('RiveTelemetry client disconnected');
                 });
                 socket.on('error', (error) => {
+                    this.clients.delete(socket);
                     this.output.appendLine(`RiveTelemetry client error: ${error.message}`);
                 });
             });
@@ -90,8 +94,31 @@ class TelemetryServer {
             },
         };
     }
+    sendCommand(command) {
+        const openClients = [...this.clients].filter((client) => client.readyState === ws_1.default.OPEN);
+        if (openClients.length === 0) {
+            this.output.appendLine('RiveTelemetry command ignored because no Flutter client is connected');
+            vscode.window.showWarningMessage('RiveTelemetry has no connected Flutter client.');
+            return false;
+        }
+        const message = JSON.stringify(command);
+        for (const client of openClients) {
+            try {
+                client.send(message);
+            }
+            catch (error) {
+                const detail = error instanceof Error ? error.message : String(error);
+                this.output.appendLine(`RiveTelemetry command send failed: ${detail}`);
+            }
+        }
+        return true;
+    }
     dispose() {
         this.listeners.clear();
+        for (const client of this.clients) {
+            client.close();
+        }
+        this.clients.clear();
         this.server?.close();
         this.server = undefined;
     }
