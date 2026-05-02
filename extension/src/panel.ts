@@ -920,9 +920,6 @@ function getWebviewHtml(
         : receiving
           ? 'Receiving telemetry'
           : 'Waiting for telemetry...';
-      const snapshot = telemetryState.activeSnapshot;
-      const diffs = telemetryState.activeDiffs ?? [];
-      const viewModelDiffs = telemetryState.activeViewModelDiffs ?? [];
 
       if (!activePayload) {
         app.innerHTML = \`
@@ -957,7 +954,6 @@ function getWebviewHtml(
               <div class="input-grid">\${inputCards}</div>
             </section>
             \${renderViewModelSection(viewModel)}
-            \${renderSnapshotPanel(activePayload, snapshot, diffs, viewModelDiffs)}
           </div>
           \${renderFooter()}
         </div>
@@ -965,7 +961,6 @@ function getWebviewHtml(
 
       bindRuntimeSelector();
       bindStateMachineSelector();
-      bindSnapshotControls();
       bindControls();
       if (changedInputs.size > 0) {
         window.setTimeout(() => {
