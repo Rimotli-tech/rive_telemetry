@@ -591,7 +591,7 @@ function getWebviewHtml(
     }
     .snapshot-panel {
       padding: 24px;
-      border: 1px dashed rgba(64, 71, 81, 0.72);
+      border: 1px solid var(--rt-border-soft);
       border-radius: var(--rt-radius);
       background: var(--rt-surface-low);
     }
@@ -607,6 +607,90 @@ function getWebviewHtml(
       gap: 8px;
       flex-wrap: wrap;
     }
+    .snapshot-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0 20px;
+      padding: 12px;
+      border: 1px solid rgba(64, 71, 81, 0.42);
+      border-radius: var(--rt-radius);
+      background: rgba(18, 25, 32, 0.72);
+    }
+    .snapshot-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .snapshot-section {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(64, 71, 81, 0.38);
+    }
+    .snapshot-section:first-of-type {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
+    .snapshot-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .snapshot-section-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .snapshot-count {
+      color: var(--rt-muted-soft);
+      font-size: 11px;
+    }
+    .snapshot-table {
+      margin-top: 0;
+      border: 1px solid rgba(64, 71, 81, 0.42);
+      border-radius: var(--rt-radius);
+      overflow: hidden;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: rgba(18, 25, 32, 0.42);
+    }
+    .snapshot-table th {
+      padding: 9px 10px;
+      background: rgba(26, 35, 43, 0.58);
+      color: var(--rt-muted);
+      font-size: 11px;
+      letter-spacing: 0.02em;
+    }
+    .snapshot-table td {
+      padding: 10px;
+    }
+    .value-chip {
+      display: inline-block;
+      max-width: 240px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      overflow-wrap: anywhere;
+      background: rgba(45, 54, 62, 0.76);
+      color: var(--rt-text);
+      font-family: var(--rt-mono);
+      font-size: 12px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(250, 204, 21, 0.1);
+    }
     .snapshot-empty {
       display: flex;
       flex-direction: column;
@@ -614,9 +698,6 @@ function getWebviewHtml(
       justify-content: center;
       gap: 12px;
       text-align: center;
-    }
-    .snapshot-vm-section {
-      margin-top: 20px;
     }
     .snapshot-icon {
       color: rgba(138, 145, 157, 0.58);
@@ -764,6 +845,9 @@ function getWebviewHtml(
       }
       .runtime-grid,
       .input-grid {
+        grid-template-columns: 1fr;
+      }
+      .snapshot-meta-grid {
         grid-template-columns: 1fr;
       }
       .runtime-top {
@@ -1169,20 +1253,23 @@ function getWebviewHtml(
         <tr>
           <td><code>\${escapeHtml(diff.name)}</code></td>
           <td>\${escapeHtml(diff.type)}</td>
-          <td><code>\${escapeHtml(formatValue(diff.snapshotValue))}</code></td>
-          <td><code>\${escapeHtml(formatValue(diff.currentValue))}</code></td>
-          <td class="diff-\${escapeAttribute(diff.status)}">\${escapeHtml(diff.status)}</td>
+          <td><span class="value-chip">\${escapeHtml(formatValue(diff.snapshotValue))}</span></td>
+          <td><span class="value-chip">\${escapeHtml(formatValue(diff.currentValue))}</span></td>
+          <td><span class="status-badge diff-\${escapeAttribute(diff.status)}">\${escapeHtml(diff.status)}</span></td>
         </tr>
       \`).join('');
       const viewModelDiffRows = viewModelDiffs.map((diff) => \`
         <tr>
           <td><code>\${escapeHtml(diff.name)}</code></td>
           <td>\${escapeHtml(diff.type)}</td>
-          <td><code>\${escapeHtml(formatViewModelValue(diff.from))}</code></td>
-          <td><code>\${escapeHtml(formatViewModelValue(diff.to))}</code></td>
+          <td><span class="value-chip">\${escapeHtml(formatViewModelValue(diff.from))}</span></td>
+          <td><span class="value-chip">\${escapeHtml(formatViewModelValue(diff.to))}</span></td>
         </tr>
       \`).join('');
       const snapshotViewModel = snapshot?.viewModel?.supported ? snapshot.viewModel : null;
+      const snapshotViewModelLabel = snapshotViewModel
+        ? (snapshotViewModel.viewModelName || '—') + ' / ' + (snapshotViewModel.instanceName || '—')
+        : '—';
 
       if (!snapshot) {
         return \`
@@ -1205,40 +1292,65 @@ function getWebviewHtml(
           <div class="snapshot-header">
             <div>
               <h2>Snapshot Diff</h2>
-              <div class="meta">Captured \${escapeHtml(formatTimestamp(snapshot.capturedAt))} with \${snapshot.inputs.length} input(s)\${snapshotViewModel ? ' and ViewModel ' + escapeHtml(snapshotViewModel.viewModelName || '—') + ' / ' + escapeHtml(snapshotViewModel.instanceName || '—') : ''}</div>
+              <div class="meta">Captured \${escapeHtml(formatTimestamp(snapshot.capturedAt))}</div>
             </div>
             <div class="snapshot-actions">
               <button type="button" class="primary-button" data-snapshot-action="capture" data-runtime-id="\${escapeAttribute(activePayload.runtimeId)}">Capture</button>
               <button type="button" class="secondary" data-snapshot-action="clear" data-runtime-id="\${escapeAttribute(activePayload.runtimeId)}">Clear</button>
             </div>
           </div>
-          <dl>
-            <dt>Snapshot runtime</dt><dd><code>\${escapeHtml(snapshot.runtimeId)}</code></dd>
-            <dt>Snapshot state machine</dt><dd>\${escapeHtml(snapshot.stateMachine)}</dd>
-          </dl>
-          \${diffs.length === 0
+          <div class="snapshot-meta-grid">
+            \${renderSnapshotMetaItem('Runtime', snapshot.runtimeId, true)}
+            \${renderSnapshotMetaItem('State Machine', snapshot.stateMachine, false)}
+            \${renderSnapshotMetaItem('ViewModel', snapshotViewModelLabel, false)}
+          </div>
+          \${renderInputSnapshotDiffTable(diffRows, diffs.length)}
+          \${snapshotViewModel ? renderViewModelSnapshotDiffTable(viewModelDiffRows, viewModelDiffs.length) : ''}
+        </section>
+      \`;
+    }
+
+    function renderSnapshotMetaItem(label, value, mono) {
+      return \`
+        <div class="snapshot-meta-item">
+          <span class="field-label">\${escapeHtml(label)}</span>
+          <span class="field-value \${mono ? 'mono' : ''}">\${escapeHtml(value)}</span>
+        </div>
+      \`;
+    }
+
+    function renderInputSnapshotDiffTable(diffRows, diffCount) {
+      return \`
+        <div class="snapshot-section">
+          <div class="snapshot-section-header">
+            <h3 class="snapshot-section-title"><span class="section-icon">&#8801;</span>Input Changes</h3>
+            <span class="snapshot-count">\${diffCount} changed</span>
+          </div>
+          \${diffCount === 0
             ? '<p class="empty">No input value differences from the captured snapshot.</p>'
             : \`
-              <table>
+              <table class="snapshot-table">
                 <thead>
                   <tr><th>Name</th><th>Type</th><th>Snapshot</th><th>Current</th><th>Status</th></tr>
                 </thead>
                 <tbody>\${diffRows}</tbody>
               </table>
             \`}
-          \${snapshotViewModel ? renderViewModelSnapshotDiffTable(viewModelDiffRows, viewModelDiffs.length) : ''}
-        </section>
+        </div>
       \`;
     }
 
     function renderViewModelSnapshotDiffTable(diffRows, diffCount) {
       return \`
-        <div class="snapshot-vm-section">
-          <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel Changes</h3>
+        <div class="snapshot-section">
+          <div class="snapshot-section-header">
+            <h3 class="snapshot-section-title"><span class="section-icon">&#9638;</span>ViewModel Changes</h3>
+            <span class="snapshot-count">\${diffCount} changed</span>
+          </div>
           \${diffCount === 0
             ? '<p class="empty">No ViewModel property differences from the captured snapshot.</p>'
             : \`
-              <table>
+              <table class="snapshot-table">
                 <thead>
                   <tr><th>Name</th><th>Type</th><th>From</th><th>To</th></tr>
                 </thead>
