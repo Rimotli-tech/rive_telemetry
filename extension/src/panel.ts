@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { TelemetryServer } from './telemetryServer';
 import {
   RiveTelemetryCommand,
-  RiveTelemetryPayload,
+  RiveTelemetryPanelState,
   RiveTelemetryServerStatus,
 } from './types';
 
@@ -20,18 +20,23 @@ export class RiveTelemetryPanel {
     this.panel = panel;
     this.panel.webview.options = { enableScripts: true };
     this.panel.webview.html = getWebviewHtml(
-      this.telemetryServer.latest,
+      this.telemetryServer.panelState,
       this.telemetryServer.status,
     );
 
-    this.telemetrySubscription = this.telemetryServer.onTelemetry((payload) => {
-      this.updateTelemetry(payload);
+    this.telemetrySubscription = this.telemetryServer.onTelemetry((state) => {
+      this.updateTelemetry(state);
     });
     this.statusSubscription = this.telemetryServer.onStatus((status) => {
       this.updateStatus(status);
     });
 
     this.panel.webview.onDidReceiveMessage((message: unknown) => {
+      if (isWebviewSelectRuntimeMessage(message)) {
+        this.telemetryServer.selectRuntime(message.runtimeId);
+        return;
+      }
+
       if (!isWebviewCommandMessage(message)) {
         return;
       }
@@ -52,7 +57,9 @@ export class RiveTelemetryPanel {
   ): void {
     if (RiveTelemetryPanel.currentPanel) {
       RiveTelemetryPanel.currentPanel.panel.reveal(vscode.ViewColumn.One);
-      RiveTelemetryPanel.currentPanel.updateTelemetry(telemetryServer.latest);
+      RiveTelemetryPanel.currentPanel.updateTelemetry(
+        telemetryServer.panelState,
+      );
       RiveTelemetryPanel.currentPanel.updateStatus(telemetryServer.status);
       return;
     }
@@ -80,10 +87,10 @@ export class RiveTelemetryPanel {
     }
   }
 
-  private updateTelemetry(payload: RiveTelemetryPayload | undefined): void {
+  private updateTelemetry(state: RiveTelemetryPanelState): void {
     this.panel.webview.postMessage({
       type: 'telemetry',
-      payload: payload ?? null,
+      state,
     });
   }
 
@@ -98,6 +105,21 @@ export class RiveTelemetryPanel {
 interface WebviewCommandMessage {
   command: 'sendTelemetryCommand';
   payload: RiveTelemetryCommand;
+}
+
+interface WebviewSelectRuntimeMessage {
+  command: 'selectRuntime';
+  runtimeId: string;
+}
+
+function isWebviewSelectRuntimeMessage(
+  value: unknown,
+): value is WebviewSelectRuntimeMessage {
+  return (
+    isRecord(value) &&
+    value.command === 'selectRuntime' &&
+    typeof value.runtimeId === 'string'
+  );
 }
 
 function isWebviewCommandMessage(value: unknown): value is WebviewCommandMessage {
@@ -115,6 +137,7 @@ function isTelemetryCommand(value: unknown): value is RiveTelemetryCommand {
 
   if (
     value.type === 'setInput' &&
+    typeof value.runtimeId === 'string' &&
     typeof value.stateMachine === 'string' &&
     typeof value.inputName === 'string'
   ) {
@@ -126,6 +149,7 @@ function isTelemetryCommand(value: unknown): value is RiveTelemetryCommand {
 
   return (
     value.type === 'fireTrigger' &&
+    typeof value.runtimeId === 'string' &&
     typeof value.stateMachine === 'string' &&
     typeof value.inputName === 'string'
   );
@@ -136,10 +160,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function getWebviewHtml(
-  payload: RiveTelemetryPayload | undefined,
+  state: RiveTelemetryPanelState,
   status: RiveTelemetryServerStatus,
 ): string {
-  const initialPayload = JSON.stringify(payload ?? null);
+  const initialState = JSON.stringify(state);
   const initialStatus = JSON.stringify(status);
 
   return `<!DOCTYPE html>
@@ -234,6 +258,15 @@ function getWebviewHtml(
       border: 1px solid var(--vscode-input-border);
       border-radius: 4px;
     }
+    select {
+      min-width: 220px;
+      padding: 4px 8px;
+      color: var(--vscode-dropdown-foreground);
+      background: var(--vscode-dropdown-background);
+      border: 1px solid var(--vscode-dropdown-border);
+      border-radius: 4px;
+      font: inherit;
+    }
     input[type="range"] {
       width: 140px;
     }
@@ -251,6 +284,13 @@ function getWebviewHtml(
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
+    }
+    .runtime-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 20px 0 4px;
       flex-wrap: wrap;
     }
     .switch {
@@ -312,7 +352,7 @@ function getWebviewHtml(
   <script>
     const vscode = acquireVsCodeApi();
     const app = document.getElementById('app');
-    let latestPayload = ${initialPayload};
+    let telemetryState = ${initialState};
     let serverStatus = ${initialStatus};
     let lastCommandStatus = '';
     let highlightedInput = null;
@@ -321,8 +361,8 @@ function getWebviewHtml(
 
     window.addEventListener('message', (event) => {
       if (event.data?.type === 'telemetry') {
-        markChangedInputs(event.data.payload);
-        latestPayload = event.data.payload;
+        markChangedInputs(event.data.state?.activePayload ?? null);
+        telemetryState = event.data.state;
         render();
       } else if (event.data?.type === 'serverStatus') {
         serverStatus = event.data.status;
@@ -337,9 +377,10 @@ function getWebviewHtml(
     });
 
     function render() {
+      const activePayload = telemetryState.activePayload;
       const serverFailed = Boolean(serverStatus.serverError);
       const hasClients = serverStatus.clientCount > 0;
-      const receiving = Boolean(latestPayload) && !serverFailed;
+      const receiving = Boolean(activePayload) && !serverFailed;
       const controlsDisabled = !hasClients || serverFailed;
       const statusClass = serverFailed ? 'failed' : receiving ? 'receiving' : '';
       const statusText = serverFailed
@@ -348,7 +389,7 @@ function getWebviewHtml(
           ? 'Receiving telemetry'
           : 'Waiting for telemetry...';
 
-      if (!latestPayload) {
+      if (!activePayload) {
         app.innerHTML = \`
           <div class="status \${statusClass}">
             <span class="dot"></span>
@@ -364,7 +405,7 @@ function getWebviewHtml(
         return;
       }
 
-      const rows = latestPayload.inputs.map((input) => \`
+      const rows = activePayload.inputs.map((input) => \`
         <tr data-input-name="\${escapeAttribute(input.name)}" class="\${rowClass(input)}">
           <td><code>\${escapeHtml(input.name)}</code></td>
           <td>\${escapeHtml(input.type)}</td>
@@ -382,10 +423,18 @@ function getWebviewHtml(
           <dt>Connected clients</dt><dd>\${serverStatus.clientCount}</dd>
           <dt>Last telemetry received</dt><dd>\${escapeHtml(serverStatus.lastTelemetryAt ?? 'never')}</dd>
           \${serverFailed ? '<dt>Server error</dt><dd>' + escapeHtml(serverStatus.serverError) + '</dd>' : ''}
-          <dt>Source</dt><dd>\${escapeHtml(latestPayload.source)}</dd>
-          <dt>Timestamp</dt><dd>\${escapeHtml(latestPayload.timestamp)}</dd>
-          <dt>State machine</dt><dd>\${escapeHtml(latestPayload.stateMachine)}</dd>
+          <dt>Runtime</dt><dd>\${escapeHtml(activePayload.label || activePayload.runtimeId)}</dd>
+          <dt>Runtime ID</dt><dd><code>\${escapeHtml(activePayload.runtimeId)}</code></dd>
+          <dt>Source</dt><dd>\${escapeHtml(activePayload.source)}</dd>
+          <dt>Timestamp</dt><dd>\${escapeHtml(activePayload.timestamp)}</dd>
+          <dt>State machine</dt><dd>\${escapeHtml(activePayload.stateMachine)}</dd>
         </dl>
+        <label class="runtime-selector">
+          <span class="meta">Active runtime</span>
+          <select id="runtime-select">
+            \${renderRuntimeOptions()}
+          </select>
+        </label>
         <h2>Inputs</h2>
         <table>
           <thead>
@@ -396,6 +445,7 @@ function getWebviewHtml(
         <div class="command-status">\${escapeHtml(lastCommandStatus)}</div>
       \`;
 
+      bindRuntimeSelector();
       bindControls();
       if (changedInputs.size > 0) {
         window.setTimeout(() => {
@@ -452,12 +502,57 @@ function getWebviewHtml(
       return '';
     }
 
+    function renderRuntimeOptions() {
+      return telemetryState.runtimes.map((runtime) => {
+        const label = runtime.label || runtime.runtimeId;
+        const selected = runtime.runtimeId === telemetryState.activeRuntimeId ? 'selected' : '';
+        return \`<option value="\${escapeAttribute(runtime.runtimeId)}" \${selected}>\${escapeHtml(label)}</option>\`;
+      }).join('');
+    }
+
+    function bindRuntimeSelector() {
+      const selector = document.getElementById('runtime-select');
+      if (!selector) {
+        return;
+      }
+
+      selector.addEventListener('change', () => {
+        const runtimeId = selector.value;
+        const nextPayload = findRuntimePayload(runtimeId);
+        telemetryState = {
+          ...telemetryState,
+          activeRuntimeId: runtimeId,
+          activePayload: nextPayload,
+        };
+        previousValues = new Map();
+        changedInputs.clear();
+        vscode.postMessage({
+          command: 'selectRuntime',
+          runtimeId,
+        });
+        render();
+      });
+    }
+
+    function findRuntimePayload(runtimeId) {
+      if (telemetryState.activePayload?.runtimeId === runtimeId) {
+        return telemetryState.activePayload;
+      }
+
+      return telemetryState.payloads.find((payload) => payload.runtimeId === runtimeId) ?? null;
+    }
+
     function bindControls() {
       app.querySelectorAll('[data-control="boolean"]').forEach((control) => {
         control.addEventListener('change', () => {
+          const activePayload = telemetryState.activePayload;
+          if (!activePayload) {
+            return;
+          }
           sendCommand({
             type: 'setInput',
-            stateMachine: latestPayload.stateMachine,
+            runtimeId: activePayload.runtimeId,
+            stateMachine: activePayload.stateMachine,
             inputName: control.dataset.inputName,
             inputType: 'boolean',
             value: control.checked,
@@ -488,8 +583,12 @@ function getWebviewHtml(
 
       app.querySelectorAll('[data-control="number-step"]').forEach((control) => {
         control.addEventListener('click', () => {
+          const activePayload = telemetryState.activePayload;
+          if (!activePayload) {
+            return;
+          }
           const inputName = control.dataset.inputName;
-          const current = latestPayload.inputs.find((input) => input.name === inputName);
+          const current = activePayload.inputs.find((input) => input.name === inputName);
           const delta = Number(control.dataset.delta ?? 0);
           sendNumberCommand(inputName, Number(current?.value ?? 0) + delta);
         });
@@ -497,9 +596,14 @@ function getWebviewHtml(
 
       app.querySelectorAll('[data-control="trigger"]').forEach((control) => {
         control.addEventListener('click', () => {
+          const activePayload = telemetryState.activePayload;
+          if (!activePayload) {
+            return;
+          }
           sendCommand({
             type: 'fireTrigger',
-            stateMachine: latestPayload.stateMachine,
+            runtimeId: activePayload.runtimeId,
+            stateMachine: activePayload.stateMachine,
             inputName: control.dataset.inputName,
           });
         });
@@ -507,9 +611,14 @@ function getWebviewHtml(
     }
 
     function sendNumberCommand(inputName, value) {
+      const activePayload = telemetryState.activePayload;
+      if (!activePayload) {
+        return;
+      }
       sendCommand({
         type: 'setInput',
-        stateMachine: latestPayload.stateMachine,
+        runtimeId: activePayload.runtimeId,
+        stateMachine: activePayload.stateMachine,
         inputName,
         inputType: 'number',
         value,
@@ -562,8 +671,8 @@ function getWebviewHtml(
       return escapeHtml(value);
     }
 
-    if (latestPayload) {
-      markChangedInputs(latestPayload);
+    if (telemetryState.activePayload) {
+      markChangedInputs(telemetryState.activePayload);
       changedInputs.clear();
     }
     render();

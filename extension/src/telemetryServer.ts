@@ -3,16 +3,19 @@ import WebSocket, { WebSocketServer } from 'ws';
 import {
   RiveTelemetryCommand,
   RiveTelemetryInput,
+  RiveTelemetryPanelState,
   RiveTelemetryPayload,
+  RiveRuntimeSummary,
   RiveTelemetryServerStatus,
 } from './types';
 
-type TelemetryListener = (payload: RiveTelemetryPayload) => void;
+type TelemetryListener = (state: RiveTelemetryPanelState) => void;
 type StatusListener = (status: RiveTelemetryServerStatus) => void;
 
 export class TelemetryServer implements vscode.Disposable {
   private server?: WebSocketServer;
-  private latestPayload?: RiveTelemetryPayload;
+  private readonly latestPayloads = new Map<string, RiveTelemetryPayload>();
+  private activeRuntimeId: string | null = null;
   private serverRunning = false;
   private serverError: string | null = null;
   private lastTelemetryAt: string | null = null;
@@ -28,8 +31,20 @@ export class TelemetryServer implements vscode.Disposable {
     this.output = output;
   }
 
-  get latest(): RiveTelemetryPayload | undefined {
-    return this.latestPayload;
+  get panelState(): RiveTelemetryPanelState {
+    const payloads = [...this.latestPayloads.values()];
+    const runtimes = payloads.map(toRuntimeSummary);
+    const activePayload =
+      this.activeRuntimeId === null
+        ? null
+        : this.latestPayloads.get(this.activeRuntimeId) ?? null;
+
+    return {
+      runtimes,
+      payloads,
+      activeRuntimeId: activePayload?.runtimeId ?? null,
+      activePayload,
+    };
   }
 
   get status(): RiveTelemetryServerStatus {
@@ -164,6 +179,16 @@ export class TelemetryServer implements vscode.Disposable {
     this.serverRunning = false;
   }
 
+  selectRuntime(runtimeId: string): boolean {
+    if (!this.latestPayloads.has(runtimeId)) {
+      return false;
+    }
+
+    this.activeRuntimeId = runtimeId;
+    this.notifyTelemetry();
+    return true;
+  }
+
   private handleMessage(rawMessage: string): void {
     let parsed: unknown;
     try {
@@ -178,12 +203,23 @@ export class TelemetryServer implements vscode.Disposable {
       return;
     }
 
-    this.latestPayload = parsed;
-    this.lastTelemetryAt = new Date().toISOString();
-    for (const listener of this.listeners) {
-      listener(parsed);
+    this.latestPayloads.set(parsed.runtimeId, parsed);
+    if (
+      this.activeRuntimeId === null ||
+      !this.latestPayloads.has(this.activeRuntimeId)
+    ) {
+      this.activeRuntimeId = parsed.runtimeId;
     }
+    this.lastTelemetryAt = new Date().toISOString();
+    this.notifyTelemetry();
     this.notifyStatus();
+  }
+
+  private notifyTelemetry(): void {
+    const state = this.panelState;
+    for (const listener of this.listeners) {
+      listener(state);
+    }
   }
 
   private notifyStatus(): void {
@@ -201,11 +237,24 @@ function isTelemetryPayload(value: unknown): value is RiveTelemetryPayload {
 
   return (
     typeof value.source === 'string' &&
+    typeof value.runtimeId === 'string' &&
+    value.runtimeId.length > 0 &&
+    typeof value.label === 'string' &&
     typeof value.timestamp === 'string' &&
     typeof value.stateMachine === 'string' &&
     Array.isArray(value.inputs) &&
     value.inputs.every(isTelemetryInput)
   );
+}
+
+function toRuntimeSummary(payload: RiveTelemetryPayload): RiveRuntimeSummary {
+  return {
+    runtimeId: payload.runtimeId,
+    label: payload.label,
+    source: payload.source,
+    stateMachine: payload.stateMachine,
+    timestamp: payload.timestamp,
+  };
 }
 
 function isTelemetryInput(value: unknown): value is RiveTelemetryInput {

@@ -17,6 +17,8 @@ class RiveDebugger extends StatefulWidget {
     super.key,
     required this.child,
     this.stateMachine,
+    this.runtimeId,
+    this.label,
     this.source = 'flutter-app',
     this.stateMachineName = 'State Machine 1',
     this.socketUrl = 'ws://localhost:8080',
@@ -27,6 +29,8 @@ class RiveDebugger extends StatefulWidget {
 
   final Widget child;
   final rive.StateMachine? stateMachine;
+  final String? runtimeId;
+  final String? label;
   final String source;
   final String stateMachineName;
   final String socketUrl;
@@ -38,6 +42,8 @@ class RiveDebugger extends StatefulWidget {
   State<RiveDebugger> createState() => _RiveDebuggerState();
 }
 
+int _nextGeneratedRuntimeId = 0;
+
 class _RiveDebuggerState extends State<RiveDebugger> {
   WebSocketChannel? _socket;
   StreamSubscription<dynamic>? _socketSubscription;
@@ -48,6 +54,10 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   bool _socketConnected = false;
   bool _socketConnecting = false;
   bool _disposed = false;
+  late final String _generatedRuntimeId;
+
+  String get _runtimeId => widget.runtimeId ?? _generatedRuntimeId;
+  String get _label => widget.label ?? _runtimeId;
 
   bool get _isTelemetryEnabled {
     if (widget.enabled == false) {
@@ -62,6 +72,7 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   @override
   void initState() {
     super.initState();
+    _generatedRuntimeId = 'rive-runtime-${++_nextGeneratedRuntimeId}';
     if (!_isTelemetryEnabled) {
       return;
     }
@@ -98,6 +109,8 @@ class _RiveDebuggerState extends State<RiveDebugger> {
     if (widget.stateMachine != oldWidget.stateMachine ||
         widget.pollingInterval != oldWidget.pollingInterval ||
         widget.source != oldWidget.source ||
+        widget.runtimeId != oldWidget.runtimeId ||
+        widget.label != oldWidget.label ||
         widget.stateMachineName != oldWidget.stateMachineName ||
         widget.debugPrintJson != oldWidget.debugPrintJson) {
       _configureStateMachine();
@@ -229,10 +242,7 @@ class _RiveDebuggerState extends State<RiveDebugger> {
       _connectSocket();
     });
 
-    final nextDelayMs = (_reconnectDelay.inMilliseconds * 2).clamp(
-      1000,
-      5000,
-    );
+    final nextDelayMs = (_reconnectDelay.inMilliseconds * 2).clamp(1000, 5000);
     _reconnectDelay = Duration(milliseconds: nextDelayMs);
   }
 
@@ -264,6 +274,8 @@ class _RiveDebuggerState extends State<RiveDebugger> {
     if (!_isTelemetryEnabled) {
       return {
         'source': widget.source,
+        'runtimeId': _runtimeId,
+        'label': _label,
         'timestamp': DateTime.now().toUtc().toIso8601String(),
         'stateMachine': widget.stateMachineName,
         'inputs': const [],
@@ -272,6 +284,8 @@ class _RiveDebuggerState extends State<RiveDebugger> {
 
     return {
       'source': widget.source,
+      'runtimeId': _runtimeId,
+      'label': _label,
       'timestamp': DateTime.now().toUtc().toIso8601String(),
       'stateMachine': widget.stateMachineName,
       'inputs': widget.stateMachine?.inputs.map(_serializeInput).toList() ?? [],
@@ -364,6 +378,10 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   }
 
   bool _applySetInputCommand(Map<String, dynamic> command) {
+    if (command['runtimeId'] != _runtimeId) {
+      return _ignoreCommand('runtime mismatch');
+    }
+
     if (command['stateMachine'] != widget.stateMachineName) {
       return _ignoreCommand('state machine mismatch');
     }
@@ -396,6 +414,10 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   }
 
   bool _applyFireTriggerCommand(Map<String, dynamic> command) {
+    if (command['runtimeId'] != _runtimeId) {
+      return _ignoreCommand('runtime mismatch');
+    }
+
     if (command['stateMachine'] != widget.stateMachineName) {
       return _ignoreCommand('state machine mismatch');
     }

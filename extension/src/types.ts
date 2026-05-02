@@ -8,9 +8,26 @@ export interface RiveTelemetryInput {
 
 export interface RiveTelemetryPayload {
   source: string;
+  runtimeId: string;
+  label: string;
   timestamp: string;
   stateMachine: string;
   inputs: RiveTelemetryInput[];
+}
+
+export interface RiveRuntimeSummary {
+  runtimeId: string;
+  label: string;
+  source: string;
+  stateMachine: string;
+  timestamp: string;
+}
+
+export interface RiveTelemetryPanelState {
+  runtimes: RiveRuntimeSummary[];
+  payloads: RiveTelemetryPayload[];
+  activeRuntimeId: string | null;
+  activePayload: RiveTelemetryPayload | null;
 }
 
 export interface RiveTelemetryServerStatus {
@@ -23,6 +40,7 @@ export interface RiveTelemetryServerStatus {
 export type RiveTelemetryCommand =
   | {
       type: 'setInput';
+      runtimeId: string;
       stateMachine: string;
       inputName: string;
       inputType: 'boolean';
@@ -30,6 +48,7 @@ export type RiveTelemetryCommand =
     }
   | {
       type: 'setInput';
+      runtimeId: string;
       stateMachine: string;
       inputName: string;
       inputType: 'number';
@@ -37,6 +56,7 @@ export type RiveTelemetryCommand =
     }
   | {
       type: 'fireTrigger';
+      runtimeId: string;
       stateMachine: string;
       inputName: string;
     };

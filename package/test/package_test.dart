@@ -13,4 +13,20 @@ void main() {
 
     expect(find.text('placeholder'), findsOneWidget);
   });
+
+  testWidgets('RiveDebugger accepts runtime identity fields', (tester) async {
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: RiveDebugger(
+          enabled: false,
+          runtimeId: 'test-runtime',
+          label: 'Test Runtime',
+          child: Text('identified'),
+        ),
+      ),
+    );
+
+    expect(find.text('identified'), findsOneWidget);
+  });
 }

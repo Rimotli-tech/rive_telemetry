@@ -39,6 +39,8 @@ const ws_1 = __importStar(require("ws"));
 class TelemetryServer {
     constructor(output, port = 8080) {
         this.port = port;
+        this.latestPayloads = new Map();
+        this.activeRuntimeId = null;
         this.serverRunning = false;
         this.serverError = null;
         this.lastTelemetryAt = null;
@@ -47,8 +49,18 @@ class TelemetryServer {
         this.statusListeners = new Set();
         this.output = output;
     }
-    get latest() {
-        return this.latestPayload;
+    get panelState() {
+        const payloads = [...this.latestPayloads.values()];
+        const runtimes = payloads.map(toRuntimeSummary);
+        const activePayload = this.activeRuntimeId === null
+            ? null
+            : this.latestPayloads.get(this.activeRuntimeId) ?? null;
+        return {
+            runtimes,
+            payloads,
+            activeRuntimeId: activePayload?.runtimeId ?? null,
+            activePayload,
+        };
     }
     get status() {
         return {
@@ -156,6 +168,14 @@ class TelemetryServer {
         this.server = undefined;
         this.serverRunning = false;
     }
+    selectRuntime(runtimeId) {
+        if (!this.latestPayloads.has(runtimeId)) {
+            return false;
+        }
+        this.activeRuntimeId = runtimeId;
+        this.notifyTelemetry();
+        return true;
+    }
     handleMessage(rawMessage) {
         let parsed;
         try {
@@ -169,12 +189,20 @@ class TelemetryServer {
             this.output.appendLine('RiveTelemetry ignored invalid telemetry payload');
             return;
         }
-        this.latestPayload = parsed;
-        this.lastTelemetryAt = new Date().toISOString();
-        for (const listener of this.listeners) {
-            listener(parsed);
+        this.latestPayloads.set(parsed.runtimeId, parsed);
+        if (this.activeRuntimeId === null ||
+            !this.latestPayloads.has(this.activeRuntimeId)) {
+            this.activeRuntimeId = parsed.runtimeId;
         }
+        this.lastTelemetryAt = new Date().toISOString();
+        this.notifyTelemetry();
         this.notifyStatus();
+    }
+    notifyTelemetry() {
+        const state = this.panelState;
+        for (const listener of this.listeners) {
+            listener(state);
+        }
     }
     notifyStatus() {
         const status = this.status;
@@ -189,10 +217,22 @@ function isTelemetryPayload(value) {
         return false;
     }
     return (typeof value.source === 'string' &&
+        typeof value.runtimeId === 'string' &&
+        value.runtimeId.length > 0 &&
+        typeof value.label === 'string' &&
         typeof value.timestamp === 'string' &&
         typeof value.stateMachine === 'string' &&
         Array.isArray(value.inputs) &&
         value.inputs.every(isTelemetryInput));
+}
+function toRuntimeSummary(payload) {
+    return {
+        runtimeId: payload.runtimeId,
+        label: payload.label,
+        source: payload.source,
+        stateMachine: payload.stateMachine,
+        timestamp: payload.timestamp,
+    };
 }
 function isTelemetryInput(value) {
     if (!isRecord(value)) {

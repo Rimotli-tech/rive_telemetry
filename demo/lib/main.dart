@@ -25,14 +25,75 @@ class RiveTelemetryDemoApp extends StatelessWidget {
   }
 }
 
-class DemoHomePage extends StatefulWidget {
+class DemoHomePage extends StatelessWidget {
   const DemoHomePage({super.key});
 
   @override
-  State<DemoHomePage> createState() => _DemoHomePageState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF131920),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 900) {
+                return const Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _RiveRuntimeCard(
+                        runtimeId: 'demo-primary',
+                        label: 'Primary Demo',
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: _RiveRuntimeCard(
+                        runtimeId: 'demo-secondary',
+                        label: 'Secondary Demo',
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              return const Column(
+                children: [
+                  Expanded(
+                    child: _RiveRuntimeCard(
+                      runtimeId: 'demo-primary',
+                      label: 'Primary Demo',
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Expanded(
+                    child: _RiveRuntimeCard(
+                      runtimeId: 'demo-secondary',
+                      label: 'Secondary Demo',
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _DemoHomePageState extends State<DemoHomePage> {
+class _RiveRuntimeCard extends StatefulWidget {
+  const _RiveRuntimeCard({required this.runtimeId, required this.label});
+
+  final String runtimeId;
+  final String label;
+
+  @override
+  State<_RiveRuntimeCard> createState() => _RiveRuntimeCardState();
+}
+
+class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
   rive.RiveWidgetController? _riveController;
   rive.StateMachine? _stateMachine;
   bool _stateMachineFound = false;
@@ -66,7 +127,8 @@ class _DemoHomePageState extends State<DemoHomePage> {
     }
 
     debugPrint(
-      'RiveTelemetry state machine "$kStateMachineName" found with '
+      'RiveTelemetry ${widget.runtimeId} state machine '
+      '"$kStateMachineName" found with '
       '${stateMachine.inputs.length} input(s).',
     );
 
@@ -122,71 +184,86 @@ class _DemoHomePageState extends State<DemoHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF131920),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Flexible(
-                flex: 5,
-                child: Center(
-                  child: rive.RiveWidgetBuilder(
-                    fileLoader: _fileLoader,
-                    stateMachineSelector: rive.StateMachineSelector.byName(
-                      kStateMachineName,
-                    ),
-                    builder: (context, state) => switch (state) {
-                      rive.RiveLoading() => const CircularProgressIndicator(
-                        color: Color(0xFF2566B9),
-                      ),
-                      rive.RiveFailed() => _RiveErrorMessage(
-                        error: state.error,
-                        onBuild: () => _onRiveFailed(state.error),
-                      ),
-                      rive.RiveLoaded() => Builder(
-                        builder: (context) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            _onRiveLoaded(state);
-                          });
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF18212A),
+        border: Border.all(color: const Color(0xFF33414D)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              widget.label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Center(
+              child: rive.RiveWidgetBuilder(
+                fileLoader: _fileLoader,
+                stateMachineSelector: rive.StateMachineSelector.byName(
+                  kStateMachineName,
+                ),
+                builder: (context, state) => switch (state) {
+                  rive.RiveLoading() => const CircularProgressIndicator(
+                    color: Color(0xFF2566B9),
+                  ),
+                  rive.RiveFailed() => _RiveErrorMessage(
+                    error: state.error,
+                    onBuild: () => _onRiveFailed(state.error),
+                  ),
+                  rive.RiveLoaded() => Builder(
+                    builder: (context) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _onRiveLoaded(state);
+                      });
 
-                          return SizedBox.expand(
-                            child: RiveDebugger(
-                              // Release builds disable telemetry by default;
-                              // the demo opts in for local Day 4 validation.
-                              enabled: true,
-                              source: 'demo-flutter-web',
-                              stateMachineName: kStateMachineName,
-                              stateMachine: _stateMachine,
-                              child: rive.RiveWidget(
-                                controller: state.controller,
-                                fit: rive.Fit.cover,
-                                alignment: Alignment.center,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                      return SizedBox.expand(
+                        child: RiveDebugger(
+                          // Release builds disable telemetry by default;
+                          // the demo opts in for local validation.
+                          enabled: true,
+                          source: 'demo-flutter-web',
+                          runtimeId: widget.runtimeId,
+                          label: widget.label,
+                          stateMachineName: kStateMachineName,
+                          stateMachine: _stateMachine,
+                          child: rive.RiveWidget(
+                            controller: state.controller,
+                            fit: rive.Fit.cover,
+                            alignment: Alignment.center,
+                          ),
+                        ),
+                      );
                     },
                   ),
-                ),
+                },
               ),
-              const SizedBox(height: 12),
-              _InputControlPanel(
-                inputs: _stateMachine?.inputs ?? const [],
-                onToggleBoolean: _toggleBooleanInput,
-                onStepNumber: _stepNumberInput,
-                onFireTrigger: _fireTriggerInput,
-              ),
-              const SizedBox(height: 12),
-              _DebugStatusPanel(
-                stateMachineFound: _stateMachineFound,
-                inputCount: _stateMachine?.inputs.length ?? 0,
-              ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+          _InputControlPanel(
+            label: '${widget.label} controls',
+            inputs: _stateMachine?.inputs ?? const [],
+            onToggleBoolean: _toggleBooleanInput,
+            onStepNumber: _stepNumberInput,
+            onFireTrigger: _fireTriggerInput,
+          ),
+          const SizedBox(height: 12),
+          _DebugStatusPanel(
+            runtimeId: widget.runtimeId,
+            stateMachineFound: _stateMachineFound,
+            inputCount: _stateMachine?.inputs.length ?? 0,
+          ),
+        ],
       ),
     );
   }
@@ -216,12 +293,14 @@ class _RiveErrorMessage extends StatelessWidget {
 
 class _InputControlPanel extends StatelessWidget {
   const _InputControlPanel({
+    required this.label,
     required this.inputs,
     required this.onToggleBoolean,
     required this.onStepNumber,
     required this.onFireTrigger,
   });
 
+  final String label;
   final List<rive.Input> inputs;
   final ValueChanged<rive.BooleanInput> onToggleBoolean;
   final void Function(rive.NumberInput input, double delta) onStepNumber;
@@ -237,9 +316,9 @@ class _InputControlPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'Debug controls',
-          style: TextStyle(
+        Text(
+          label,
+          style: const TextStyle(
             color: Colors.white70,
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -393,10 +472,12 @@ class _TinyButton extends StatelessWidget {
 
 class _DebugStatusPanel extends StatelessWidget {
   const _DebugStatusPanel({
+    required this.runtimeId,
     required this.stateMachineFound,
     required this.inputCount,
   });
 
+  final String runtimeId;
   final bool stateMachineFound;
   final int inputCount;
 
@@ -414,6 +495,7 @@ class _DebugStatusPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text('Runtime: $runtimeId'),
             Text('State machine: ${stateMachineFound ? 'found' : 'not found'}'),
             Text('Inputs: $inputCount'),
           ],
