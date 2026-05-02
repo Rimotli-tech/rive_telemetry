@@ -1,7 +1,12 @@
 name: rive_telemetry
-description: "Flutter bridge and debugger wrapper for RiveTelemetry."
-version: 0.0.1
-publish_to: 'none'
+description: "Development-only Flutter telemetry bridge for inspecting and controlling Rive state machines and ViewModels from VS Code."
+version: 0.2.0
+repository: https://github.com/Rimotli-tech/rive_telemetry
+topics:
+  - rive
+  - telemetry
+  - debugging
+  - flutter
 
 environment:
   sdk: ^3.10.7

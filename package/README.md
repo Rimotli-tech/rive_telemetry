@@ -1,39 +1,159 @@
 # rive_telemetry
 
-Flutter bridge package for RiveTelemetry.
+`rive_telemetry` is a development-only Flutter bridge for the RiveTelemetry
+VS Code extension. It wraps an existing Rive widget, streams runtime telemetry
+over WebSocket, and lets the VS Code panel inspect or mutate Rive state machine
+inputs and ViewModel properties while your app is running.
 
-`RiveDebugger` wraps an existing Rive widget and broadcasts state-machine input
-telemetry during development. It returns its child unchanged, so rendering stays
-owned by the app.
+The wrapper returns its child unchanged. Rendering, layout, and Rive controller
+ownership stay with your Flutter app.
 
-Telemetry is dev-only by default. In release builds, `RiveDebugger` disables
-itself automatically and will not open WebSockets, start timers, serialize
-inputs, print logs, or send data.
+## Features
 
-Use `enabled` to override the default:
+- Stream state machine input telemetry to VS Code.
+- Control boolean, number, and trigger state machine inputs from the panel.
+- Identify multiple Rive runtimes with `runtimeId` and `label`.
+- Stream supported ViewModel properties.
+- Mutate supported ViewModel properties at runtime.
+- Capture in-memory snapshots and compare live state against them in the panel.
+- Disable itself automatically in release builds by default.
 
-- `enabled: false` always disables telemetry.
-- `enabled: true` forces telemetry on.
-- omitted/null enables telemetry only outside release mode.
+## Production safety
 
-## Usage
+Telemetry is disabled in release builds unless you explicitly opt in:
+
+- `enabled: null` or omitted: enabled outside release mode only.
+- `enabled: false`: always disabled.
+- `enabled: true`: always enabled.
+
+When disabled, `RiveDebugger` does not open a WebSocket, start polling timers,
+serialize telemetry, print telemetry JSON, or send runtime data.
+
+## Getting started
+
+Install the Flutter package:
+
+```yaml
+dependencies:
+  rive_telemetry: ^0.2.0
+```
+
+Install and run the RiveTelemetry VS Code extension, then open:
+
+```text
+RiveTelemetry: Open Panel
+```
+
+By default the package connects to:
+
+```text
+ws://localhost:8080
+```
+
+## Basic usage
+
+Wrap the rendered Rive widget with `RiveDebugger` and pass the state machine
+instance once it is loaded.
 
 ```dart
 RiveDebugger(
   stateMachine: stateMachine,
-  child: RiveWidget(controller: controller),
-)
-```
-
-Optional configuration:
-
-```dart
-RiveDebugger(
-  source: 'demo-flutter-web',
   stateMachineName: 'State Machine 1',
-  socketUrl: 'ws://localhost:8080',
-  enabled: true,
-  stateMachine: stateMachine,
-  child: RiveWidget(controller: controller),
+  child: rive.RiveWidget(controller: controller),
 )
 ```
+
+For local demos or release-mode validation, explicitly enable telemetry:
+
+```dart
+RiveDebugger(
+  enabled: true,
+  source: 'my-flutter-app',
+  runtimeId: 'mascot-main',
+  label: 'Mascot Main',
+  stateMachineName: 'State Machine 1',
+  stateMachine: stateMachine,
+  child: rive.RiveWidget(controller: controller),
+)
+```
+
+## Multiple runtimes
+
+Use stable runtime identity fields when an app screen contains more than one
+Rive runtime:
+
+```dart
+RiveDebugger(
+  runtimeId: 'settings-cat',
+  label: 'Settings Cat',
+  stateMachineName: 'State Machine 2',
+  stateMachine: stateMachine,
+  child: rive.RiveWidget(controller: controller),
+)
+```
+
+Commands sent from VS Code include `runtimeId`, so each `RiveDebugger` instance
+only applies commands intended for its own runtime.
+
+## ViewModel telemetry
+
+If your Rive file uses data binding, pass the loaded `ViewModelInstance` into
+`RiveDebugger`.
+
+```dart
+rive.RiveWidgetBuilder(
+  fileLoader: fileLoader,
+  stateMachineSelector: rive.StateMachineSelector.byName('State Machine 2'),
+  dataBind: rive.DataBind.byName('catVMInstance'),
+  builder: (context, state) => switch (state) {
+    rive.RiveLoaded() => RiveDebugger(
+      enabled: true,
+      source: 'example',
+      runtimeId: 'example-cat',
+      label: 'Cat Example',
+      stateMachineName: 'State Machine 2',
+      stateMachine: state.controller.stateMachine,
+      viewModelName: 'CatViewModel',
+      viewModelInstance: state.viewModelInstance,
+      child: rive.RiveWidget(controller: state.controller),
+    ),
+    rive.RiveLoading() => const CircularProgressIndicator(),
+    rive.RiveFailed(:final error) => Text(error.toString()),
+  },
+)
+```
+
+Supported ViewModel mutation types:
+
+- `number`
+- `boolean`
+- `string`
+- `color`
+- `enum`
+- `trigger`
+
+Unsupported or unavailable ViewModel APIs fail gracefully and are reported as
+unavailable in telemetry.
+
+## Snapshots and diffs
+
+The VS Code panel can capture an in-memory snapshot for the selected runtime and
+compare live telemetry against it. Snapshot diffing currently covers:
+
+- state machine inputs
+- supported ViewModel properties
+
+Snapshots are runtime-specific and ViewModel-instance-specific. They are not
+persisted across extension reloads.
+
+## Example
+
+See `example/` for a minimal Flutter app using one `demo_2.riv` instance, one
+state machine, and one ViewModel instance.
+
+## Limitations
+
+- This package is intended for development tooling, not production analytics.
+- The VS Code extension must be running for live panel telemetry.
+- Snapshot history and persistence are intentionally out of scope.
+- ViewModel support is limited to public Rive Flutter runtime APIs.
