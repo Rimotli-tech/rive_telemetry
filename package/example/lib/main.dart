@@ -83,7 +83,7 @@ class _ExampleHomePageState extends State<ExampleHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'RiveTelemetry Cat Example',
+                    'RiveTelemetry Example',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
@@ -121,7 +121,7 @@ class _ExampleHomePageState extends State<ExampleHomePage> {
                                   enabled: true,
                                   source: 'rive-telemetry-example',
                                   runtimeId: 'example-cat',
-                                  label: 'Cat Example',
+                                  label: 'Example',
                                   stateMachineName: _stateMachineName,
                                   stateMachine: _stateMachine,
                                   viewModelName: _viewModelName,

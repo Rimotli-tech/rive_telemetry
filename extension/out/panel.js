@@ -515,20 +515,12 @@ function getWebviewHtml(state, status) {
       box-shadow: 0 0 0 1px rgba(159, 202, 255, 0.24);
     }
     .field-select {
-      width: 100%;
-      min-width: 0;
-      max-width: 220px;
-      padding: 0;
-      background: transparent;
-      border-color: transparent;
-      color: var(--rt-text);
-      font-size: 13px;
+      width: 180px;
+      max-width: 100%;
     }
     .field-select:hover,
     .field-select:focus {
       background: var(--rt-surface-control);
-      border-color: var(--rt-border-soft);
-      box-shadow: none;
     }
     input[type="range"] {
       width: 108px;
@@ -878,7 +870,7 @@ function getWebviewHtml(state, status) {
               <span class="snapshot-icon">&#9676;</span>
               <div>
                 <h3 class="snapshot-title">Waiting for telemetry</h3>
-                <p class="snapshot-copy">Run the Flutter demo to stream Rive state machine inputs.</p>
+                <p class="snapshot-copy">Connect a Flutter app with RiveDebugger to inspect live Rive runtime telemetry.</p>
               </div>
               <div class="meta">
                 Connected clients: \${serverStatus.clientCount} &middot; Last telemetry: \${escapeHtml(formatTimestamp(serverStatus.lastTelemetryAt))}

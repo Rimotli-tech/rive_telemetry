@@ -105,12 +105,12 @@ class TelemetryServer {
                 socket.on('close', () => {
                     this.clients.delete(socket);
                     this.output.appendLine('RiveTelemetry client disconnected');
-                    this.notifyStatus();
+                    this.handleClientDisconnected();
                 });
                 socket.on('error', (error) => {
                     this.clients.delete(socket);
                     this.output.appendLine(`RiveTelemetry client error: ${error.message}`);
-                    this.notifyStatus();
+                    this.handleClientDisconnected();
                 });
             });
             server.on('error', (error) => {
@@ -232,6 +232,19 @@ class TelemetryServer {
         this.lastTelemetryAt = new Date().toISOString();
         this.notifyTelemetry();
         this.notifyStatus();
+    }
+    handleClientDisconnected() {
+        if (this.clients.size === 0) {
+            this.clearTelemetryState();
+            this.notifyTelemetry();
+        }
+        this.notifyStatus();
+    }
+    clearTelemetryState() {
+        this.latestPayloads.clear();
+        this.snapshots.clear();
+        this.activeRuntimeId = null;
+        this.lastTelemetryAt = null;
     }
     notifyTelemetry() {
         const state = this.panelState;

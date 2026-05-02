@@ -107,13 +107,13 @@ export class TelemetryServer implements vscode.Disposable {
         socket.on('close', () => {
           this.clients.delete(socket);
           this.output.appendLine('RiveTelemetry client disconnected');
-          this.notifyStatus();
+          this.handleClientDisconnected();
         });
 
         socket.on('error', (error) => {
           this.clients.delete(socket);
           this.output.appendLine(`RiveTelemetry client error: ${error.message}`);
-          this.notifyStatus();
+          this.handleClientDisconnected();
         });
       });
 
@@ -260,6 +260,22 @@ export class TelemetryServer implements vscode.Disposable {
     this.lastTelemetryAt = new Date().toISOString();
     this.notifyTelemetry();
     this.notifyStatus();
+  }
+
+  private handleClientDisconnected(): void {
+    if (this.clients.size === 0) {
+      this.clearTelemetryState();
+      this.notifyTelemetry();
+    }
+
+    this.notifyStatus();
+  }
+
+  private clearTelemetryState(): void {
+    this.latestPayloads.clear();
+    this.snapshots.clear();
+    this.activeRuntimeId = null;
+    this.lastTelemetryAt = null;
   }
 
   private notifyTelemetry(): void {
