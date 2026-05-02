@@ -2,7 +2,7 @@
   "name": "rive-telemetry",
   "displayName": "RiveTelemetry",
   "description": "Developer tooling for inspecting and debugging Rive runtime behavior.",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "publisher": "local",
   "engines": {
     "vscode": "^1.118.0"
@@ -34,5 +34,9 @@
     "@types/ws": "^8.5.13",
     "@types/vscode": "^1.118.0",
     "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rimotli-tech/rive_telemetry"
   }
 }
