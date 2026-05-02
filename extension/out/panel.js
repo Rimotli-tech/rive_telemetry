@@ -630,12 +630,9 @@ function getWebviewHtml(state, status) {
     .number-control input[type="range"] {
       display: none;
     }
-    .view-model-card {
-      padding: 16px;
-    }
     .view-model-header {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 12px;
@@ -653,33 +650,16 @@ function getWebviewHtml(state, status) {
       font-size: 12px;
       line-height: 1.5;
     }
-    .property-list {
-      display: grid;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .property-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
-      align-items: center;
-      gap: 10px;
-      padding: 9px 10px;
-      border: 1px solid var(--rt-border-soft);
-      border-radius: var(--rt-radius);
-      background: rgba(26, 35, 43, 0.52);
+    .value-button {
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .property-value {
-      justify-self: end;
-      max-width: 100%;
+      max-width: 180px;
       overflow-wrap: anywhere;
       color: var(--rt-text);
-    }
-    .property-row.mutable {
-      cursor: pointer;
-    }
-    .property-row.mutable:hover {
-      border-color: rgba(138, 145, 157, 0.78);
-      background: rgba(37, 48, 58, 0.72);
     }
     tr.command-sent {
       animation: flash 700ms ease-out;
@@ -723,13 +703,6 @@ function getWebviewHtml(state, status) {
       .runtime-grid,
       .input-grid {
         grid-template-columns: 1fr;
-      }
-      .property-row {
-        grid-template-columns: 1fr;
-        align-items: start;
-      }
-      .property-value {
-        justify-self: start;
       }
       .runtime-top {
         align-items: stretch;
@@ -980,7 +953,7 @@ function getWebviewHtml(state, status) {
     function renderViewModelSection(viewModel) {
       if (viewModel.state === 'not-enabled') {
         return \`
-          <section class="card view-model-card">
+          <section>
             <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
             <p class="view-model-empty">ViewModel telemetry not enabled</p>
           </section>
@@ -989,7 +962,7 @@ function getWebviewHtml(state, status) {
 
       if (viewModel.state === 'unsupported') {
         return \`
-          <section class="card view-model-card">
+          <section>
             <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
             <p class="view-model-empty">ViewModel not available\${viewModel.reason ? ': ' + escapeHtml(viewModel.reason) : ''}</p>
           </section>
@@ -997,7 +970,7 @@ function getWebviewHtml(state, status) {
       }
 
       return \`
-        <section class="card view-model-card">
+        <section>
           <div class="view-model-header">
             <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
             <div class="view-model-summary">
@@ -1007,26 +980,78 @@ function getWebviewHtml(state, status) {
           </div>
           \${viewModel.properties.length === 0
             ? '<p class="view-model-empty">No ViewModel properties reported.</p>'
-            : '<div class="property-list">' + viewModel.properties.map((property) => renderViewModelPropertyRow(viewModel, property)).join('') + '</div>'}
+            : '<div class="input-grid">' + viewModel.properties.map((property) => renderViewModelPropertyRow(viewModel, property)).join('') + '</div>'}
         </section>
       \`;
     }
 
     function renderViewModelPropertyRow(viewModel, property) {
-      const mutable = isMutableViewModelProperty(property);
       return \`
-        <div class="property-row \${mutable ? 'mutable' : ''}"
-          \${mutable ? 'data-control="view-model-property"' : ''}
-          data-view-model-name="\${escapeAttribute(viewModel.viewModelName)}"
-          data-instance-name="\${escapeAttribute(viewModel.instanceName)}"
-          data-property-name="\${escapeAttribute(property.name)}"
-          data-property-type="\${escapeAttribute(property.type)}"
-          data-property-value="\${escapeAttribute(property.value ?? '')}"
-          title="\${mutable ? 'Click to mutate ViewModel property' : ''}">
-          <code class="input-name">\${escapeHtml(property.name)}</code>
-          <span class="pill">\${escapeHtml(property.type)}</span>
-          <code class="property-value">\${escapeHtml(formatViewModelValue(property.value))}</code>
+        <div data-input-name="\${escapeAttribute(property.name)}" class="input-card \${rowClass({name: property.name})}">
+          <div class="input-main">
+            <div class="input-name-row">
+              <span class="input-name">\${escapeHtml(property.name)}</span>
+              <span class="pill">\${escapeHtml(property.type)}</span>
+            </div>
+            <div class="input-detail">\${renderViewModelPropertyDetail(property)}</div>
+          </div>
+          \${renderViewModelPropertyControl(viewModel, property)}
         </div>
+      \`;
+    }
+
+    function renderViewModelPropertyDetail(property) {
+      if (property.type === 'trigger') {
+        return 'Trigger property';
+      }
+      return 'Value: <strong><code>' + escapeHtml(formatViewModelValue(property.value)) + '</code></strong>';
+    }
+
+    function renderViewModelPropertyControl(viewModel, property) {
+      const attrs = viewModelPropertyAttributes(viewModel, property);
+      if (property.type === 'boolean') {
+        return \`
+          <label class="switch">
+            <input type="checkbox" data-control="view-model-property" \${attrs} \${property.value ? 'checked' : ''}>
+            <span class="track"></span>
+            <span>\${property.value ? 'true' : 'false'}</span>
+          </label>
+        \`;
+      }
+
+      if (property.type === 'number') {
+        const value = Number(property.value ?? 0);
+        return \`
+          <span class="number-control">
+            <button class="icon-button" type="button" data-control="view-model-property-step" data-delta="-1" \${attrs}>-</button>
+            <input type="number" data-control="view-model-property" \${attrs} value="\${escapeAttribute(value)}" step="1">
+            <button class="icon-button" type="button" data-control="view-model-property-step" data-delta="1" \${attrs}>+</button>
+          </span>
+        \`;
+      }
+
+      if (property.type === 'trigger') {
+        return \`
+          <button class="fire-button" type="button" data-control="view-model-property" \${attrs}>&#9889; Fire</button>
+        \`;
+      }
+
+      if (isMutableViewModelProperty(property)) {
+        return \`
+          <button class="value-button" type="button" data-control="view-model-property" \${attrs}>\${escapeHtml(formatViewModelValue(property.value))}</button>
+        \`;
+      }
+
+      return \`<code class="property-value">\${escapeHtml(formatViewModelValue(property.value))}</code>\`;
+    }
+
+    function viewModelPropertyAttributes(viewModel, property) {
+      return \`
+        data-view-model-name="\${escapeAttribute(viewModel.viewModelName)}"
+        data-instance-name="\${escapeAttribute(viewModel.instanceName)}"
+        data-property-name="\${escapeAttribute(property.name)}"
+        data-property-type="\${escapeAttribute(property.type)}"
+        data-property-value="\${escapeAttribute(property.value ?? '')}"
       \`;
     }
 
@@ -1424,6 +1449,33 @@ function getWebviewHtml(state, status) {
 
       app.querySelectorAll('[data-control="view-model-property"]').forEach((control) => {
         control.addEventListener('click', () => {
+          if (control instanceof HTMLInputElement && control.type === 'number') {
+            return;
+          }
+          sendViewModelPropertyCommand(control);
+        });
+        control.addEventListener('change', () => {
+          if (control instanceof HTMLInputElement) {
+            sendViewModelPropertyCommand(control);
+          }
+        });
+        control.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' && control instanceof HTMLInputElement) {
+            sendViewModelPropertyCommand(control);
+          }
+        });
+      });
+
+      app.querySelectorAll('[data-control="view-model-property-step"]').forEach((control) => {
+        control.addEventListener('click', () => {
+          const delta = Number(control.dataset.delta ?? 0);
+          const current = Number(control.dataset.propertyValue ?? 0);
+          sendViewModelPropertyCommand(control, current + delta);
+        });
+      });
+    }
+
+    function sendViewModelPropertyCommand(control, explicitValue) {
           const activePayload = telemetryState.activePayload;
           if (!activePayload) {
             return;
@@ -1437,7 +1489,7 @@ function getWebviewHtml(state, status) {
             return;
           }
 
-          const value = nextViewModelPropertyValue(propertyType, control.dataset.propertyValue ?? '');
+      const value = explicitValue ?? nextViewModelPropertyValue(propertyType, control);
           if (value === undefined) {
             return;
           }
@@ -1451,17 +1503,24 @@ function getWebviewHtml(state, status) {
             propertyType,
             ...(propertyType === 'trigger' ? {} : { value }),
           });
-        });
-      });
     }
 
-    function nextViewModelPropertyValue(propertyType, currentValue) {
+    function nextViewModelPropertyValue(propertyType, control) {
+      const currentValue = control.dataset.propertyValue ?? '';
       if (propertyType === 'trigger') {
         return null;
       }
 
       if (propertyType === 'boolean') {
+        if (control instanceof HTMLInputElement) {
+          return control.checked;
+        }
         return currentValue !== 'true';
+      }
+
+      if (propertyType === 'number' && control instanceof HTMLInputElement) {
+        const value = Number(control.value);
+        return Number.isNaN(value) ? undefined : value;
       }
 
       const label = 'Set ' + propertyType + ' value';
