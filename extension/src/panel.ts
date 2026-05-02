@@ -554,6 +554,13 @@ function getWebviewHtml(
       border: 0;
       text-align: center;
       font-family: var(--rt-mono);
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      margin: 0;
+      -webkit-appearance: none;
     }
     select {
       width: 180px;
@@ -568,6 +575,22 @@ function getWebviewHtml(
     select:focus {
       border-color: rgba(159, 202, 255, 0.72);
       box-shadow: 0 0 0 1px rgba(159, 202, 255, 0.24);
+    }
+    .field-select {
+      width: 100%;
+      min-width: 0;
+      max-width: 220px;
+      padding: 0;
+      background: transparent;
+      border-color: transparent;
+      color: var(--rt-text);
+      font-size: 13px;
+    }
+    .field-select:hover,
+    .field-select:focus {
+      background: var(--rt-surface-control);
+      border-color: var(--rt-border-soft);
+      box-shadow: none;
     }
     input[type="range"] {
       width: 108px;
@@ -949,6 +972,7 @@ function getWebviewHtml(
       \`;
 
       bindRuntimeSelector();
+      bindStateMachineSelector();
       bindSnapshotControls();
       bindControls();
       if (changedInputs.size > 0) {
@@ -1000,7 +1024,7 @@ function getWebviewHtml(
           <div class="runtime-grid">
             \${renderRuntimeField('Runtime ID', activePayload.runtimeId, true)}
             \${renderRuntimeField('Source', activePayload.source, true)}
-            \${renderRuntimeField('State Machine', activePayload.stateMachine, false)}
+            \${renderStateMachineField(activePayload)}
             \${renderRuntimeField('Timestamp', formatTimestamp(activePayload.timestamp), true)}
           </div>
         </section>
@@ -1012,6 +1036,17 @@ function getWebviewHtml(
         <div class="runtime-field">
           <span class="field-label">\${escapeHtml(label)}</span>
           <span class="field-value \${mono ? 'mono' : ''}">\${escapeHtml(value)}</span>
+        </div>
+      \`;
+    }
+
+    function renderStateMachineField(activePayload) {
+      return \`
+        <div class="runtime-field">
+          <label class="field-label" for="state-machine-select">State Machine</label>
+          <select id="state-machine-select" class="field-select">
+            \${renderStateMachineOptions(activePayload)}
+          </select>
         </div>
       \`;
     }
@@ -1093,6 +1128,23 @@ function getWebviewHtml(
         const label = runtime.label || runtime.runtimeId;
         const selected = runtime.runtimeId === telemetryState.activeRuntimeId ? 'selected' : '';
         return \`<option value="\${escapeAttribute(runtime.runtimeId)}" \${selected}>\${escapeHtml(label)}</option>\`;
+      }).join('');
+    }
+
+    function renderStateMachineOptions(activePayload) {
+      const payloads = telemetryState.payloads.length > 0 ? telemetryState.payloads : [activePayload];
+      const stateMachineCounts = payloads.reduce((counts, payload) => {
+        counts.set(payload.stateMachine, (counts.get(payload.stateMachine) ?? 0) + 1);
+        return counts;
+      }, new Map());
+
+      return payloads.map((payload) => {
+        const selected = payload.runtimeId === activePayload.runtimeId ? 'selected' : '';
+        const hasDuplicateName = (stateMachineCounts.get(payload.stateMachine) ?? 0) > 1;
+        const label = hasDuplicateName
+          ? payload.stateMachine + ' - ' + (payload.label || payload.runtimeId)
+          : payload.stateMachine;
+        return \`<option value="\${escapeAttribute(payload.runtimeId)}" \${selected}>\${escapeHtml(label)}</option>\`;
       }).join('');
     }
 
@@ -1376,25 +1428,39 @@ function getWebviewHtml(
       }
 
       selector.addEventListener('change', () => {
-        const runtimeId = selector.value;
-        const nextPayload = findRuntimePayload(runtimeId);
-        const nextSnapshot = findRuntimeSnapshot(runtimeId);
-        telemetryState = {
-          ...telemetryState,
-          activeRuntimeId: runtimeId,
-          activePayload: nextPayload,
-          activeSnapshot: nextSnapshot,
-          activeDiffs: nextPayload && nextSnapshot ? diffSnapshot(nextSnapshot, nextPayload) : [],
-          activeViewModelDiffs: nextPayload && nextSnapshot ? diffViewModelSnapshot(nextSnapshot, nextPayload) : [],
-        };
-        previousValues = new Map();
-        changedInputs.clear();
-        vscode.postMessage({
-          command: 'selectRuntime',
-          runtimeId,
-        });
-        render();
+        selectRuntimeById(selector.value);
       });
+    }
+
+    function bindStateMachineSelector() {
+      const selector = document.getElementById('state-machine-select');
+      if (!selector) {
+        return;
+      }
+
+      selector.addEventListener('change', () => {
+        selectRuntimeById(selector.value);
+      });
+    }
+
+    function selectRuntimeById(runtimeId) {
+      const nextPayload = findRuntimePayload(runtimeId);
+      const nextSnapshot = findRuntimeSnapshot(runtimeId);
+      telemetryState = {
+        ...telemetryState,
+        activeRuntimeId: runtimeId,
+        activePayload: nextPayload,
+        activeSnapshot: nextSnapshot,
+        activeDiffs: nextPayload && nextSnapshot ? diffSnapshot(nextSnapshot, nextPayload) : [],
+        activeViewModelDiffs: nextPayload && nextSnapshot ? diffViewModelSnapshot(nextSnapshot, nextPayload) : [],
+      };
+      previousValues = new Map();
+      changedInputs.clear();
+      vscode.postMessage({
+        command: 'selectRuntime',
+        runtimeId,
+      });
+      render();
     }
 
     function bindSnapshotControls() {
