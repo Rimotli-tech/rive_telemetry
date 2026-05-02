@@ -101,4 +101,21 @@ export type RiveTelemetryCommand =
       runtimeId: string;
       stateMachine: string;
       inputName: string;
+    }
+  | {
+      type: 'setViewModelProperty';
+      runtimeId: string;
+      viewModelName: string;
+      instanceName: string;
+      propertyName: string;
+      propertyType: 'number' | 'boolean' | 'string' | 'color' | 'enum';
+      value: number | boolean | string;
+    }
+  | {
+      type: 'setViewModelProperty';
+      runtimeId: string;
+      viewModelName: string;
+      instanceName: string;
+      propertyName: string;
+      propertyType: 'trigger';
     };

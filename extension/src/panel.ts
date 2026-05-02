@@ -192,6 +192,19 @@ function isTelemetryCommand(value: unknown): value is RiveTelemetryCommand {
     typeof value.runtimeId === 'string' &&
     typeof value.stateMachine === 'string' &&
     typeof value.inputName === 'string'
+  ) || (
+    value.type === 'setViewModelProperty' &&
+    typeof value.runtimeId === 'string' &&
+    typeof value.viewModelName === 'string' &&
+    typeof value.instanceName === 'string' &&
+    typeof value.propertyName === 'string' &&
+    ((value.propertyType === 'number' && typeof value.value === 'number') ||
+      (value.propertyType === 'boolean' && typeof value.value === 'boolean') ||
+      ((value.propertyType === 'string' ||
+        value.propertyType === 'color' ||
+        value.propertyType === 'enum') &&
+        typeof value.value === 'string') ||
+      value.propertyType === 'trigger')
   );
 }
 
@@ -720,6 +733,13 @@ function getWebviewHtml(
       overflow-wrap: anywhere;
       color: var(--rt-text);
     }
+    .property-row.mutable {
+      cursor: pointer;
+    }
+    .property-row.mutable:hover {
+      border-color: rgba(138, 145, 157, 0.78);
+      background: rgba(37, 48, 58, 0.72);
+    }
     tr.command-sent {
       animation: flash 700ms ease-out;
     }
@@ -1045,14 +1065,22 @@ function getWebviewHtml(
           </div>
           \${viewModel.properties.length === 0
             ? '<p class="view-model-empty">No ViewModel properties reported.</p>'
-            : '<div class="property-list">' + viewModel.properties.map(renderViewModelPropertyRow).join('') + '</div>'}
+            : '<div class="property-list">' + viewModel.properties.map((property) => renderViewModelPropertyRow(viewModel, property)).join('') + '</div>'}
         </section>
       \`;
     }
 
-    function renderViewModelPropertyRow(property) {
+    function renderViewModelPropertyRow(viewModel, property) {
+      const mutable = isMutableViewModelProperty(property);
       return \`
-        <div class="property-row">
+        <div class="property-row \${mutable ? 'mutable' : ''}"
+          \${mutable ? 'data-control="view-model-property"' : ''}
+          data-view-model-name="\${escapeAttribute(viewModel.viewModelName)}"
+          data-instance-name="\${escapeAttribute(viewModel.instanceName)}"
+          data-property-name="\${escapeAttribute(property.name)}"
+          data-property-type="\${escapeAttribute(property.type)}"
+          data-property-value="\${escapeAttribute(property.value ?? '')}"
+          title="\${mutable ? 'Click to mutate ViewModel property' : ''}">
           <code class="input-name">\${escapeHtml(property.name)}</code>
           <span class="pill">\${escapeHtml(property.type)}</span>
           <code class="property-value">\${escapeHtml(formatViewModelValue(property.value))}</code>
@@ -1096,6 +1124,15 @@ function getWebviewHtml(
         instanceName: typeof value.instanceName === 'string' ? value.instanceName : '',
         properties,
       };
+    }
+
+    function isMutableViewModelProperty(property) {
+      return property.type === 'number' ||
+        property.type === 'boolean' ||
+        property.type === 'string' ||
+        property.type === 'color' ||
+        property.type === 'enum' ||
+        property.type === 'trigger';
     }
 
     function renderSnapshotPanel(activePayload, snapshot, diffs) {
@@ -1340,6 +1377,61 @@ function getWebviewHtml(
           });
         });
       });
+
+      app.querySelectorAll('[data-control="view-model-property"]').forEach((control) => {
+        control.addEventListener('click', () => {
+          const activePayload = telemetryState.activePayload;
+          if (!activePayload) {
+            return;
+          }
+
+          const propertyName = control.dataset.propertyName;
+          const propertyType = control.dataset.propertyType;
+          const viewModelName = control.dataset.viewModelName ?? '';
+          const instanceName = control.dataset.instanceName ?? '';
+          if (!propertyName || !propertyType || !viewModelName || !instanceName) {
+            return;
+          }
+
+          const value = nextViewModelPropertyValue(propertyType, control.dataset.propertyValue ?? '');
+          if (value === undefined) {
+            return;
+          }
+
+          sendCommand({
+            type: 'setViewModelProperty',
+            runtimeId: activePayload.runtimeId,
+            viewModelName,
+            instanceName,
+            propertyName,
+            propertyType,
+            ...(propertyType === 'trigger' ? {} : { value }),
+          });
+        });
+      });
+    }
+
+    function nextViewModelPropertyValue(propertyType, currentValue) {
+      if (propertyType === 'trigger') {
+        return null;
+      }
+
+      if (propertyType === 'boolean') {
+        return currentValue !== 'true';
+      }
+
+      const label = 'Set ' + propertyType + ' value';
+      const entered = window.prompt(label, currentValue);
+      if (entered === null) {
+        return undefined;
+      }
+
+      if (propertyType === 'number') {
+        const value = Number(entered);
+        return Number.isNaN(value) ? undefined : value;
+      }
+
+      return entered;
     }
 
     function sendNumberCommand(inputName, value) {
@@ -1358,7 +1450,7 @@ function getWebviewHtml(
     }
 
     function sendCommand(payload) {
-      highlightedInput = payload.inputName;
+      highlightedInput = payload.inputName ?? payload.propertyName;
       vscode.postMessage({
         command: 'sendTelemetryCommand',
         payload,

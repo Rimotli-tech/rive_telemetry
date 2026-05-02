@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:rive/rive.dart' as rive;
 
 import 'view_model_telemetry.dart';
@@ -7,6 +9,14 @@ abstract interface class ViewModelTelemetryAdapter {
   ViewModelTelemetry capture({
     rive.ViewModelInstance? instance,
     String? viewModelName,
+  });
+
+  bool setProperty({
+    rive.ViewModelInstance? instance,
+    String? instanceName,
+    required String propertyName,
+    required String propertyType,
+    Object? value,
   });
 }
 
@@ -56,6 +66,49 @@ class RiveViewModelTelemetryAdapter implements ViewModelTelemetryAdapter {
         reason: 'ViewModel telemetry unavailable: $error',
         viewModelName: viewModelName,
       );
+    }
+  }
+
+  @override
+  bool setProperty({
+    rive.ViewModelInstance? instance,
+    String? instanceName,
+    required String propertyName,
+    required String propertyType,
+    Object? value,
+  }) {
+    if (instance == null) {
+      return false;
+    }
+
+    try {
+      if (instance.isDisposed) {
+        return false;
+      }
+
+      if (instanceName != null &&
+          instanceName.isNotEmpty &&
+          instance.name != instanceName) {
+        return false;
+      }
+
+      final applied = switch (propertyType) {
+        'number' => _setNumber(instance, propertyName, value),
+        'boolean' => _setBoolean(instance, propertyName, value),
+        'string' => _setString(instance, propertyName, value),
+        'color' => _setColor(instance, propertyName, value),
+        'enum' => _setEnum(instance, propertyName, value),
+        'trigger' => _fireTrigger(instance, propertyName),
+        _ => false,
+      };
+
+      if (applied) {
+        instance.requestAdvance();
+      }
+
+      return applied;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -117,5 +170,125 @@ class RiveViewModelTelemetryAdapter implements ViewModelTelemetryAdapter {
     }
 
     return type.name;
+  }
+
+  bool _setNumber(
+    rive.ViewModelInstance instance,
+    String propertyName,
+    Object? value,
+  ) {
+    if (value is! num) {
+      return false;
+    }
+
+    final property = instance.number(propertyName);
+    if (property == null) {
+      return false;
+    }
+
+    property.value = value.toDouble();
+    return true;
+  }
+
+  bool _setBoolean(
+    rive.ViewModelInstance instance,
+    String propertyName,
+    Object? value,
+  ) {
+    if (value is! bool) {
+      return false;
+    }
+
+    final property = instance.boolean(propertyName);
+    if (property == null) {
+      return false;
+    }
+
+    property.value = value;
+    return true;
+  }
+
+  bool _setString(
+    rive.ViewModelInstance instance,
+    String propertyName,
+    Object? value,
+  ) {
+    if (value is! String) {
+      return false;
+    }
+
+    final property = instance.string(propertyName);
+    if (property == null) {
+      return false;
+    }
+
+    property.value = value;
+    return true;
+  }
+
+  bool _setColor(
+    rive.ViewModelInstance instance,
+    String propertyName,
+    Object? value,
+  ) {
+    if (value is! String) {
+      return false;
+    }
+
+    final color = _parseColor(value);
+    if (color == null) {
+      return false;
+    }
+
+    final property = instance.color(propertyName);
+    if (property == null) {
+      return false;
+    }
+
+    property.value = color;
+    return true;
+  }
+
+  bool _setEnum(
+    rive.ViewModelInstance instance,
+    String propertyName,
+    Object? value,
+  ) {
+    if (value is! String) {
+      return false;
+    }
+
+    final property = instance.enumerator(propertyName);
+    if (property == null) {
+      return false;
+    }
+
+    property.value = value;
+    return true;
+  }
+
+  bool _fireTrigger(rive.ViewModelInstance instance, String propertyName) {
+    final property = instance.trigger(propertyName);
+    if (property == null) {
+      return false;
+    }
+
+    property.trigger();
+    return true;
+  }
+
+  ui.Color? _parseColor(String value) {
+    final normalized = value.trim().replaceFirst('#', '');
+    if (normalized.length != 6 && normalized.length != 8) {
+      return null;
+    }
+
+    final colorValue = int.tryParse(normalized, radix: 16);
+    if (colorValue == null) {
+      return null;
+    }
+
+    final argb = normalized.length == 6 ? 0xFF000000 | colorValue : colorValue;
+    return ui.Color(argb);
   }
 }

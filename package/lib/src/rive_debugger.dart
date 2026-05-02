@@ -367,10 +367,6 @@ class _RiveDebuggerState extends State<RiveDebugger> {
       return;
     }
 
-    if (widget.stateMachine == null) {
-      return;
-    }
-
     final rawMessage = message is String ? message : message.toString();
     final Object? decoded;
     try {
@@ -387,6 +383,7 @@ class _RiveDebuggerState extends State<RiveDebugger> {
     final applied = switch (decoded['type']) {
       'setInput' => _applySetInputCommand(decoded),
       'fireTrigger' => _applyFireTriggerCommand(decoded),
+      'setViewModelProperty' => _applySetViewModelPropertyCommand(decoded),
       _ => _ignoreCommand('unknown command type "${decoded['type']}"'),
     };
 
@@ -395,6 +392,7 @@ class _RiveDebuggerState extends State<RiveDebugger> {
     }
 
     widget.stateMachine?.requestAdvance();
+    widget.viewModelInstance?.requestAdvance();
     _broadcastRiveState();
   }
 
@@ -454,6 +452,41 @@ class _RiveDebuggerState extends State<RiveDebugger> {
     }
 
     input.fire();
+    return true;
+  }
+
+  bool _applySetViewModelPropertyCommand(Map<String, dynamic> command) {
+    if (command['runtimeId'] != _runtimeId) {
+      return _ignoreCommand('runtime mismatch');
+    }
+
+    if (command['viewModelName'] != widget.viewModelName) {
+      return _ignoreCommand('view model mismatch');
+    }
+
+    final instanceName = command['instanceName'];
+    final propertyName = command['propertyName'];
+    final propertyType = command['propertyType'];
+    if (instanceName is! String ||
+        propertyName is! String ||
+        propertyType is! String) {
+      return _ignoreCommand('invalid setViewModelProperty command shape');
+    }
+
+    final applied = _viewModelTelemetryAdapter.setProperty(
+      instance: widget.viewModelInstance,
+      instanceName: instanceName,
+      propertyName: propertyName,
+      propertyType: propertyType,
+      value: command['value'],
+    );
+
+    if (!applied) {
+      return _ignoreCommand(
+        'view model property "$propertyName" was not mutated',
+      );
+    }
+
     return true;
   }
 

@@ -27,12 +27,16 @@ const _runtimeConfigs = [
     stateMachineName: kPrimaryStateMachineName,
     runtimeId: 'demo-2-state-machine-1',
     label: 'Demo 2 - State Machine 1',
+    viewModelName: 'CatViewModel',
+    viewModelInstanceName: 'catVMInstance',
   ),
   _RuntimeConfig(
     assetPath: kDemo2RiveAssetPath,
     stateMachineName: kSecondaryStateMachineName,
     runtimeId: 'demo-2-state-machine-2',
     label: 'Demo 2 - State Machine 2',
+    viewModelName: 'CatViewModel',
+    viewModelInstanceName: 'catVMInstance',
   ),
 ];
 
@@ -42,12 +46,25 @@ class _RuntimeConfig {
     required this.stateMachineName,
     required this.runtimeId,
     required this.label,
+    this.viewModelName,
+    this.viewModelInstanceName,
   });
 
   final String assetPath;
   final String stateMachineName;
   final String runtimeId;
   final String label;
+  final String? viewModelName;
+  final String? viewModelInstanceName;
+
+  rive.DataBind? get dataBind {
+    final instanceName = viewModelInstanceName;
+    if (instanceName == null) {
+      return null;
+    }
+
+    return rive.DataBind.byName(instanceName);
+  }
 }
 
 void main() {
@@ -110,6 +127,7 @@ class _RiveRuntimeCard extends StatefulWidget {
 class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
   rive.RiveWidgetController? _riveController;
   rive.StateMachine? _stateMachine;
+  rive.ViewModelInstance? _viewModelInstance;
   bool _stateMachineFound = false;
   bool _stateMachineWarningLogged = false;
 
@@ -136,11 +154,13 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
     }
 
     final stateMachine = state.controller.stateMachine;
+    final viewModelInstance = state.viewModelInstance;
     if (stateMachine.name != widget.config.stateMachineName) {
       _logStateMachineWarning();
       setState(() {
         _riveController = state.controller;
         _stateMachine = null;
+        _viewModelInstance = viewModelInstance;
         _stateMachineFound = false;
       });
       return;
@@ -155,6 +175,7 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
     setState(() {
       _riveController = state.controller;
       _stateMachine = stateMachine;
+      _viewModelInstance = viewModelInstance;
       _stateMachineFound = true;
       _stateMachineWarningLogged = false;
     });
@@ -234,6 +255,7 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
                 stateMachineSelector: rive.StateMachineSelector.byName(
                   widget.config.stateMachineName,
                 ),
+                dataBind: widget.config.dataBind,
                 builder: (context, state) => switch (state) {
                   rive.RiveLoading() => const CircularProgressIndicator(
                     color: Color(0xFF2566B9),
@@ -258,6 +280,8 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
                           label: widget.config.label,
                           stateMachineName: widget.config.stateMachineName,
                           stateMachine: _stateMachine,
+                          viewModelName: widget.config.viewModelName,
+                          viewModelInstance: _viewModelInstance,
                           child: rive.RiveWidget(
                             controller: state.controller,
                             fit: rive.Fit.cover,
@@ -285,6 +309,7 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
             assetPath: widget.config.assetPath,
             stateMachineFound: _stateMachineFound,
             inputCount: _stateMachine?.inputs.length ?? 0,
+            viewModelInstanceName: _viewModelInstance?.name,
           ),
         ],
       ),
@@ -499,12 +524,14 @@ class _DebugStatusPanel extends StatelessWidget {
     required this.assetPath,
     required this.stateMachineFound,
     required this.inputCount,
+    this.viewModelInstanceName,
   });
 
   final String runtimeId;
   final String assetPath;
   final bool stateMachineFound;
   final int inputCount;
+  final String? viewModelInstanceName;
 
   @override
   Widget build(BuildContext context) {
@@ -524,6 +551,7 @@ class _DebugStatusPanel extends StatelessWidget {
             Text('Asset: $assetPath'),
             Text('State machine: ${stateMachineFound ? 'found' : 'not found'}'),
             Text('Inputs: $inputCount'),
+            Text('ViewModel: ${viewModelInstanceName ?? 'not bound'}'),
           ],
         ),
       ),
