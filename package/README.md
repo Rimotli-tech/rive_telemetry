@@ -1,12 +1,11 @@
 # rive_telemetry
 
-`rive_telemetry` is a development-only Flutter bridge for the RiveTelemetry
-VS Code extension. It wraps an existing Rive widget, streams runtime telemetry
-over WebSocket, and lets the VS Code panel inspect or mutate Rive state machine
-inputs and ViewModel properties while your app is running.
+`rive_telemetry` helps you debug Rive animations in Flutter from VS Code.
 
-The wrapper returns its child unchanged. Rendering, layout, and Rive controller
-ownership stay with your Flutter app.
+Use it to inspect and control state machine inputs and ViewModel properties
+while your app is running. It wraps your existing Rive widget, streams telemetry
+to the RiveTelemetry VS Code extension, and leaves rendering, layout, and
+controller ownership with your app.
 
 ## Features
 

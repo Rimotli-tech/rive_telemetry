@@ -1,5 +1,5 @@
 name: rive_telemetry
-description: "Development-only Flutter telemetry bridge for inspecting and controlling Rive state machines and ViewModels from VS Code."
+description: "Debug Rive animations in Flutter from VS Code by inspecting and controlling state machine inputs and ViewModel properties."
 version: 0.2.0
 repository: https://github.com/Rimotli-tech/rive_telemetry
 topics:
