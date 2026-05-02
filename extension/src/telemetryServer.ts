@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
 import WebSocket, { WebSocketServer } from 'ws';
 import {
+  InputSnapshot,
+  InputSnapshotDiff,
   RiveTelemetryCommand,
   RiveTelemetryInput,
   RiveTelemetryPanelState,
   RiveTelemetryPayload,
+  RuntimeSnapshot,
   RiveRuntimeSummary,
   RiveTelemetryServerStatus,
 } from './types';
@@ -15,6 +18,7 @@ type StatusListener = (status: RiveTelemetryServerStatus) => void;
 export class TelemetryServer implements vscode.Disposable {
   private server?: WebSocketServer;
   private readonly latestPayloads = new Map<string, RiveTelemetryPayload>();
+  private readonly snapshots = new Map<string, RuntimeSnapshot>();
   private activeRuntimeId: string | null = null;
   private serverRunning = false;
   private serverError: string | null = null;
@@ -38,12 +42,22 @@ export class TelemetryServer implements vscode.Disposable {
       this.activeRuntimeId === null
         ? null
         : this.latestPayloads.get(this.activeRuntimeId) ?? null;
+    const activeSnapshot =
+      this.activeRuntimeId === null
+        ? null
+        : this.snapshots.get(this.activeRuntimeId) ?? null;
 
     return {
       runtimes,
       payloads,
       activeRuntimeId: activePayload?.runtimeId ?? null,
       activePayload,
+      snapshots: [...this.snapshots.values()],
+      activeSnapshot,
+      activeDiffs:
+        activePayload !== null && activeSnapshot !== null
+          ? diffSnapshot(activeSnapshot, activePayload)
+          : [],
     };
   }
 
@@ -189,6 +203,31 @@ export class TelemetryServer implements vscode.Disposable {
     return true;
   }
 
+  captureSnapshot(runtimeId: string): boolean {
+    const payload = this.latestPayloads.get(runtimeId);
+    if (!payload) {
+      return false;
+    }
+
+    this.snapshots.set(runtimeId, {
+      runtimeId: payload.runtimeId,
+      label: payload.label,
+      stateMachine: payload.stateMachine,
+      capturedAt: new Date().toISOString(),
+      inputs: payload.inputs.flatMap(toInputSnapshot),
+    });
+    this.notifyTelemetry();
+    return true;
+  }
+
+  clearSnapshot(runtimeId: string): boolean {
+    const removed = this.snapshots.delete(runtimeId);
+    if (removed) {
+      this.notifyTelemetry();
+    }
+    return removed;
+  }
+
   private handleMessage(rawMessage: string): void {
     let parsed: unknown;
     try {
@@ -275,6 +314,75 @@ function isTelemetryInput(value: unknown): value is RiveTelemetryInput {
       typeof inputValue === 'number' ||
       inputValue === null)
   );
+}
+
+function toInputSnapshot(input: RiveTelemetryInput): InputSnapshot[] {
+  if (
+    input.type !== 'boolean' &&
+    input.type !== 'number' &&
+    input.type !== 'trigger'
+  ) {
+    return [];
+  }
+
+  return [
+    {
+      name: input.name,
+      type: input.type,
+      value: input.value,
+    },
+  ];
+}
+
+function diffSnapshot(
+  snapshot: RuntimeSnapshot,
+  payload: RiveTelemetryPayload,
+): InputSnapshotDiff[] {
+  const currentInputs = new Map(
+    payload.inputs.flatMap(toInputSnapshot).map((input) => [input.name, input]),
+  );
+  const snapshotInputs = new Map(
+    snapshot.inputs.map((input) => [input.name, input]),
+  );
+  const diffs: InputSnapshotDiff[] = [];
+
+  for (const [name, current] of currentInputs) {
+    const previous = snapshotInputs.get(name);
+    if (!previous) {
+      diffs.push({
+        name,
+        type: current.type,
+        snapshotValue: null,
+        currentValue: current.value,
+        status: 'added',
+      });
+      continue;
+    }
+
+    if (previous.type !== current.type || previous.value !== current.value) {
+      diffs.push({
+        name,
+        type: current.type,
+        snapshotValue: previous.value,
+        currentValue: current.value,
+        status: 'changed',
+      });
+    }
+  }
+
+  for (const [name, previous] of snapshotInputs) {
+    if (!currentInputs.has(name)) {
+      diffs.push({
+        name,
+        type: previous.type,
+        snapshotValue: previous.value,
+        currentValue: null,
+        status: 'removed',
+      });
+    }
+  }
+
+  return diffs;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

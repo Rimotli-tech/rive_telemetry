@@ -52,6 +52,14 @@ class RiveTelemetryPanel {
                 this.telemetryServer.selectRuntime(message.runtimeId);
                 return;
             }
+            if (isWebviewCaptureSnapshotMessage(message)) {
+                this.telemetryServer.captureSnapshot(message.runtimeId);
+                return;
+            }
+            if (isWebviewClearSnapshotMessage(message)) {
+                this.telemetryServer.clearSnapshot(message.runtimeId);
+                return;
+            }
             if (!isWebviewCommandMessage(message)) {
                 return;
             }
@@ -98,6 +106,16 @@ exports.RiveTelemetryPanel = RiveTelemetryPanel;
 function isWebviewSelectRuntimeMessage(value) {
     return (isRecord(value) &&
         value.command === 'selectRuntime' &&
+        typeof value.runtimeId === 'string');
+}
+function isWebviewCaptureSnapshotMessage(value) {
+    return (isRecord(value) &&
+        value.command === 'captureSnapshot' &&
+        typeof value.runtimeId === 'string');
+}
+function isWebviewClearSnapshotMessage(value) {
+    return (isRecord(value) &&
+        value.command === 'clearSnapshot' &&
         typeof value.runtimeId === 'string');
 }
 function isWebviewCommandMessage(value) {
@@ -208,6 +226,13 @@ function getWebviewHtml(state, status) {
     button:hover:not(:disabled) {
       background: var(--vscode-button-hoverBackground);
     }
+    button.secondary {
+      color: var(--vscode-button-secondaryForeground);
+      background: var(--vscode-button-secondaryBackground);
+    }
+    button.secondary:hover:not(:disabled) {
+      background: var(--vscode-button-secondaryHoverBackground);
+    }
     button:disabled, input:disabled {
       cursor: not-allowed;
       opacity: 0.45;
@@ -254,6 +279,33 @@ function getWebviewHtml(state, status) {
       gap: 8px;
       margin: 20px 0 4px;
       flex-wrap: wrap;
+    }
+    .snapshot-panel {
+      margin-top: 20px;
+      padding: 12px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+    }
+    .snapshot-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .snapshot-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .diff-changed {
+      color: var(--vscode-charts-yellow);
+    }
+    .diff-added {
+      color: var(--vscode-charts-green);
+    }
+    .diff-removed {
+      color: var(--vscode-charts-red);
     }
     .switch {
       position: relative;
@@ -350,6 +402,8 @@ function getWebviewHtml(state, status) {
         : receiving
           ? 'Receiving telemetry'
           : 'Waiting for telemetry...';
+      const snapshot = telemetryState.activeSnapshot;
+      const diffs = telemetryState.activeDiffs ?? [];
 
       if (!activePayload) {
         app.innerHTML = \`
@@ -404,10 +458,12 @@ function getWebviewHtml(state, status) {
           </thead>
           <tbody>\${rows}</tbody>
         </table>
+        \${renderSnapshotPanel(activePayload, snapshot, diffs)}
         <div class="command-status">\${escapeHtml(lastCommandStatus)}</div>
       \`;
 
       bindRuntimeSelector();
+      bindSnapshotControls();
       bindControls();
       if (changedInputs.size > 0) {
         window.setTimeout(() => {
@@ -472,6 +528,53 @@ function getWebviewHtml(state, status) {
       }).join('');
     }
 
+    function renderSnapshotPanel(activePayload, snapshot, diffs) {
+      const diffRows = diffs.map((diff) => \`
+        <tr>
+          <td><code>\${escapeHtml(diff.name)}</code></td>
+          <td>\${escapeHtml(diff.type)}</td>
+          <td><code>\${escapeHtml(formatValue(diff.snapshotValue))}</code></td>
+          <td><code>\${escapeHtml(formatValue(diff.currentValue))}</code></td>
+          <td class="diff-\${escapeAttribute(diff.status)}">\${escapeHtml(diff.status)}</td>
+        </tr>
+      \`).join('');
+
+      return \`
+        <section class="snapshot-panel">
+          <div class="snapshot-header">
+            <div>
+              <h2>Snapshot Diff</h2>
+              <div class="meta">\${snapshot
+                ? 'Captured ' + escapeHtml(snapshot.capturedAt) + ' with ' + snapshot.inputs.length + ' input(s)'
+                : 'No snapshot captured for this runtime'}</div>
+            </div>
+            <div class="snapshot-actions">
+              <button type="button" data-snapshot-action="capture" data-runtime-id="\${escapeAttribute(activePayload.runtimeId)}">Capture Snapshot</button>
+              <button type="button" class="secondary" data-snapshot-action="clear" data-runtime-id="\${escapeAttribute(activePayload.runtimeId)}" \${snapshot ? '' : 'disabled'}>Clear</button>
+            </div>
+          </div>
+          \${snapshot
+            ? \`
+              <dl>
+                <dt>Snapshot runtime</dt><dd><code>\${escapeHtml(snapshot.runtimeId)}</code></dd>
+                <dt>Snapshot state machine</dt><dd>\${escapeHtml(snapshot.stateMachine)}</dd>
+              </dl>
+              \${diffs.length === 0
+                ? '<p class="empty">No input value differences from the captured snapshot.</p>'
+                : \`
+                  <table>
+                    <thead>
+                      <tr><th>Name</th><th>Type</th><th>Snapshot</th><th>Current</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>\${diffRows}</tbody>
+                  </table>
+                \`}
+            \`
+            : ''}
+        </section>
+      \`;
+    }
+
     function bindRuntimeSelector() {
       const selector = document.getElementById('runtime-select');
       if (!selector) {
@@ -481,10 +584,13 @@ function getWebviewHtml(state, status) {
       selector.addEventListener('change', () => {
         const runtimeId = selector.value;
         const nextPayload = findRuntimePayload(runtimeId);
+        const nextSnapshot = findRuntimeSnapshot(runtimeId);
         telemetryState = {
           ...telemetryState,
           activeRuntimeId: runtimeId,
           activePayload: nextPayload,
+          activeSnapshot: nextSnapshot,
+          activeDiffs: nextPayload && nextSnapshot ? diffSnapshot(nextSnapshot, nextPayload) : [],
         };
         previousValues = new Map();
         changedInputs.clear();
@@ -496,12 +602,88 @@ function getWebviewHtml(state, status) {
       });
     }
 
+    function bindSnapshotControls() {
+      app.querySelectorAll('[data-snapshot-action]').forEach((control) => {
+        control.addEventListener('click', () => {
+          const runtimeId = control.dataset.runtimeId;
+          if (!runtimeId) {
+            return;
+          }
+
+          vscode.postMessage({
+            command: control.dataset.snapshotAction === 'clear' ? 'clearSnapshot' : 'captureSnapshot',
+            runtimeId,
+          });
+        });
+      });
+    }
+
     function findRuntimePayload(runtimeId) {
       if (telemetryState.activePayload?.runtimeId === runtimeId) {
         return telemetryState.activePayload;
       }
 
       return telemetryState.payloads.find((payload) => payload.runtimeId === runtimeId) ?? null;
+    }
+
+    function findRuntimeSnapshot(runtimeId) {
+      return telemetryState.snapshots.find((snapshot) => snapshot.runtimeId === runtimeId) ?? null;
+    }
+
+    function diffSnapshot(snapshot, payload) {
+      const currentInputs = new Map(payload.inputs.flatMap(toInputSnapshot).map((input) => [input.name, input]));
+      const snapshotInputs = new Map(snapshot.inputs.map((input) => [input.name, input]));
+      const diffs = [];
+
+      for (const [name, current] of currentInputs) {
+        const previous = snapshotInputs.get(name);
+        if (!previous) {
+          diffs.push({
+            name,
+            type: current.type,
+            snapshotValue: null,
+            currentValue: current.value,
+            status: 'added',
+          });
+          continue;
+        }
+
+        if (previous.type !== current.type || previous.value !== current.value) {
+          diffs.push({
+            name,
+            type: current.type,
+            snapshotValue: previous.value,
+            currentValue: current.value,
+            status: 'changed',
+          });
+        }
+      }
+
+      for (const [name, previous] of snapshotInputs) {
+        if (!currentInputs.has(name)) {
+          diffs.push({
+            name,
+            type: previous.type,
+            snapshotValue: previous.value,
+            currentValue: null,
+            status: 'removed',
+          });
+        }
+      }
+
+      return diffs;
+    }
+
+    function toInputSnapshot(input) {
+      if (input.type !== 'boolean' && input.type !== 'number' && input.type !== 'trigger') {
+        return [];
+      }
+
+      return [{
+        name: input.name,
+        type: input.type,
+        value: input.value,
+      }];
     }
 
     function bindControls() {

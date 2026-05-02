@@ -4,8 +4,51 @@ import 'package:flutter/material.dart';
 import 'package:rive/rive.dart' as rive;
 import 'package:rive_telemetry/rive_telemetry.dart';
 
-const kRiveAssetPath = 'assets/demo.riv';
-const kStateMachineName = 'State Machine 1';
+const kDemoRiveAssetPath = 'assets/demo.riv';
+const kDemo2RiveAssetPath = 'assets/demo_2.riv';
+const kPrimaryStateMachineName = 'State Machine 1';
+const kSecondaryStateMachineName = 'State Machine 2';
+
+const _runtimeConfigs = [
+  _RuntimeConfig(
+    assetPath: kDemoRiveAssetPath,
+    stateMachineName: kPrimaryStateMachineName,
+    runtimeId: 'demo-primary',
+    label: 'Primary Demo',
+  ),
+  _RuntimeConfig(
+    assetPath: kDemoRiveAssetPath,
+    stateMachineName: kPrimaryStateMachineName,
+    runtimeId: 'demo-secondary',
+    label: 'Secondary Demo',
+  ),
+  _RuntimeConfig(
+    assetPath: kDemo2RiveAssetPath,
+    stateMachineName: kPrimaryStateMachineName,
+    runtimeId: 'demo-2-state-machine-1',
+    label: 'Demo 2 - State Machine 1',
+  ),
+  _RuntimeConfig(
+    assetPath: kDemo2RiveAssetPath,
+    stateMachineName: kSecondaryStateMachineName,
+    runtimeId: 'demo-2-state-machine-2',
+    label: 'Demo 2 - State Machine 2',
+  ),
+];
+
+class _RuntimeConfig {
+  const _RuntimeConfig({
+    required this.assetPath,
+    required this.stateMachineName,
+    required this.runtimeId,
+    required this.label,
+  });
+
+  final String assetPath;
+  final String stateMachineName;
+  final String runtimeId;
+  final String label;
+}
 
 void main() {
   runApp(const RiveTelemetryDemoApp());
@@ -37,43 +80,15 @@ class DemoHomePage extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              if (constraints.maxWidth >= 900) {
-                return const Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _RiveRuntimeCard(
-                        runtimeId: 'demo-primary',
-                        label: 'Primary Demo',
-                      ),
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: _RiveRuntimeCard(
-                        runtimeId: 'demo-secondary',
-                        label: 'Secondary Demo',
-                      ),
-                    ),
-                  ],
-                );
-              }
-
-              return const Column(
-                children: [
-                  Expanded(
-                    child: _RiveRuntimeCard(
-                      runtimeId: 'demo-primary',
-                      label: 'Primary Demo',
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Expanded(
-                    child: _RiveRuntimeCard(
-                      runtimeId: 'demo-secondary',
-                      label: 'Secondary Demo',
-                    ),
-                  ),
-                ],
+              final wide = constraints.maxWidth >= 900;
+              return GridView.count(
+                crossAxisCount: wide ? 2 : 1,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: wide ? 1.05 : 0.95,
+                children: _runtimeConfigs
+                    .map((config) => _RiveRuntimeCard(config: config))
+                    .toList(),
               );
             },
           ),
@@ -84,10 +99,9 @@ class DemoHomePage extends StatelessWidget {
 }
 
 class _RiveRuntimeCard extends StatefulWidget {
-  const _RiveRuntimeCard({required this.runtimeId, required this.label});
+  const _RiveRuntimeCard({required this.config});
 
-  final String runtimeId;
-  final String label;
+  final _RuntimeConfig config;
 
   @override
   State<_RiveRuntimeCard> createState() => _RiveRuntimeCardState();
@@ -99,10 +113,16 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
   bool _stateMachineFound = false;
   bool _stateMachineWarningLogged = false;
 
-  late final rive.FileLoader _fileLoader = rive.FileLoader.fromAsset(
-    kRiveAssetPath,
-    riveFactory: rive.Factory.rive,
-  );
+  late final rive.FileLoader _fileLoader;
+
+  @override
+  void initState() {
+    super.initState();
+    _fileLoader = rive.FileLoader.fromAsset(
+      widget.config.assetPath,
+      riveFactory: rive.Factory.rive,
+    );
+  }
 
   @override
   void dispose() {
@@ -116,7 +136,7 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
     }
 
     final stateMachine = state.controller.stateMachine;
-    if (stateMachine.name != kStateMachineName) {
+    if (stateMachine.name != widget.config.stateMachineName) {
       _logStateMachineWarning();
       setState(() {
         _riveController = state.controller;
@@ -127,8 +147,8 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
     }
 
     debugPrint(
-      'RiveTelemetry ${widget.runtimeId} state machine '
-      '"$kStateMachineName" found with '
+      'RiveTelemetry ${widget.config.runtimeId} state machine '
+      '"${widget.config.stateMachineName}" found with '
       '${stateMachine.inputs.length} input(s).',
     );
 
@@ -177,7 +197,9 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
 
     _stateMachineWarningLogged = true;
     debugPrint(
-      'RiveTelemetry warning: state machine "$kStateMachineName" not found.'
+      'RiveTelemetry warning: state machine '
+      '"${widget.config.stateMachineName}" not found in '
+      '${widget.config.assetPath}.'
       '${error == null ? '' : ' Error: $error'}',
     );
   }
@@ -196,7 +218,7 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              widget.label,
+              widget.config.label,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -210,7 +232,7 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
               child: rive.RiveWidgetBuilder(
                 fileLoader: _fileLoader,
                 stateMachineSelector: rive.StateMachineSelector.byName(
-                  kStateMachineName,
+                  widget.config.stateMachineName,
                 ),
                 builder: (context, state) => switch (state) {
                   rive.RiveLoading() => const CircularProgressIndicator(
@@ -232,9 +254,9 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
                           // the demo opts in for local validation.
                           enabled: true,
                           source: 'demo-flutter-web',
-                          runtimeId: widget.runtimeId,
-                          label: widget.label,
-                          stateMachineName: kStateMachineName,
+                          runtimeId: widget.config.runtimeId,
+                          label: widget.config.label,
+                          stateMachineName: widget.config.stateMachineName,
                           stateMachine: _stateMachine,
                           child: rive.RiveWidget(
                             controller: state.controller,
@@ -251,7 +273,7 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
           ),
           const SizedBox(height: 12),
           _InputControlPanel(
-            label: '${widget.label} controls',
+            label: '${widget.config.label} controls',
             inputs: _stateMachine?.inputs ?? const [],
             onToggleBoolean: _toggleBooleanInput,
             onStepNumber: _stepNumberInput,
@@ -259,7 +281,8 @@ class _RiveRuntimeCardState extends State<_RiveRuntimeCard> {
           ),
           const SizedBox(height: 12),
           _DebugStatusPanel(
-            runtimeId: widget.runtimeId,
+            runtimeId: widget.config.runtimeId,
+            assetPath: widget.config.assetPath,
             stateMachineFound: _stateMachineFound,
             inputCount: _stateMachine?.inputs.length ?? 0,
           ),
@@ -473,11 +496,13 @@ class _TinyButton extends StatelessWidget {
 class _DebugStatusPanel extends StatelessWidget {
   const _DebugStatusPanel({
     required this.runtimeId,
+    required this.assetPath,
     required this.stateMachineFound,
     required this.inputCount,
   });
 
   final String runtimeId;
+  final String assetPath;
   final bool stateMachineFound;
   final int inputCount;
 
@@ -496,6 +521,7 @@ class _DebugStatusPanel extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Runtime: $runtimeId'),
+            Text('Asset: $assetPath'),
             Text('State machine: ${stateMachineFound ? 'found' : 'not found'}'),
             Text('Inputs: $inputCount'),
           ],

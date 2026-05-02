@@ -40,6 +40,7 @@ class TelemetryServer {
     constructor(output, port = 8080) {
         this.port = port;
         this.latestPayloads = new Map();
+        this.snapshots = new Map();
         this.activeRuntimeId = null;
         this.serverRunning = false;
         this.serverError = null;
@@ -55,11 +56,19 @@ class TelemetryServer {
         const activePayload = this.activeRuntimeId === null
             ? null
             : this.latestPayloads.get(this.activeRuntimeId) ?? null;
+        const activeSnapshot = this.activeRuntimeId === null
+            ? null
+            : this.snapshots.get(this.activeRuntimeId) ?? null;
         return {
             runtimes,
             payloads,
             activeRuntimeId: activePayload?.runtimeId ?? null,
             activePayload,
+            snapshots: [...this.snapshots.values()],
+            activeSnapshot,
+            activeDiffs: activePayload !== null && activeSnapshot !== null
+                ? diffSnapshot(activeSnapshot, activePayload)
+                : [],
         };
     }
     get status() {
@@ -176,6 +185,28 @@ class TelemetryServer {
         this.notifyTelemetry();
         return true;
     }
+    captureSnapshot(runtimeId) {
+        const payload = this.latestPayloads.get(runtimeId);
+        if (!payload) {
+            return false;
+        }
+        this.snapshots.set(runtimeId, {
+            runtimeId: payload.runtimeId,
+            label: payload.label,
+            stateMachine: payload.stateMachine,
+            capturedAt: new Date().toISOString(),
+            inputs: payload.inputs.flatMap(toInputSnapshot),
+        });
+        this.notifyTelemetry();
+        return true;
+    }
+    clearSnapshot(runtimeId) {
+        const removed = this.snapshots.delete(runtimeId);
+        if (removed) {
+            this.notifyTelemetry();
+        }
+        return removed;
+    }
     handleMessage(rawMessage) {
         let parsed;
         try {
@@ -248,6 +279,59 @@ function isTelemetryInput(value) {
         (typeof inputValue === 'boolean' ||
             typeof inputValue === 'number' ||
             inputValue === null));
+}
+function toInputSnapshot(input) {
+    if (input.type !== 'boolean' &&
+        input.type !== 'number' &&
+        input.type !== 'trigger') {
+        return [];
+    }
+    return [
+        {
+            name: input.name,
+            type: input.type,
+            value: input.value,
+        },
+    ];
+}
+function diffSnapshot(snapshot, payload) {
+    const currentInputs = new Map(payload.inputs.flatMap(toInputSnapshot).map((input) => [input.name, input]));
+    const snapshotInputs = new Map(snapshot.inputs.map((input) => [input.name, input]));
+    const diffs = [];
+    for (const [name, current] of currentInputs) {
+        const previous = snapshotInputs.get(name);
+        if (!previous) {
+            diffs.push({
+                name,
+                type: current.type,
+                snapshotValue: null,
+                currentValue: current.value,
+                status: 'added',
+            });
+            continue;
+        }
+        if (previous.type !== current.type || previous.value !== current.value) {
+            diffs.push({
+                name,
+                type: current.type,
+                snapshotValue: previous.value,
+                currentValue: current.value,
+                status: 'changed',
+            });
+        }
+    }
+    for (const [name, previous] of snapshotInputs) {
+        if (!currentInputs.has(name)) {
+            diffs.push({
+                name,
+                type: previous.type,
+                snapshotValue: previous.value,
+                currentValue: null,
+                status: 'removed',
+            });
+        }
+    }
+    return diffs;
 }
 function isRecord(value) {
     return typeof value === 'object' && value !== null;

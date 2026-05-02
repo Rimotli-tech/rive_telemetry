@@ -15,6 +15,30 @@ export interface RiveTelemetryPayload {
   inputs: RiveTelemetryInput[];
 }
 
+export type RiveSnapshotInputType = 'boolean' | 'number' | 'trigger';
+
+export interface InputSnapshot {
+  name: string;
+  type: RiveSnapshotInputType;
+  value: boolean | number | null;
+}
+
+export interface RuntimeSnapshot {
+  runtimeId: string;
+  label: string;
+  stateMachine: string;
+  capturedAt: string;
+  inputs: InputSnapshot[];
+}
+
+export interface InputSnapshotDiff {
+  name: string;
+  type: RiveSnapshotInputType;
+  snapshotValue: boolean | number | null;
+  currentValue: boolean | number | null;
+  status: 'changed' | 'added' | 'removed';
+}
+
 export interface RiveRuntimeSummary {
   runtimeId: string;
   label: string;
@@ -28,6 +52,9 @@ export interface RiveTelemetryPanelState {
   payloads: RiveTelemetryPayload[];
   activeRuntimeId: string | null;
   activePayload: RiveTelemetryPayload | null;
+  snapshots: RuntimeSnapshot[];
+  activeSnapshot: RuntimeSnapshot | null;
+  activeDiffs: InputSnapshotDiff[];
 }
 
 export interface RiveTelemetryServerStatus {
