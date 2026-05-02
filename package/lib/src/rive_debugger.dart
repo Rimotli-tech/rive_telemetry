@@ -8,6 +8,8 @@ import 'package:flutter/widgets.dart';
 import 'package:rive/rive.dart' as rive;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import 'view_model_telemetry_adapter.dart';
+
 /// Wraps a Rive widget and broadcasts state-machine input telemetry.
 ///
 /// The child is returned unchanged; this widget only manages telemetry side
@@ -19,6 +21,8 @@ class RiveDebugger extends StatefulWidget {
     this.stateMachine,
     this.runtimeId,
     this.label,
+    this.viewModelInstance,
+    this.viewModelName,
     this.source = 'flutter-app',
     this.stateMachineName = 'State Machine 1',
     this.socketUrl = 'ws://localhost:8080',
@@ -31,6 +35,8 @@ class RiveDebugger extends StatefulWidget {
   final rive.StateMachine? stateMachine;
   final String? runtimeId;
   final String? label;
+  final rive.ViewModelInstance? viewModelInstance;
+  final String? viewModelName;
   final String source;
   final String stateMachineName;
   final String socketUrl;
@@ -55,6 +61,8 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   bool _socketConnecting = false;
   bool _disposed = false;
   late final String _generatedRuntimeId;
+  final ViewModelTelemetryAdapter _viewModelTelemetryAdapter =
+      const RiveViewModelTelemetryAdapter();
 
   String get _runtimeId => widget.runtimeId ?? _generatedRuntimeId;
   String get _label => widget.label ?? _runtimeId;
@@ -111,6 +119,8 @@ class _RiveDebuggerState extends State<RiveDebugger> {
         widget.source != oldWidget.source ||
         widget.runtimeId != oldWidget.runtimeId ||
         widget.label != oldWidget.label ||
+        widget.viewModelInstance != oldWidget.viewModelInstance ||
+        widget.viewModelName != oldWidget.viewModelName ||
         widget.stateMachineName != oldWidget.stateMachineName ||
         widget.debugPrintJson != oldWidget.debugPrintJson) {
       _configureStateMachine();
@@ -279,6 +289,7 @@ class _RiveDebuggerState extends State<RiveDebugger> {
         'timestamp': DateTime.now().toUtc().toIso8601String(),
         'stateMachine': widget.stateMachineName,
         'inputs': const [],
+        'viewModel': _serializeViewModelTelemetry(),
       };
     }
 
@@ -289,7 +300,17 @@ class _RiveDebuggerState extends State<RiveDebugger> {
       'timestamp': DateTime.now().toUtc().toIso8601String(),
       'stateMachine': widget.stateMachineName,
       'inputs': widget.stateMachine?.inputs.map(_serializeInput).toList() ?? [],
+      'viewModel': _serializeViewModelTelemetry(),
     };
+  }
+
+  Map<String, dynamic> _serializeViewModelTelemetry() {
+    return _viewModelTelemetryAdapter
+        .capture(
+          instance: widget.viewModelInstance,
+          viewModelName: widget.viewModelName,
+        )
+        .toJson();
   }
 
   Map<String, dynamic> _serializeInput(rive.Input input) {
