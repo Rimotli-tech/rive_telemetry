@@ -13,7 +13,21 @@ export interface RiveTelemetryPayload {
   timestamp: string;
   stateMachine: string;
   inputs: RiveTelemetryInput[];
-  viewModel?: unknown;
+  viewModel?: RiveViewModelTelemetry;
+}
+
+export interface RiveViewModelTelemetry {
+  supported: boolean;
+  reason?: string;
+  viewModelName?: string;
+  instanceName?: string;
+  properties: RiveViewModelPropertyTelemetry[];
+}
+
+export interface RiveViewModelPropertyTelemetry {
+  name: string;
+  type: string;
+  value: unknown;
 }
 
 export type RiveSnapshotInputType = 'boolean' | 'number' | 'trigger';

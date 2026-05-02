@@ -676,6 +676,50 @@ function getWebviewHtml(
     .number-control input[type="range"] {
       display: none;
     }
+    .view-model-card {
+      padding: 16px;
+    }
+    .view-model-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .view-model-summary {
+      display: flex;
+      gap: 16px;
+      color: var(--rt-muted-soft);
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+    .view-model-empty {
+      color: var(--rt-muted-soft);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .property-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .property-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border: 1px solid var(--rt-border-soft);
+      border-radius: var(--rt-radius);
+      background: rgba(26, 35, 43, 0.52);
+    }
+    .property-value {
+      justify-self: end;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      color: var(--rt-text);
+    }
     tr.command-sent {
       animation: flash 700ms ease-out;
     }
@@ -718,6 +762,13 @@ function getWebviewHtml(
       .runtime-grid,
       .input-grid {
         grid-template-columns: 1fr;
+      }
+      .property-row {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+      .property-value {
+        justify-self: start;
       }
       .runtime-top {
         align-items: stretch;
@@ -798,6 +849,7 @@ function getWebviewHtml(
       }
 
       const inputCards = activePayload.inputs.map((input) => renderInputCard(input, controlsDisabled)).join('');
+      const viewModel = normalizeViewModelTelemetry(activePayload.viewModel);
 
       app.innerHTML = \`
         <div class="layout">
@@ -808,6 +860,7 @@ function getWebviewHtml(
               <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
               <div class="input-grid">\${inputCards}</div>
             </section>
+            \${renderViewModelSection(viewModel)}
             \${renderSnapshotPanel(activePayload, snapshot, diffs)}
           </div>
           \${renderFooter()}
@@ -960,6 +1013,89 @@ function getWebviewHtml(
         const selected = runtime.runtimeId === telemetryState.activeRuntimeId ? 'selected' : '';
         return \`<option value="\${escapeAttribute(runtime.runtimeId)}" \${selected}>\${escapeHtml(label)}</option>\`;
       }).join('');
+    }
+
+    function renderViewModelSection(viewModel) {
+      if (viewModel.state === 'not-enabled') {
+        return \`
+          <section class="card view-model-card">
+            <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
+            <p class="view-model-empty">ViewModel telemetry not enabled</p>
+          </section>
+        \`;
+      }
+
+      if (viewModel.state === 'unsupported') {
+        return \`
+          <section class="card view-model-card">
+            <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
+            <p class="view-model-empty">ViewModel not available\${viewModel.reason ? ': ' + escapeHtml(viewModel.reason) : ''}</p>
+          </section>
+        \`;
+      }
+
+      return \`
+        <section class="card view-model-card">
+          <div class="view-model-header">
+            <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
+            <div class="view-model-summary">
+              <span>Name: <strong>\${escapeHtml(viewModel.viewModelName || '—')}</strong></span>
+              <span>Instance: <strong>\${escapeHtml(viewModel.instanceName || '—')}</strong></span>
+            </div>
+          </div>
+          \${viewModel.properties.length === 0
+            ? '<p class="view-model-empty">No ViewModel properties reported.</p>'
+            : '<div class="property-list">' + viewModel.properties.map(renderViewModelPropertyRow).join('') + '</div>'}
+        </section>
+      \`;
+    }
+
+    function renderViewModelPropertyRow(property) {
+      return \`
+        <div class="property-row">
+          <code class="input-name">\${escapeHtml(property.name)}</code>
+          <span class="pill">\${escapeHtml(property.type)}</span>
+          <code class="property-value">\${escapeHtml(formatViewModelValue(property.value))}</code>
+        </div>
+      \`;
+    }
+
+    function normalizeViewModelTelemetry(value) {
+      if (!value || typeof value !== 'object') {
+        return {
+          state: 'not-enabled',
+          properties: [],
+        };
+      }
+
+      const supported = value.supported === true;
+      const properties = Array.isArray(value.properties)
+        ? value.properties
+            .filter((property) => property && typeof property === 'object')
+            .map((property) => ({
+              name: typeof property.name === 'string' ? property.name : '',
+              type: typeof property.type === 'string' ? property.type : 'unknown',
+              value: property.value ?? null,
+            }))
+            .filter((property) => property.name.length > 0)
+        : [];
+
+      if (!supported) {
+        return {
+          state: 'unsupported',
+          reason: typeof value.reason === 'string' ? value.reason : '',
+          viewModelName: typeof value.viewModelName === 'string' ? value.viewModelName : '',
+          instanceName: typeof value.instanceName === 'string' ? value.instanceName : '',
+          properties: [],
+        };
+      }
+
+      return {
+        state: 'supported',
+        viewModelName: typeof value.viewModelName === 'string' ? value.viewModelName : '',
+        instanceName: typeof value.instanceName === 'string' ? value.instanceName : '',
+        properties,
+      };
     }
 
     function renderSnapshotPanel(activePayload, snapshot, diffs) {
@@ -1252,6 +1388,16 @@ function getWebviewHtml(
 
     function formatValue(value) {
       return value === null ? 'null' : String(value);
+    }
+
+    function formatViewModelValue(value) {
+      if (value === null || value === undefined) {
+        return '—';
+      }
+      if (typeof value === 'boolean') {
+        return value ? 'true' : 'false';
+      }
+      return String(value);
     }
 
     function formatTimestamp(value) {
