@@ -69,6 +69,9 @@ class TelemetryServer {
             activeDiffs: activePayload !== null && activeSnapshot !== null
                 ? diffSnapshot(activeSnapshot, activePayload)
                 : [],
+            activeViewModelDiffs: activePayload !== null && activeSnapshot !== null
+                ? diffViewModelSnapshot(activeSnapshot, activePayload)
+                : [],
         };
     }
     get status() {
@@ -196,6 +199,7 @@ class TelemetryServer {
             stateMachine: payload.stateMachine,
             capturedAt: new Date().toISOString(),
             inputs: payload.inputs.flatMap(toInputSnapshot),
+            viewModel: toViewModelSnapshot(payload.viewModel),
         });
         this.notifyTelemetry();
         return true;
@@ -332,6 +336,104 @@ function diffSnapshot(snapshot, payload) {
         }
     }
     return diffs;
+}
+function toViewModelSnapshot(viewModel) {
+    if (!viewModel?.supported) {
+        return undefined;
+    }
+    return {
+        supported: true,
+        viewModelName: viewModel.viewModelName,
+        instanceName: viewModel.instanceName,
+        properties: normalizeViewModelProperties(viewModel.properties),
+    };
+}
+function normalizeViewModelProperties(properties) {
+    if (!Array.isArray(properties)) {
+        return [];
+    }
+    return properties
+        .filter((property) => isRecord(property))
+        .map((property) => ({
+        name: typeof property.name === 'string' ? property.name : '',
+        type: typeof property.type === 'string' ? property.type : 'unknown',
+        value: property.value ?? null,
+    }))
+        .filter((property) => property.name.length > 0);
+}
+function diffViewModelSnapshot(snapshot, payload) {
+    const snapshotViewModel = snapshot.viewModel;
+    const currentViewModel = toViewModelSnapshot(payload.viewModel);
+    if (!snapshotViewModel?.supported || !currentViewModel?.supported) {
+        return [];
+    }
+    if (snapshotViewModel.viewModelName !== currentViewModel.viewModelName ||
+        snapshotViewModel.instanceName !== currentViewModel.instanceName) {
+        return diffDifferentViewModelInstances(snapshotViewModel, currentViewModel);
+    }
+    const snapshotProperties = new Map(normalizeViewModelProperties(snapshotViewModel.properties).map((property) => [property.name, property]));
+    const currentProperties = new Map(normalizeViewModelProperties(currentViewModel.properties).map((property) => [
+        property.name,
+        property,
+    ]));
+    const diffs = [];
+    for (const [name, current] of currentProperties) {
+        const previous = snapshotProperties.get(name);
+        if (!previous) {
+            diffs.push({
+                name,
+                type: current.type,
+                from: null,
+                to: current.value,
+                changed: true,
+            });
+            continue;
+        }
+        if (previous.type !== current.type ||
+            !areViewModelValuesEqual(previous.value, current.value)) {
+            diffs.push({
+                name,
+                type: current.type,
+                from: previous.value,
+                to: current.value,
+                changed: true,
+            });
+        }
+    }
+    for (const [name, previous] of snapshotProperties) {
+        if (!currentProperties.has(name)) {
+            diffs.push({
+                name,
+                type: previous.type,
+                from: previous.value,
+                to: null,
+                changed: true,
+            });
+        }
+    }
+    return diffs;
+}
+function diffDifferentViewModelInstances(snapshotViewModel, currentViewModel) {
+    const snapshotProperties = new Map(normalizeViewModelProperties(snapshotViewModel.properties).map((property) => [property.name, property]));
+    const currentProperties = new Map(normalizeViewModelProperties(currentViewModel.properties).map((property) => [
+        property.name,
+        property,
+    ]));
+    const names = new Set([...snapshotProperties.keys(), ...currentProperties.keys()]);
+    return [...names].map((name) => {
+        const previous = snapshotProperties.get(name);
+        const current = currentProperties.get(name);
+        return {
+            name,
+            type: current?.type ?? previous?.type ?? 'unknown',
+            from: previous?.value ?? null,
+            to: current?.value ?? null,
+            changed: true,
+        };
+    });
+}
+function areViewModelValuesEqual(left, right) {
+    return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
 }
 function isRecord(value) {
     return typeof value === 'object' && value !== null;

@@ -44,6 +44,7 @@ export interface RuntimeSnapshot {
   stateMachine: string;
   capturedAt: string;
   inputs: InputSnapshot[];
+  viewModel?: RiveViewModelTelemetry;
 }
 
 export interface InputSnapshotDiff {
@@ -52,6 +53,14 @@ export interface InputSnapshotDiff {
   snapshotValue: boolean | number | null;
   currentValue: boolean | number | null;
   status: 'changed' | 'added' | 'removed';
+}
+
+export interface ViewModelSnapshotDiff {
+  name: string;
+  type: string;
+  from: unknown;
+  to: unknown;
+  changed: true;
 }
 
 export interface RiveRuntimeSummary {
@@ -70,6 +79,7 @@ export interface RiveTelemetryPanelState {
   snapshots: RuntimeSnapshot[];
   activeSnapshot: RuntimeSnapshot | null;
   activeDiffs: InputSnapshotDiff[];
+  activeViewModelDiffs: ViewModelSnapshotDiff[];
 }
 
 export interface RiveTelemetryServerStatus {

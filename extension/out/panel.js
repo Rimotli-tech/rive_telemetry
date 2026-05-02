@@ -553,6 +553,9 @@ function getWebviewHtml(state, status) {
       gap: 12px;
       text-align: center;
     }
+    .snapshot-vm-section {
+      margin-top: 20px;
+    }
     .snapshot-icon {
       color: rgba(138, 145, 157, 0.58);
       font-size: 26px;
@@ -785,6 +788,7 @@ function getWebviewHtml(state, status) {
           : 'Waiting for telemetry...';
       const snapshot = telemetryState.activeSnapshot;
       const diffs = telemetryState.activeDiffs ?? [];
+      const viewModelDiffs = telemetryState.activeViewModelDiffs ?? [];
 
       if (!activePayload) {
         app.innerHTML = \`
@@ -819,7 +823,7 @@ function getWebviewHtml(state, status) {
               <div class="input-grid">\${inputCards}</div>
             </section>
             \${renderViewModelSection(viewModel)}
-            \${renderSnapshotPanel(activePayload, snapshot, diffs)}
+            \${renderSnapshotPanel(activePayload, snapshot, diffs, viewModelDiffs)}
           </div>
           \${renderFooter()}
         </div>
@@ -1073,7 +1077,7 @@ function getWebviewHtml(state, status) {
         property.type === 'trigger';
     }
 
-    function renderSnapshotPanel(activePayload, snapshot, diffs) {
+    function renderSnapshotPanel(activePayload, snapshot, diffs, viewModelDiffs) {
       const diffRows = diffs.map((diff) => \`
         <tr>
           <td><code>\${escapeHtml(diff.name)}</code></td>
@@ -1083,6 +1087,15 @@ function getWebviewHtml(state, status) {
           <td class="diff-\${escapeAttribute(diff.status)}">\${escapeHtml(diff.status)}</td>
         </tr>
       \`).join('');
+      const viewModelDiffRows = viewModelDiffs.map((diff) => \`
+        <tr>
+          <td><code>\${escapeHtml(diff.name)}</code></td>
+          <td>\${escapeHtml(diff.type)}</td>
+          <td><code>\${escapeHtml(formatViewModelValue(diff.from))}</code></td>
+          <td><code>\${escapeHtml(formatViewModelValue(diff.to))}</code></td>
+        </tr>
+      \`).join('');
+      const snapshotViewModel = snapshot?.viewModel?.supported ? snapshot.viewModel : null;
 
       if (!snapshot) {
         return \`
@@ -1105,7 +1118,7 @@ function getWebviewHtml(state, status) {
           <div class="snapshot-header">
             <div>
               <h2>Snapshot Diff</h2>
-              <div class="meta">Captured \${escapeHtml(formatTimestamp(snapshot.capturedAt))} with \${snapshot.inputs.length} input(s)</div>
+              <div class="meta">Captured \${escapeHtml(formatTimestamp(snapshot.capturedAt))} with \${snapshot.inputs.length} input(s)\${snapshotViewModel ? ' and ViewModel ' + escapeHtml(snapshotViewModel.viewModelName || '—') + ' / ' + escapeHtml(snapshotViewModel.instanceName || '—') : ''}</div>
             </div>
             <div class="snapshot-actions">
               <button type="button" class="primary-button" data-snapshot-action="capture" data-runtime-id="\${escapeAttribute(activePayload.runtimeId)}">Capture</button>
@@ -1126,7 +1139,26 @@ function getWebviewHtml(state, status) {
                 <tbody>\${diffRows}</tbody>
               </table>
             \`}
+          \${snapshotViewModel ? renderViewModelSnapshotDiffTable(viewModelDiffRows, viewModelDiffs.length) : ''}
         </section>
+      \`;
+    }
+
+    function renderViewModelSnapshotDiffTable(diffRows, diffCount) {
+      return \`
+        <div class="snapshot-vm-section">
+          <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel Changes</h3>
+          \${diffCount === 0
+            ? '<p class="empty">No ViewModel property differences from the captured snapshot.</p>'
+            : \`
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Type</th><th>From</th><th>To</th></tr>
+                </thead>
+                <tbody>\${diffRows}</tbody>
+              </table>
+            \`}
+        </div>
       \`;
     }
 
@@ -1154,6 +1186,7 @@ function getWebviewHtml(state, status) {
           activePayload: nextPayload,
           activeSnapshot: nextSnapshot,
           activeDiffs: nextPayload && nextSnapshot ? diffSnapshot(nextSnapshot, nextPayload) : [],
+          activeViewModelDiffs: nextPayload && nextSnapshot ? diffViewModelSnapshot(nextSnapshot, nextPayload) : [],
         };
         previousValues = new Map();
         changedInputs.clear();
@@ -1235,6 +1268,79 @@ function getWebviewHtml(state, status) {
       }
 
       return diffs;
+    }
+
+    function diffViewModelSnapshot(snapshot, payload) {
+      const snapshotViewModel = snapshot.viewModel?.supported ? snapshot.viewModel : null;
+      const currentViewModel = normalizeViewModelTelemetry(payload.viewModel);
+      if (!snapshotViewModel || currentViewModel.state !== 'supported') {
+        return [];
+      }
+
+      if (
+        snapshotViewModel.viewModelName !== currentViewModel.viewModelName ||
+        snapshotViewModel.instanceName !== currentViewModel.instanceName
+      ) {
+        return diffDifferentViewModelInstances(snapshotViewModel, currentViewModel);
+      }
+
+      const snapshotProperties = new Map(normalizeSnapshotViewModelProperties(snapshotViewModel.properties).map((property) => [property.name, property]));
+      const currentProperties = new Map(currentViewModel.properties.map((property) => [property.name, property]));
+      const diffs = [];
+
+      for (const [name, current] of currentProperties) {
+        const previous = snapshotProperties.get(name);
+        if (!previous) {
+          diffs.push({name, type: current.type, from: null, to: current.value, changed: true});
+          continue;
+        }
+
+        if (previous.type !== current.type || !areViewModelValuesEqual(previous.value, current.value)) {
+          diffs.push({name, type: current.type, from: previous.value, to: current.value, changed: true});
+        }
+      }
+
+      for (const [name, previous] of snapshotProperties) {
+        if (!currentProperties.has(name)) {
+          diffs.push({name, type: previous.type, from: previous.value, to: null, changed: true});
+        }
+      }
+
+      return diffs;
+    }
+
+    function diffDifferentViewModelInstances(snapshotViewModel, currentViewModel) {
+      const snapshotProperties = new Map(normalizeSnapshotViewModelProperties(snapshotViewModel.properties).map((property) => [property.name, property]));
+      const currentProperties = new Map(currentViewModel.properties.map((property) => [property.name, property]));
+      const names = new Set([...snapshotProperties.keys(), ...currentProperties.keys()]);
+      return [...names].map((name) => {
+        const previous = snapshotProperties.get(name);
+        const current = currentProperties.get(name);
+        return {
+          name,
+          type: current?.type ?? previous?.type ?? 'unknown',
+          from: previous?.value ?? null,
+          to: current?.value ?? null,
+          changed: true,
+        };
+      });
+    }
+
+    function normalizeSnapshotViewModelProperties(properties) {
+      return Array.isArray(properties)
+        ? properties
+            .filter((property) => property && typeof property === 'object')
+            .map((property) => ({
+              name: typeof property.name === 'string' ? property.name : '',
+              type: typeof property.type === 'string' ? property.type : 'unknown',
+              value: property.value ?? null,
+            }))
+            .filter((property) => property.name.length > 0)
+        : [];
+    }
+
+    function areViewModelValuesEqual(left, right) {
+      return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
     }
 
     function toInputSnapshot(input) {
