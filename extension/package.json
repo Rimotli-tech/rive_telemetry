@@ -1,14 +1,24 @@
 {
   "name": "rive-telemetry",
-  "displayName": "RiveTelemetry",
-  "description": "Developer tooling for inspecting and debugging Rive runtime behavior.",
+  "displayName": "Rive Telemetry",
+  "description": "Inspect and control Rive runtime behavior from VS Code.",
   "version": "0.2.0",
   "publisher": "local",
+  "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.118.0"
   },
   "categories": [
-    "Other"
+    "Debuggers"
+  ],
+  "keywords": [
+    "rive",
+    "flutter",
+    "animation",
+    "debug",
+    "devtools",
+    "telemetry",
+    "viewmodel"
   ],
   "activationEvents": [
     "onCommand:riveTelemetry.openPanel"
@@ -38,5 +48,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Rimotli-tech/rive_telemetry"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/Rimotli-tech/rive_telemetry/issues"
+  },
+  "homepage": "https://github.com/Rimotli-tech/rive_telemetry",
+  "license": "MIT"
 }
