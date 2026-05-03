@@ -219,6 +219,13 @@ function getWebviewHtml(state, status) {
       margin-bottom: 24px;
       border-bottom: 1px solid var(--rt-border-soft);
     }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     .brand {
       display: flex;
       align-items: center;
@@ -323,6 +330,27 @@ function getWebviewHtml(state, status) {
       font-size: 12px;
       font-weight: 600;
     }
+    .active-runtime-row {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid rgba(159, 202, 255, 0.28);
+      border-radius: var(--rt-radius);
+      background: rgba(159, 202, 255, 0.08);
+    }
+    .active-runtime-row .runtime-select {
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .active-runtime-row label {
+      color: var(--rt-primary);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .active-runtime-row select {
+      width: min(420px, 100%);
+      font-weight: 700;
+    }
     .runtime-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -334,6 +362,15 @@ function getWebviewHtml(state, status) {
       flex-direction: column;
       gap: 4px;
       min-width: 0;
+    }
+    .runtime-field.focus-field {
+      padding: 12px;
+      border: 1px solid rgba(159, 202, 255, 0.22);
+      border-radius: var(--rt-radius);
+      background: rgba(159, 202, 255, 0.06);
+    }
+    .runtime-field.focus-field .field-label {
+      color: var(--rt-primary);
     }
     .field-label {
       color: rgba(192, 199, 211, 0.62);
@@ -367,6 +404,26 @@ function getWebviewHtml(state, status) {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
+    }
+    .section-panel {
+      padding: 16px;
+      border: 1px solid var(--rt-border-soft);
+      border-radius: var(--rt-radius);
+      background: var(--rt-surface-low);
+    }
+    .property-group {
+      margin-top: 16px;
+    }
+    .property-group:first-of-type {
+      margin-top: 0;
+    }
+    .property-group-title {
+      margin-bottom: 8px;
+      color: var(--rt-muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
     .input-card {
       display: flex;
@@ -514,13 +571,24 @@ function getWebviewHtml(state, status) {
     }
     select {
       width: 180px;
-      padding: 6px 8px;
+      padding: 7px 34px 7px 10px;
       color: var(--rt-text);
-      background: var(--rt-surface-control);
+      background-color: var(--rt-surface-control);
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--rt-muted) 50%),
+        linear-gradient(135deg, var(--rt-muted) 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) 50%,
+        calc(100% - 13px) 50%;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
       border: 1px solid var(--rt-border-soft);
       border-radius: 4px;
       font: inherit;
       outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
     }
     select:focus {
       border-color: rgba(159, 202, 255, 0.72);
@@ -808,6 +876,11 @@ function getWebviewHtml(state, status) {
         align-items: flex-start;
         flex-direction: column;
       }
+      .header-actions {
+        width: 100%;
+        align-items: flex-start;
+        justify-content: flex-start;
+      }
       .runtime-grid,
       .input-grid {
         grid-template-columns: 1fr;
@@ -822,6 +895,9 @@ function getWebviewHtml(state, status) {
       .runtime-select {
         align-items: stretch;
         flex-direction: column;
+      }
+      .active-runtime-row .runtime-select {
+        align-items: stretch;
       }
       select {
         width: 100%;
@@ -877,7 +953,7 @@ function getWebviewHtml(state, status) {
       if (!activePayload) {
         app.innerHTML = \`
           <div class="layout">
-            \${renderHeader(statusClass, statusText)}
+            \${renderHeader(statusClass, statusText, telemetryStale)}
             <section class="snapshot-panel snapshot-empty">
               <span class="snapshot-icon">&#9676;</span>
               <div>
@@ -894,19 +970,16 @@ function getWebviewHtml(state, status) {
         return;
       }
 
-      const inputCards = activePayload.inputs.map((input) => renderInputCard(input, controlsDisabled)).join('');
+      const inputsSection = renderInputsSection(activePayload.inputs, controlsDisabled);
       const viewModel = normalizeViewModelTelemetry(activePayload.viewModel);
 
       app.innerHTML = \`
         <div class="layout">
-          \${renderHeader(statusClass, statusText)}
+          \${renderHeader(statusClass, statusText, telemetryStale)}
           <div class="stack">
             \${renderRuntimeCard(activePayload, serverFailed, telemetryStale)}
-            <section>
-              <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
-              <div class="input-grid">\${inputCards}</div>
-            </section>
             \${renderViewModelSection(viewModel)}
+            \${inputsSection}
           </div>
           \${renderFooter()}
         </div>
@@ -924,7 +997,7 @@ function getWebviewHtml(state, status) {
       }
     }
 
-    function renderHeader(statusClass, statusText) {
+    function renderHeader(statusClass, statusText, telemetryStale) {
       return \`
         <header class="app-header">
           <div class="brand">
@@ -934,9 +1007,12 @@ function getWebviewHtml(state, status) {
             </svg>
             <span>RiveTelemetry</span>
           </div>
-          <div class="status \${statusClass}">
-            <span class="dot"></span>
-            <span>\${escapeHtml(statusText)}</span>
+          <div class="header-actions">
+            \${telemetryStale ? '<button type="button" class="secondary" data-clear-telemetry>Clear telemetry</button>' : ''}
+            <div class="status \${statusClass}">
+              <span class="dot"></span>
+              <span>\${escapeHtml(statusText)}</span>
+            </div>
           </div>
         </header>
       \`;
@@ -956,18 +1032,19 @@ function getWebviewHtml(state, status) {
                 \${telemetryStale ? '<span class="separator">&bull;</span><span>Last-known telemetry retained</span>' : ''}
               </div>
             </div>
+          </div>
+          <div class="active-runtime-row">
             <div class="runtime-select">
               <label for="runtime-select">Active runtime</label>
               <select id="runtime-select">
                 \${renderRuntimeOptions()}
               </select>
-              \${telemetryStale ? '<button type="button" class="secondary" data-clear-telemetry>Clear telemetry</button>' : ''}
             </div>
           </div>
           <div class="runtime-grid">
+            \${renderStateMachineField(activePayload)}
             \${renderRuntimeField('Runtime ID', activePayload.runtimeId, true)}
             \${renderRuntimeField('Source', activePayload.source, true)}
-            \${renderStateMachineField(activePayload)}
             \${renderRuntimeField('Timestamp', formatTimestamp(activePayload.timestamp), true)}
           </div>
         </section>
@@ -985,7 +1062,7 @@ function getWebviewHtml(state, status) {
 
     function renderStateMachineField(activePayload) {
       return \`
-        <div class="runtime-field">
+        <div class="runtime-field focus-field">
           <label class="field-label" for="state-machine-select">State Machine</label>
           <select id="state-machine-select" class="field-select">
             \${renderStateMachineOptions(activePayload)}
@@ -1091,6 +1168,19 @@ function getWebviewHtml(state, status) {
       }).join('');
     }
 
+    function renderInputsSection(inputs, disabled) {
+      if (!Array.isArray(inputs) || inputs.length === 0) {
+        return '';
+      }
+
+      return \`
+        <section class="section-panel">
+          <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
+          \${renderGroupedItems(inputs, (input) => input.type, (input) => renderInputCard(input, disabled))}
+        </section>
+      \`;
+    }
+
     function renderViewModelSection(viewModel) {
       if (viewModel.state === 'not-enabled') {
         return \`
@@ -1111,7 +1201,7 @@ function getWebviewHtml(state, status) {
       }
 
       return \`
-        <section>
+        <section class="\${viewModel.properties.length > 0 ? 'section-panel' : ''}">
           <div class="view-model-header">
             <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
             <div class="view-model-summary">
@@ -1121,9 +1211,68 @@ function getWebviewHtml(state, status) {
           </div>
           \${viewModel.properties.length === 0
             ? '<p class="view-model-empty">No ViewModel properties reported.</p>'
-            : '<div class="input-grid">' + viewModel.properties.map((property) => renderViewModelPropertyRow(viewModel, property)).join('') + '</div>'}
+            : renderGroupedItems(viewModel.properties, (property) => property.type, (property) => renderViewModelPropertyRow(viewModel, property))}
         </section>
       \`;
+    }
+
+    function renderGroupedItems(items, typeOf, renderItem) {
+      const groups = new Map();
+      for (const item of items) {
+        const type = normalizeTelemetryType(typeOf(item));
+        if (!groups.has(type)) {
+          groups.set(type, []);
+        }
+        groups.get(type).push(item);
+      }
+
+      return telemetryTypeOrder()
+        .filter((type) => groups.has(type))
+        .map((type) => \`
+          <div class="property-group">
+            <div class="property-group-title">\${escapeHtml(labelForTelemetryType(type))}</div>
+            <div class="input-grid">\${groups.get(type).map(renderItem).join('')}</div>
+          </div>
+        \`)
+        .join('');
+    }
+
+    function telemetryTypeOrder() {
+      return [
+        'number',
+        'string',
+        'boolean',
+        'color',
+        'trigger',
+        'enum',
+        'image',
+        'artboard',
+        'list',
+        'listAttributes',
+        'integer',
+        'unknown',
+      ];
+    }
+
+    function normalizeTelemetryType(type) {
+      const normalized = String(type || 'unknown');
+      if (normalized === 'enumType') {
+        return 'enum';
+      }
+      if (normalized === 'symbolListIndex') {
+        return 'listAttributes';
+      }
+      if (telemetryTypeOrder().includes(normalized)) {
+        return normalized;
+      }
+      return 'unknown';
+    }
+
+    function labelForTelemetryType(type) {
+      if (type === 'listAttributes') {
+        return 'List Attributes';
+      }
+      return type.charAt(0).toUpperCase() + type.slice(1);
     }
 
     function renderViewModelPropertyRow(viewModel, property) {
