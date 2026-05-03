@@ -17,6 +17,7 @@ export interface RiveViewModelTelemetry {
     properties: RiveViewModelPropertyTelemetry[];
 }
 export interface RiveTelemetryPayload {
+    protocolVersion: 1;
     source: string;
     runtimeId: string;
     label: string;

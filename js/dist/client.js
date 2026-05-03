@@ -42,6 +42,23 @@ export class RiveTelemetry {
         this.previousSignature = undefined;
         this.broadcastRiveState();
     }
+    payload() {
+        return this.buildTelemetryPayload();
+    }
+    applyCommand(command) {
+        const applied = command.type === 'setInput'
+            ? this.applySetInputCommand(command)
+            : command.type === 'fireTrigger'
+                ? this.applyFireTriggerCommand(command)
+                : this.applySetViewModelPropertyCommand(command);
+        if (applied) {
+            this.advanceRuntime();
+        }
+        return applied;
+    }
+    send() {
+        this.broadcastRiveState();
+    }
     connectSocket() {
         if (this.disposed ||
             !this.socketUrl ||
@@ -127,6 +144,7 @@ export class RiveTelemetry {
     }
     buildTelemetryPayload() {
         return {
+            protocolVersion: 1,
             source: this.source,
             runtimeId: this.runtimeId,
             label: this.label,
@@ -192,15 +210,9 @@ export class RiveTelemetry {
         if (!isTelemetryCommand(decoded)) {
             return;
         }
-        const applied = decoded.type === 'setInput'
-            ? this.applySetInputCommand(decoded)
-            : decoded.type === 'fireTrigger'
-                ? this.applyFireTriggerCommand(decoded)
-                : this.applySetViewModelPropertyCommand(decoded);
-        if (!applied) {
+        if (!this.applyCommand(decoded)) {
             return;
         }
-        this.advanceRuntime();
         this.broadcastRiveState();
     }
     applySetInputCommand(command) {

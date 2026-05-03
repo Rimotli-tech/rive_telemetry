@@ -145,6 +145,12 @@ compare live telemetry against it. Snapshot diffing currently covers:
 Snapshots are runtime-specific and ViewModel-instance-specific. They are not
 persisted across extension reloads.
 
+## Protocol
+
+`rive_telemetry` sends JSON telemetry payloads with `protocolVersion: 1` to the
+Rive Telemetry VS Code extension. The extension accepts older payloads without
+the field, but new runtime bridges should include it.
+
 ## Example
 
 See `example/` for a minimal Flutter app using one `demo_2.riv` instance, one

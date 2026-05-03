@@ -230,6 +230,10 @@ class TelemetryServer {
             this.output.appendLine('RiveTelemetry ignored invalid telemetry payload');
             return;
         }
+        if (typeof parsed.protocolVersion === 'number' &&
+            parsed.protocolVersion !== 1) {
+            this.output.appendLine(`RiveTelemetry received protocol version ${parsed.protocolVersion}; expected version 1`);
+        }
         this.latestPayloads.set(parsed.runtimeId, parsed);
         if (this.activeRuntimeId === null ||
             !this.latestPayloads.has(this.activeRuntimeId)) {
@@ -266,7 +270,9 @@ function isTelemetryPayload(value) {
     if (!isRecord(value)) {
         return false;
     }
-    return (typeof value.source === 'string' &&
+    return ((value.protocolVersion === undefined ||
+        typeof value.protocolVersion === 'number') &&
+        typeof value.source === 'string' &&
         typeof value.runtimeId === 'string' &&
         value.runtimeId.length > 0 &&
         typeof value.label === 'string' &&

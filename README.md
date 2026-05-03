@@ -1,45 +1,110 @@
 # RiveTelemetry
 
-RiveTelemetry is a developer tool for inspecting and debugging Rive runtime behavior.
+RiveTelemetry is a developer tool for inspecting and debugging Rive runtime
+behavior from VS Code.
+
+## Quick Start
+
+### VS Code extension
+
+Install the packaged extension from `extension/`:
+
+```sh
+code --install-extension rive-telemetry-0.3.0.vsix
+```
+
+Then run this command from the VS Code command palette:
+
+```text
+RiveTelemetry: Open Panel
+```
+
+The extension listens for runtime clients on:
+
+```text
+ws://localhost:8080
+```
+
+### Flutter
+
+Add the Flutter bridge package:
+
+```yaml
+dependencies:
+  rive_telemetry: ^0.3.0
+```
+
+Wrap your rendered Rive widget and pass the loaded state machine:
+
+```dart
+RiveDebugger(
+  stateMachine: stateMachine,
+  stateMachineName: 'State Machine 1',
+  child: RiveWidget(controller: controller),
+)
+```
+
+Telemetry is disabled in Flutter release builds by default unless `enabled` is
+set to `true`.
+
+### JavaScript
+
+Add the JavaScript bridge package:
+
+```sh
+npm install @rimotli-tech/rive-telemetry
+```
+
+Start telemetry after your Rive runtime is available:
+
+```ts
+import { RiveTelemetry } from '@rimotli-tech/rive-telemetry';
+
+const telemetry = new RiveTelemetry({
+  rive,
+  runtimeId: 'hero-animation',
+  label: 'Hero Animation',
+  stateMachineName: 'State Machine 1',
+});
+
+telemetry.start();
+```
 
 ## Workspace
 
 - `extension/` contains the VS Code extension.
 - `package/` contains the Flutter bridge/debugger wrapper.
-- `js/` contains the JavaScript/TypeScript runtime bridge.
+- `js/` contains the JavaScript/TypeScript runtime bridge and browser demo.
 - `demo/` contains the Flutter web demo app.
 
-## Current Scope
+## Protocol
 
-RiveTelemetry currently includes the VS Code inspection panel plus reusable
-runtime bridges:
+Runtime clients send JSON telemetry payloads to the extension over WebSocket.
+Current clients send `protocolVersion: 1`; the extension also accepts older
+payloads without that field for compatibility.
 
-- baseline project structure
-- dependency wiring
-- minimal VS Code extension command scaffold
-- Flutter `RiveDebugger` wrapper for broadcasting Rive state-machine input telemetry
-- JavaScript `RiveTelemetry` client for broadcasting web runtime telemetry
-- demo app that renders a Rive file and passes its active state machine into `RiveDebugger`
+## Release Checks
 
-`RiveDebugger` is dev-only by default. Release builds automatically disable
-telemetry so it does not open WebSockets, poll inputs, print logs, or send data.
-Use `enabled` to explicitly override behavior during local validation.
+Run these before publishing:
 
-```dart
-RiveDebugger(
-  stateMachine: stateMachine,
-  child: RiveWidget(controller: controller),
-)
+```sh
+cd extension
+npm run check
+npm run compile
+npx --yes @vscode/vsce package
 ```
 
-JavaScript apps can use the framework-neutral client:
+```sh
+cd package
+flutter analyze
+flutter test
+dart pub publish --dry-run
+```
 
-```ts
-const telemetry = new RiveTelemetry({
-  rive,
-  runtimeId: 'hero-animation',
-  stateMachineName: 'State Machine 1',
-});
-
-telemetry.start();
+```sh
+cd js
+npm run check
+npm test
+npm run app:build
+npm pack --dry-run
 ```

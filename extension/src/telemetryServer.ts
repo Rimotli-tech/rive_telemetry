@@ -257,6 +257,15 @@ export class TelemetryServer implements vscode.Disposable {
       return;
     }
 
+    if (
+      typeof parsed.protocolVersion === 'number' &&
+      parsed.protocolVersion !== 1
+    ) {
+      this.output.appendLine(
+        `RiveTelemetry received protocol version ${parsed.protocolVersion}; expected version 1`,
+      );
+    }
+
     this.latestPayloads.set(parsed.runtimeId, parsed);
     if (
       this.activeRuntimeId === null ||
@@ -301,6 +310,8 @@ function isTelemetryPayload(value: unknown): value is RiveTelemetryPayload {
   }
 
   return (
+    (value.protocolVersion === undefined ||
+      typeof value.protocolVersion === 'number') &&
     typeof value.source === 'string' &&
     typeof value.runtimeId === 'string' &&
     value.runtimeId.length > 0 &&

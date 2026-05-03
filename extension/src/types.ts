@@ -7,6 +7,7 @@ export interface RiveTelemetryInput {
 }
 
 export interface RiveTelemetryPayload {
+  protocolVersion?: number;
   source: string;
   runtimeId: string;
   label: string;

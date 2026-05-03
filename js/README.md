@@ -87,3 +87,9 @@ telemetry with runtime id `js-demo-runtime`.
 
 The package is framework-neutral and does not import a specific `@rive-app/*`
 runtime. It uses public runtime-shaped APIs when present.
+
+## Protocol
+
+The client sends JSON telemetry payloads with `protocolVersion: 1` to the Rive
+Telemetry VS Code extension. The extension accepts older payloads without the
+field, but new runtime bridges should include it.

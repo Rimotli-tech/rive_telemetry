@@ -1,4 +1,4 @@
-import { RiveTelemetryOptions } from './types.js';
+import { RiveTelemetryCommand, RiveTelemetryOptions, RiveTelemetryPayload } from './types.js';
 export declare class RiveTelemetry {
     private readonly options;
     private socket?;
@@ -21,6 +21,9 @@ export declare class RiveTelemetry {
     start(): void;
     dispose(): void;
     update(options: Partial<RiveTelemetryOptions>): void;
+    payload(): RiveTelemetryPayload;
+    applyCommand(command: RiveTelemetryCommand): boolean;
+    send(): void;
     private connectSocket;
     private configurePolling;
     private closeSocket;

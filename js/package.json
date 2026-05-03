@@ -11,11 +11,15 @@
     "README.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "app": "vite --host 127.0.0.1",
     "app:build": "vite build",
     "build": "tsc -p ./",
-    "check": "tsc --noEmit -p ./"
+    "check": "tsc --noEmit -p ./",
+    "test": "npm run build && node --test \"test/**/*.test.js\""
   },
   "keywords": [
     "rive",

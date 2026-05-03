@@ -283,6 +283,7 @@ class _RiveDebuggerState extends State<RiveDebugger> {
   Map<String, dynamic> _buildTelemetryPayload() {
     if (!_isTelemetryEnabled) {
       return {
+        'protocolVersion': 1,
         'source': widget.source,
         'runtimeId': _runtimeId,
         'label': _label,
@@ -294,6 +295,7 @@ class _RiveDebuggerState extends State<RiveDebugger> {
     }
 
     return {
+      'protocolVersion': 1,
       'source': widget.source,
       'runtimeId': _runtimeId,
       'label': _label,

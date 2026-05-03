@@ -14,7 +14,7 @@ RiveTelemetry connects Rive runtimes, including Flutter and JavaScript apps, to 
 - Preserve last-known telemetry when the app disconnects
 - Clear retained telemetry manually from the panel
 
-## Usage
+## Quick Start
 
 ### Install the extension
 
@@ -115,6 +115,12 @@ RiveDebugger(
 Supported mutable ViewModel property types are `number`, `boolean`, `string`,
 `color`, `enum`, and `trigger`.
 
+## Protocol
+
+Flutter and JavaScript clients send JSON telemetry over WebSocket. Current
+clients send `protocolVersion: 1`; the extension also accepts older payloads
+without that field.
+
 ## Development
 
 Install dependencies and compile the extension:
@@ -129,3 +135,13 @@ Run a type check without emitting files:
 ```sh
 npm run check
 ```
+
+Package the Marketplace VSIX:
+
+```sh
+npx --yes @vscode/vsce package
+```
+
+The extension package is scoped by `.vscodeignore` so the VSIX includes only
+runtime files, the README, license, icon, compiled output, and production
+dependencies.
