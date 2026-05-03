@@ -12,6 +12,8 @@
     "LICENSE"
   ],
   "scripts": {
+    "app": "vite --host 127.0.0.1",
+    "app:build": "vite build",
     "build": "tsc -p ./",
     "check": "tsc --noEmit -p ./"
   },
@@ -43,6 +45,8 @@
     }
   },
   "devDependencies": {
+    "@rive-app/canvas": "^2.31.2",
+    "vite": "^7.1.12",
     "typescript": "^5.9.3"
   }
 }

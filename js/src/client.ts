@@ -207,14 +207,7 @@ export class RiveTelemetry {
   }
 
   private readInputs(): RiveTelemetryInput[] {
-    const stateMachine = this.resolveStateMachine();
-    if (!stateMachine) {
-      return [];
-    }
-
-    const inputs = readArray(
-      isRecord(stateMachine) ? stateMachine.inputs : undefined,
-    );
+    const inputs = this.resolveInputs();
     return inputs.map((input) => this.serializeInput(input));
   }
 
@@ -361,11 +354,30 @@ export class RiveTelemetry {
   }
 
   private inputByName(name: string): unknown {
+    const inputs = this.resolveInputs();
+    return inputs.find((input) => isRecord(input) && input.name === name);
+  }
+
+  private resolveInputs(): unknown[] {
     const stateMachine = this.resolveStateMachine();
-    const inputs = readArray(
+    const stateMachineInputs = readArray(
       isRecord(stateMachine) ? stateMachine.inputs : undefined,
     );
-    return inputs.find((input) => isRecord(input) && input.name === name);
+    if (stateMachineInputs.length > 0) {
+      return stateMachineInputs;
+    }
+
+    const rive = this.options.rive;
+    if (!isRecord(rive)) {
+      return [];
+    }
+
+    const inputsForStateMachine = rive.stateMachineInputs;
+    if (typeof inputsForStateMachine === 'function') {
+      return readArray(inputsForStateMachine.call(rive, this.stateMachineName));
+    }
+
+    return [];
   }
 
   private resolveStateMachine(): unknown {
@@ -400,7 +412,7 @@ export class RiveTelemetry {
       if (!isRecord(target)) {
         continue;
       }
-      for (const methodName of ['requestAdvance', 'advance', 'drawFrame']) {
+      for (const methodName of ['requestAdvance', 'advance', 'drawFrame', 'draw']) {
         const method = target[methodName];
         if (typeof method === 'function') {
           method.call(target);

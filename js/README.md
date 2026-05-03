@@ -61,6 +61,17 @@ Call `dispose()` when the Rive runtime is no longer mounted:
 telemetry.dispose();
 ```
 
+## Local demo
+
+Run the browser demo while the VS Code extension panel is open:
+
+```sh
+npm run app
+```
+
+The demo uses `@rive-app/canvas`, loads the repo demo `.riv` asset, and streams
+telemetry with runtime id `js-demo-runtime`.
+
 ## Options
 
 - `rive`: Rive web runtime object.

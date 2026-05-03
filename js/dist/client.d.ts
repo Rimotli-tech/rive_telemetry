@@ -38,6 +38,7 @@ export declare class RiveTelemetry {
     private applySetViewModelPropertyCommand;
     private matchesRuntimeAndStateMachine;
     private inputByName;
+    private resolveInputs;
     private resolveStateMachine;
     private advanceRuntime;
     private ignoreCommand;

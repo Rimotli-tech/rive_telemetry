@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rive Telemetry JS Demo</title>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Rive Telemetry JS</p>
+          <h1>Browser runtime telemetry</h1>
+          <p class="copy">
+            Open the Rive Telemetry VS Code panel, then run this app to stream
+            JavaScript Rive state machine telemetry.
+          </p>
+        </div>
+        <div id="status" class="status">Loading Rive runtime</div>
+      </section>
+
+      <section class="stage">
+        <canvas id="rive-canvas"></canvas>
+      </section>
+
+      <section class="section-panel">
+        <div class="section-header">
+          <h2>Local Inputs</h2>
+          <button id="refresh-inputs" type="button">Refresh</button>
+        </div>
+        <div id="controls" class="controls"></div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
