@@ -7,8 +7,9 @@ import { callMethod, isRecord, readArray, readString } from './guards.js';
 export function captureViewModelTelemetry(options: {
   instance: unknown;
   viewModelName?: string;
+  instanceName?: string;
 }): RiveViewModelTelemetry {
-  const { instance, viewModelName } = options;
+  const { instance, viewModelName, instanceName } = options;
   if (!instance) {
     return {
       supported: false,
@@ -35,7 +36,7 @@ export function captureViewModelTelemetry(options: {
     return {
       supported: true,
       viewModelName,
-      instanceName: readString(instance.name),
+      instanceName: instanceName ?? readString(instance.name),
       properties,
     };
   } catch (error) {

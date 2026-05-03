@@ -205,6 +205,7 @@ export class RiveTelemetry {
       viewModel: captureViewModelTelemetry({
         instance: this.options.viewModelInstance,
         viewModelName: this.options.viewModelName,
+        instanceName: this.options.viewModelInstanceName,
       }),
     };
   }

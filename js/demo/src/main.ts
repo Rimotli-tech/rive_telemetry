@@ -16,6 +16,8 @@ const runtimeConfigs = [
     assetUrl: new URL('../../../demo/assets/demo_2.riv', import.meta.url).href,
     runtimeId: 'js-demo-runtime-demo-2',
     label: 'JavaScript Demo - demo_2.riv',
+    viewModelName: 'CatViewModel',
+    viewModelInstanceName: 'catVMInstance',
   },
 ];
 
@@ -94,12 +96,16 @@ function startRuntime(view: RuntimeView) {
     }),
     onLoad: () => {
       view.rive?.resizeDrawingSurfaceToCanvas();
+      const viewModelInstance = bindConfiguredViewModel(view);
       view.telemetry = new RiveTelemetry({
         rive: view.rive,
         runtimeId: view.config.runtimeId,
         label: view.config.label,
         stateMachineName,
         source: 'js-demo',
+        viewModelName: view.config.viewModelName,
+        viewModelInstanceName: view.config.viewModelInstanceName,
+        viewModelInstance,
         debug: true,
       });
       view.telemetry.start();
@@ -112,6 +118,30 @@ function startRuntime(view: RuntimeView) {
       updatePageStatus();
     },
   });
+}
+
+function bindConfiguredViewModel(view: RuntimeView): unknown {
+  const { viewModelName, viewModelInstanceName } = view.config;
+  const rive = view.rive;
+  if (!rive || !viewModelName) {
+    return undefined;
+  }
+
+  const viewModel = rive.viewModelByName(viewModelName);
+  if (!viewModel) {
+    return undefined;
+  }
+
+  const instance =
+    viewModelInstanceName !== undefined
+      ? viewModel.instanceByName(viewModelInstanceName)
+      : viewModel.defaultInstance() ?? viewModel.instance();
+
+  if (instance) {
+    rive.bindViewModelInstance(instance);
+  }
+
+  return instance ?? undefined;
 }
 
 function setRuntimeState(

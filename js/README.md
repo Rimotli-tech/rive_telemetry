@@ -54,6 +54,7 @@ const telemetry = new RiveTelemetry({
   stateMachineName: 'State Machine 1',
   viewModelName: 'CatViewModel',
   viewModelInstance: rive.viewModelInstance,
+  viewModelInstanceName: 'catVMInstance',
 });
 ```
 
@@ -84,6 +85,9 @@ panel.
 - `stateMachineName`: state machine name. Defaults to `State Machine 1`.
 - `viewModelName`: optional ViewModel name.
 - `viewModelInstance`: optional bound ViewModel instance.
+- `viewModelInstanceName`: optional ViewModel instance display name. Use this
+  with `@rive-app/canvas` because its `ViewModelInstance` does not expose a
+  Flutter-style instance `name`.
 - `socketUrl`: defaults to `ws://localhost:8080`.
 - `pollingIntervalMs`: defaults to `250`.
 - `debug`: logs JSON payloads and ignored command reasons.

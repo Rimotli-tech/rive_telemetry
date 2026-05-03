@@ -69,6 +69,7 @@ export interface RiveTelemetryOptions {
     source?: string;
     stateMachineName?: string;
     viewModelName?: string;
+    viewModelInstanceName?: string;
     viewModelInstance?: unknown;
     socketUrl?: string;
     pollingIntervalMs?: number;

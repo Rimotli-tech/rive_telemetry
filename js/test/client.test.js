@@ -329,6 +329,24 @@ test('payload captures ViewModel properties and applyCommand mutates them', () =
   assert.equal(triggered, 1);
 });
 
+test('payload uses explicit ViewModel instance name for JS runtime instances', () => {
+  const telemetry = new RiveTelemetry({
+    runtimeId: 'runtime-a',
+    viewModelName: 'DemoVM',
+    viewModelInstanceName: 'catVMInstance',
+    viewModelInstance: {
+      properties: [],
+    },
+  });
+
+  assert.deepEqual(telemetry.payload().viewModel, {
+    supported: true,
+    viewModelName: 'DemoVM',
+    instanceName: 'catVMInstance',
+    properties: [],
+  });
+});
+
 test('payload reports unsupported ViewModel telemetry without an instance', () => {
   const telemetry = new RiveTelemetry({
     runtimeId: 'runtime-a',
