@@ -87,6 +87,7 @@ export interface RiveTelemetryServerStatus {
   serverRunning: boolean;
   serverError: string | null;
   lastTelemetryAt: string | null;
+  telemetryStale: boolean;
 }
 
 export type RiveTelemetryCommand =

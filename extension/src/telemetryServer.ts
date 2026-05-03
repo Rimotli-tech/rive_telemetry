@@ -74,6 +74,7 @@ export class TelemetryServer implements vscode.Disposable {
       serverRunning: this.serverRunning,
       serverError: this.serverError,
       lastTelemetryAt: this.lastTelemetryAt,
+      telemetryStale: this.clients.size === 0 && this.latestPayloads.size > 0,
     };
   }
 
@@ -236,6 +237,12 @@ export class TelemetryServer implements vscode.Disposable {
     return removed;
   }
 
+  clearTelemetry(): void {
+    this.clearTelemetryState();
+    this.notifyTelemetry();
+    this.notifyStatus();
+  }
+
   private handleMessage(rawMessage: string): void {
     let parsed: unknown;
     try {
@@ -263,11 +270,6 @@ export class TelemetryServer implements vscode.Disposable {
   }
 
   private handleClientDisconnected(): void {
-    if (this.clients.size === 0) {
-      this.clearTelemetryState();
-      this.notifyTelemetry();
-    }
-
     this.notifyStatus();
   }
 

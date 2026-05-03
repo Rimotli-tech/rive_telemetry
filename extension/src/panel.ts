@@ -47,6 +47,11 @@ export class RiveTelemetryPanel {
         return;
       }
 
+      if (isWebviewClearTelemetryMessage(message)) {
+        this.telemetryServer.clearTelemetry();
+        return;
+      }
+
       if (!isWebviewCommandMessage(message)) {
         return;
       }
@@ -78,7 +83,7 @@ export class RiveTelemetryPanel {
       'riveTelemetry',
       'RiveTelemetry',
       vscode.ViewColumn.One,
-      { enableScripts: true },
+      { enableScripts: true, retainContextWhenHidden: true },
     );
 
     RiveTelemetryPanel.currentPanel = new RiveTelemetryPanel(
@@ -132,6 +137,10 @@ interface WebviewClearSnapshotMessage {
   runtimeId: string;
 }
 
+interface WebviewClearTelemetryMessage {
+  command: 'clearTelemetry';
+}
+
 function isWebviewSelectRuntimeMessage(
   value: unknown,
 ): value is WebviewSelectRuntimeMessage {
@@ -160,6 +169,12 @@ function isWebviewClearSnapshotMessage(
     value.command === 'clearSnapshot' &&
     typeof value.runtimeId === 'string'
   );
+}
+
+function isWebviewClearTelemetryMessage(
+  value: unknown,
+): value is WebviewClearTelemetryMessage {
+  return isRecord(value) && value.command === 'clearTelemetry';
 }
 
 function isWebviewCommandMessage(value: unknown): value is WebviewCommandMessage {
@@ -322,6 +337,11 @@ function getWebviewHtml(
       color: var(--rt-red);
       border-color: rgba(255, 180, 171, 0.22);
       background: rgba(255, 180, 171, 0.06);
+    }
+    .stale {
+      color: var(--rt-yellow);
+      border-color: rgba(250, 204, 21, 0.2);
+      background: rgba(250, 204, 21, 0.06);
     }
     .stack {
       display: flex;
@@ -912,14 +932,17 @@ function getWebviewHtml(
       const activePayload = telemetryState.activePayload;
       const serverFailed = Boolean(serverStatus.serverError);
       const hasClients = serverStatus.clientCount > 0;
-      const receiving = Boolean(activePayload) && !serverFailed;
+      const telemetryStale = Boolean(serverStatus.telemetryStale);
+      const receiving = Boolean(activePayload) && hasClients && !serverFailed;
       const controlsDisabled = !hasClients || serverFailed;
-      const statusClass = serverFailed ? 'failed' : receiving ? 'receiving' : '';
+      const statusClass = serverFailed ? 'failed' : receiving ? 'receiving' : telemetryStale ? 'stale' : '';
       const statusText = serverFailed
         ? 'Server failed to start'
         : receiving
           ? 'Receiving telemetry'
-          : 'Waiting for telemetry...';
+          : telemetryStale
+            ? 'Telemetry stale'
+            : 'Waiting for telemetry...';
 
       if (!activePayload) {
         app.innerHTML = \`
@@ -948,7 +971,7 @@ function getWebviewHtml(
         <div class="layout">
           \${renderHeader(statusClass, statusText)}
           <div class="stack">
-            \${renderRuntimeCard(activePayload, serverFailed)}
+            \${renderRuntimeCard(activePayload, serverFailed, telemetryStale)}
             <section>
               <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
               <div class="input-grid">\${inputCards}</div>
@@ -961,6 +984,7 @@ function getWebviewHtml(
 
       bindRuntimeSelector();
       bindStateMachineSelector();
+      bindClearTelemetryControl();
       bindControls();
       if (changedInputs.size > 0) {
         window.setTimeout(() => {
@@ -988,7 +1012,7 @@ function getWebviewHtml(
       \`;
     }
 
-    function renderRuntimeCard(activePayload, serverFailed) {
+    function renderRuntimeCard(activePayload, serverFailed, telemetryStale) {
       return \`
         <section class="card runtime-card">
           <div class="runtime-top">
@@ -999,6 +1023,7 @@ function getWebviewHtml(
                 <span class="separator">&bull;</span>
                 <span>Last received: <strong><code>\${escapeHtml(formatTimestamp(serverStatus.lastTelemetryAt))}</code></strong></span>
                 \${serverFailed ? '<span class="separator">&bull;</span><span>' + escapeHtml(serverStatus.serverError) + '</span>' : ''}
+                \${telemetryStale ? '<span class="separator">&bull;</span><span>Last-known telemetry retained</span>' : ''}
               </div>
             </div>
             <div class="runtime-select">
@@ -1006,6 +1031,7 @@ function getWebviewHtml(
               <select id="runtime-select">
                 \${renderRuntimeOptions()}
               </select>
+              \${telemetryStale ? '<button type="button" class="secondary" data-clear-telemetry>Clear telemetry</button>' : ''}
             </div>
           </div>
           <div class="runtime-grid">
@@ -1427,6 +1453,19 @@ function getWebviewHtml(
 
       selector.addEventListener('change', () => {
         selectRuntimeById(selector.value);
+      });
+    }
+
+    function bindClearTelemetryControl() {
+      const control = app.querySelector('[data-clear-telemetry]');
+      if (!control) {
+        return;
+      }
+
+      control.addEventListener('click', () => {
+        vscode.postMessage({
+          command: 'clearTelemetry',
+        });
       });
     }
 

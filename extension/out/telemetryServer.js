@@ -80,6 +80,7 @@ class TelemetryServer {
             serverRunning: this.serverRunning,
             serverError: this.serverError,
             lastTelemetryAt: this.lastTelemetryAt,
+            telemetryStale: this.clients.size === 0 && this.latestPayloads.size > 0,
         };
     }
     start() {
@@ -211,6 +212,11 @@ class TelemetryServer {
         }
         return removed;
     }
+    clearTelemetry() {
+        this.clearTelemetryState();
+        this.notifyTelemetry();
+        this.notifyStatus();
+    }
     handleMessage(rawMessage) {
         let parsed;
         try {
@@ -234,10 +240,6 @@ class TelemetryServer {
         this.notifyStatus();
     }
     handleClientDisconnected() {
-        if (this.clients.size === 0) {
-            this.clearTelemetryState();
-            this.notifyTelemetry();
-        }
         this.notifyStatus();
     }
     clearTelemetryState() {
