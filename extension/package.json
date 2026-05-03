@@ -3,7 +3,7 @@
   "displayName": "Rive Telemetry",
   "description": "Inspect and control Rive runtime behavior from VS Code.",
   "version": "0.3.0",
-  "publisher": "local",
+  "publisher": "rimotli-tech",
   "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.118.0"

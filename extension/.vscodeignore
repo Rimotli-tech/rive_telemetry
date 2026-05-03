@@ -1,0 +1,12 @@
+src/**
+*.vsix
+tsconfig.json
+package-lock.json
+
+out/**/*.map
+
+node_modules/.bin/**
+node_modules/.package-lock.json
+node_modules/@types/**
+node_modules/typescript/**
+node_modules/undici-types/**

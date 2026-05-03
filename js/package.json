@@ -1,0 +1,48 @@
+{
+  "name": "@rimotli-tech/rive-telemetry",
+  "displayName": "Rive Telemetry JS",
+  "description": "Debug Rive animations in JavaScript from VS Code by inspecting and controlling state machine inputs and ViewModel properties.",
+  "version": "0.3.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p ./",
+    "check": "tsc --noEmit -p ./"
+  },
+  "keywords": [
+    "rive",
+    "animation",
+    "debug",
+    "devtools",
+    "telemetry",
+    "viewmodel",
+    "vscode"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rimotli-tech/rive_telemetry",
+    "directory": "js"
+  },
+  "bugs": {
+    "url": "https://github.com/Rimotli-tech/rive_telemetry/issues"
+  },
+  "homepage": "https://github.com/Rimotli-tech/rive_telemetry",
+  "license": "MIT",
+  "peerDependencies": {
+    "@rive-app/canvas": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rive-app/canvas": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

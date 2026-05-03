@@ -2,7 +2,7 @@
 
 Inspect and control Rive runtime behavior from VS Code.
 
-RiveTelemetry connects any Rive runtime (e.g. Flutter apps) to a local VS Code panel over WebSocket for real-time inspection and control.
+RiveTelemetry connects Rive runtimes, including Flutter and JavaScript apps, to a local VS Code panel over WebSocket for real-time inspection and control.
 
 ## Features
 
@@ -72,6 +72,29 @@ RiveDebugger(
 
 Telemetry is disabled in Flutter release builds by default unless `enabled` is
 set to `true`.
+
+### JavaScript
+
+Add the JavaScript bridge package to your app:
+
+```sh
+npm install @rimotli-tech/rive-telemetry
+```
+
+Start telemetry after your Rive runtime is available:
+
+```ts
+import { RiveTelemetry } from '@rimotli-tech/rive-telemetry';
+
+const telemetry = new RiveTelemetry({
+  rive,
+  runtimeId: 'main-rive',
+  label: 'Main Rive',
+  stateMachineName: 'State Machine 1',
+});
+
+telemetry.start();
+```
 
 ## ViewModel telemetry
 
