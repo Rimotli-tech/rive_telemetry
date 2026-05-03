@@ -2,7 +2,7 @@
   "name": "rive-telemetry",
   "displayName": "Rive Telemetry",
   "description": "Inspect and control Rive runtime behavior from VS Code.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "local",
   "icon": "media/icon.png",
   "engines": {

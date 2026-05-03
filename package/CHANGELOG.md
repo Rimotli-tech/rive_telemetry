@@ -1,3 +1,10 @@
+# 0.3.0
+
+- Preserved last-known telemetry when Flutter clients disconnect.
+- Added stale telemetry status and manual clear control in the VS Code panel.
+- Improved panel hierarchy, runtime selection focus, dropdown styling, and property grouping.
+- Hid snapshot diff controls from the extension UI.
+
 # 0.2.0
 
 - Added multi-runtime telemetry identity with `runtimeId` and `label`.

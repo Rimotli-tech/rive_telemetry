@@ -10,10 +10,9 @@ RiveTelemetry connects any Rive runtime (e.g. Flutter apps) to a local VS Code p
 - Control boolean, number, and trigger inputs from VS Code
 - Inspect ViewModel telemetry
 - Mutate supported ViewModel properties
-- Capture runtime snapshots
-- Compare snapshot diffs
 - Support multiple Rive runtimes with `runtimeId` and `label`
-- Clear telemetry automatically when the app disconnects
+- Preserve last-known telemetry when the app disconnects
+- Clear retained telemetry manually from the panel
 
 ## Usage
 
@@ -22,7 +21,7 @@ RiveTelemetry connects any Rive runtime (e.g. Flutter apps) to a local VS Code p
 Install the packaged extension from this directory:
 
 ```sh
-code --install-extension rive-telemetry-0.2.0.vsix
+code --install-extension rive-telemetry-0.3.0.vsix
 ```
 
 Then open the command palette and run:
@@ -43,7 +42,7 @@ Add the Flutter bridge package to your app:
 
 ```yaml
 dependencies:
-  rive_telemetry: ^0.2.0
+  rive_telemetry: ^0.3.0
 ```
 
 Wrap your rendered Rive widget and pass the loaded state machine:
