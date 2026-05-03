@@ -1154,20 +1154,21 @@ function getWebviewHtml(state, status, iconUri) {
     }
 
     function renderStateMachineOptions(activePayload) {
-      const payloads = telemetryState.payloads.length > 0 ? telemetryState.payloads : [activePayload];
-      const stateMachineCounts = payloads.reduce((counts, payload) => {
-        counts.set(payload.stateMachine, (counts.get(payload.stateMachine) ?? 0) + 1);
-        return counts;
-      }, new Map());
-
-      return payloads.map((payload) => {
-        const selected = payload.runtimeId === activePayload.runtimeId ? 'selected' : '';
-        const hasDuplicateName = (stateMachineCounts.get(payload.stateMachine) ?? 0) > 1;
-        const label = hasDuplicateName
-          ? payload.stateMachine + ' - ' + (payload.label || payload.runtimeId)
-          : payload.stateMachine;
-        return \`<option value="\${escapeAttribute(payload.runtimeId)}" \${selected}>\${escapeHtml(label)}</option>\`;
+      const stateMachines = stateMachinesForRuntime(activePayload);
+      return stateMachines.map((stateMachine) => {
+        const selected = stateMachine === activePayload.stateMachine ? 'selected' : '';
+        return \`<option value="\${escapeAttribute(stateMachine)}" \${selected}>\${escapeHtml(stateMachine)}</option>\`;
       }).join('');
+    }
+
+    function stateMachinesForRuntime(activePayload) {
+      const payloads = telemetryState.payloads.length > 0 ? telemetryState.payloads : [activePayload];
+      const stateMachines = payloads
+        .filter((payload) => payload.runtimeId === activePayload.runtimeId)
+        .map((payload) => payload.stateMachine)
+        .filter((stateMachine) => typeof stateMachine === 'string' && stateMachine.length > 0);
+
+      return [...new Set(stateMachines.length > 0 ? stateMachines : [activePayload.stateMachine])];
     }
 
     function renderInputsSection(inputs, disabled) {
@@ -1533,7 +1534,7 @@ function getWebviewHtml(state, status, iconUri) {
       }
 
       selector.addEventListener('change', () => {
-        selectRuntimeById(selector.value);
+        selectStateMachineForActiveRuntime(selector.value);
       });
     }
 
@@ -1567,6 +1568,33 @@ function getWebviewHtml(state, status, iconUri) {
         command: 'selectRuntime',
         runtimeId,
       });
+      render();
+    }
+
+    function selectStateMachineForActiveRuntime(stateMachine) {
+      const activePayload = telemetryState.activePayload;
+      if (!activePayload || activePayload.stateMachine === stateMachine) {
+        return;
+      }
+
+      const nextPayload = telemetryState.payloads.find((payload) =>
+        payload.runtimeId === activePayload.runtimeId &&
+        payload.stateMachine === stateMachine
+      );
+      if (!nextPayload) {
+        return;
+      }
+
+      const nextSnapshot = findRuntimeSnapshot(nextPayload.runtimeId);
+      telemetryState = {
+        ...telemetryState,
+        activePayload: nextPayload,
+        activeSnapshot: nextSnapshot,
+        activeDiffs: nextSnapshot ? diffSnapshot(nextSnapshot, nextPayload) : [],
+        activeViewModelDiffs: nextSnapshot ? diffViewModelSnapshot(nextSnapshot, nextPayload) : [],
+      };
+      previousValues = new Map();
+      changedInputs.clear();
       render();
     }
 
