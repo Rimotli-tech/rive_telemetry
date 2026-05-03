@@ -3,31 +3,150 @@ import { RiveTelemetry } from '../../src/index';
 import './styles.css';
 
 const stateMachineName = 'State Machine 1';
-const runtimeId = 'js-demo-runtime';
-const canvas = document.querySelector<HTMLCanvasElement>('#rive-canvas');
+const runtimeGrid = document.querySelector<HTMLDivElement>('#runtime-grid');
 const status = document.querySelector<HTMLDivElement>('#status');
-const controls = document.querySelector<HTMLDivElement>('#controls');
-const refreshButton = document.querySelector<HTMLButtonElement>('#refresh-inputs');
-const assetUrl = new URL('../../../demo/assets/demo.riv', import.meta.url).href;
 
-if (!canvas || !status || !controls || !refreshButton) {
+const runtimeConfigs = [
+  {
+    assetUrl: new URL('../../../demo/assets/demo.riv', import.meta.url).href,
+    runtimeId: 'js-demo-runtime-demo',
+    label: 'JavaScript Demo - demo.riv',
+  },
+  {
+    assetUrl: new URL('../../../demo/assets/demo_2.riv', import.meta.url).href,
+    runtimeId: 'js-demo-runtime-demo-2',
+    label: 'JavaScript Demo - demo_2.riv',
+  },
+];
+
+interface RuntimeView {
+  card: HTMLElement;
+  config: (typeof runtimeConfigs)[number];
+  canvas: HTMLCanvasElement;
+  controls: HTMLDivElement;
+  state: HTMLDivElement;
+  telemetry?: RiveTelemetry;
+  rive?: Rive;
+}
+
+if (!runtimeGrid || !status) {
   throw new Error('Rive Telemetry JS demo markup is incomplete.');
 }
 
-let telemetry: RiveTelemetry | undefined;
-let riveInstance: Rive | undefined;
+const runtimeViews = runtimeConfigs.map(createRuntimeView);
+runtimeViews.forEach((view) => runtimeGrid.append(view.card));
+runtimeViews.forEach(startRuntime);
 
-function setStatus(message: string, tone: 'waiting' | 'ready' | 'failed' = 'waiting') {
-  status.textContent = message;
-  status.dataset.tone = tone;
+function createRuntimeView(config: (typeof runtimeConfigs)[number]): RuntimeView {
+  const card = document.createElement('article');
+  card.className = 'runtime-card';
+
+  const header = document.createElement('div');
+  header.className = 'runtime-header';
+
+  const title = document.createElement('h2');
+  title.textContent = config.label;
+
+  const state = document.createElement('div');
+  state.className = 'runtime-state';
+  state.textContent = 'Loading';
+
+  header.append(title, state);
+
+  const stage = document.createElement('div');
+  stage.className = 'stage';
+
+  const canvas = document.createElement('canvas');
+  stage.append(canvas);
+
+  const controlsHeader = document.createElement('div');
+  controlsHeader.className = 'section-header';
+
+  const controlsTitle = document.createElement('h3');
+  controlsTitle.textContent = 'Local Inputs';
+
+  const refreshButton = document.createElement('button');
+  refreshButton.type = 'button';
+  refreshButton.textContent = 'Refresh';
+
+  controlsHeader.append(controlsTitle, refreshButton);
+
+  const controls = document.createElement('div');
+  controls.className = 'controls';
+
+  card.append(header, stage, controlsHeader, controls);
+
+  const view = { card, config, canvas, controls, state };
+  refreshButton.addEventListener('click', () => renderControls(view));
+
+  return view;
 }
 
-function renderControls() {
-  controls.innerHTML = '';
-  const inputs = riveInstance?.stateMachineInputs(stateMachineName) ?? [];
+function startRuntime(view: RuntimeView) {
+  view.rive = new Rive({
+    src: view.config.assetUrl,
+    canvas: view.canvas,
+    autoplay: true,
+    stateMachines: stateMachineName,
+    layout: new Layout({
+      fit: Fit.Contain,
+      alignment: Alignment.Center,
+    }),
+    onLoad: () => {
+      view.rive?.resizeDrawingSurfaceToCanvas();
+      view.telemetry = new RiveTelemetry({
+        rive: view.rive,
+        runtimeId: view.config.runtimeId,
+        label: view.config.label,
+        stateMachineName,
+        source: 'js-demo',
+        debug: true,
+      });
+      view.telemetry.start();
+      renderControls(view);
+      setRuntimeState(view, 'Streaming', 'ready');
+      updatePageStatus();
+    },
+    onLoadError: () => {
+      setRuntimeState(view, 'Failed', 'failed');
+      updatePageStatus();
+    },
+  });
+}
+
+function setRuntimeState(
+  view: RuntimeView,
+  message: string,
+  tone: 'waiting' | 'ready' | 'failed' = 'waiting',
+) {
+  view.state.textContent = message;
+  view.state.dataset.tone = tone;
+}
+
+function updatePageStatus() {
+  const readyCount = runtimeViews.filter(
+    (view) => view.state.dataset.tone === 'ready',
+  ).length;
+
+  if (readyCount === runtimeViews.length) {
+    status.textContent = 'Streaming two runtimes to VS Code';
+    status.dataset.tone = 'ready';
+    return;
+  }
+
+  if (runtimeViews.some((view) => view.state.dataset.tone === 'failed')) {
+    status.textContent = 'One or more runtimes failed to load';
+    status.dataset.tone = 'failed';
+  }
+}
+
+function renderControls(view: RuntimeView) {
+  view.controls.innerHTML = '';
+  const inputs = view.rive?.stateMachineInputs(stateMachineName) ?? [];
 
   if (inputs.length === 0) {
-    controls.innerHTML = '<p class="empty">No inputs reported by this state machine.</p>';
+    view.controls.innerHTML =
+      '<p class="empty">No inputs reported by this state machine.</p>';
     return;
   }
 
@@ -46,7 +165,7 @@ function renderControls() {
       toggle.checked = input.value;
       toggle.addEventListener('change', () => {
         input.value = toggle.checked;
-        renderControls();
+        renderControls(view);
       });
       card.append(toggle);
     } else if (typeof input.value === 'number') {
@@ -58,7 +177,7 @@ function renderControls() {
       decrement.textContent = '-';
       decrement.addEventListener('click', () => {
         input.value = Number(input.value ?? 0) - 1;
-        renderControls();
+        renderControls(view);
       });
 
       const value = document.createElement('input');
@@ -66,7 +185,7 @@ function renderControls() {
       value.value = String(input.value);
       value.addEventListener('change', () => {
         input.value = Number(value.value);
-        renderControls();
+        renderControls(view);
       });
 
       const increment = document.createElement('button');
@@ -74,7 +193,7 @@ function renderControls() {
       increment.textContent = '+';
       increment.addEventListener('click', () => {
         input.value = Number(input.value ?? 0) + 1;
-        renderControls();
+        renderControls(view);
       });
 
       row.append(decrement, value, increment);
@@ -94,45 +213,17 @@ function renderControls() {
       card.append(unsupported);
     }
 
-    controls.append(card);
+    view.controls.append(card);
   }
 }
 
-riveInstance = new Rive({
-  src: assetUrl,
-  canvas,
-  autoplay: true,
-  stateMachines: stateMachineName,
-  layout: new Layout({
-    fit: Fit.Contain,
-    alignment: Alignment.Center,
-  }),
-  onLoad: () => {
-    riveInstance?.resizeDrawingSurfaceToCanvas();
-    telemetry = new RiveTelemetry({
-      rive: riveInstance,
-      runtimeId,
-      label: 'JavaScript Demo',
-      stateMachineName,
-      source: 'js-demo',
-      debug: true,
-    });
-    telemetry.start();
-    renderControls();
-    setStatus('Streaming telemetry to VS Code', 'ready');
-  },
-  onLoadError: () => {
-    setStatus('Failed to load Rive asset', 'failed');
-  },
-});
-
-refreshButton.addEventListener('click', renderControls);
-
 window.addEventListener('resize', () => {
-  riveInstance?.resizeDrawingSurfaceToCanvas();
+  runtimeViews.forEach((view) => view.rive?.resizeDrawingSurfaceToCanvas());
 });
 
 window.addEventListener('beforeunload', () => {
-  telemetry?.dispose();
-  riveInstance?.cleanup();
+  runtimeViews.forEach((view) => {
+    view.telemetry?.dispose();
+    view.rive?.cleanup();
+  });
 });

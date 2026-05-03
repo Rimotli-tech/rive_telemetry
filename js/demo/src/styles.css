@@ -70,6 +70,7 @@ button:hover {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -81,6 +82,10 @@ h1 {
 
 h2 {
   font-size: 15px;
+}
+
+h3 {
+  font-size: 13px;
 }
 
 .copy {
@@ -113,12 +118,57 @@ h2 {
   color: var(--red);
 }
 
-.stage {
-  height: min(560px, 58vh);
-  min-height: 340px;
+.runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.runtime-card {
+  min-width: 0;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 8px;
+  background: var(--surface);
+}
+
+.runtime-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.runtime-state {
+  padding: 4px 8px;
+  border: 1px solid rgba(250, 204, 21, 0.2);
+  border-radius: 6px;
+  background: rgba(250, 204, 21, 0.07);
+  color: #facc15;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.runtime-state[data-tone="ready"] {
+  border-color: rgba(74, 222, 128, 0.22);
+  background: rgba(74, 222, 128, 0.08);
+  color: var(--green);
+}
+
+.runtime-state[data-tone="failed"] {
+  border-color: rgba(255, 180, 171, 0.28);
+  background: rgba(255, 180, 171, 0.08);
+  color: var(--red);
+}
+
+.stage {
+  height: min(420px, 48vh);
+  min-height: 280px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
   background: var(--surface-low);
 }
 
@@ -128,26 +178,19 @@ canvas {
   height: 100%;
 }
 
-.section-panel {
-  margin-top: 18px;
+.runtime-card .section-header {
   padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-}
-
-.section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
 }
 
 .controls {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
+  padding: 0 16px 16px;
 }
 
 .input-card {
@@ -201,6 +244,10 @@ canvas {
   }
 
   .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .runtime-grid {
     grid-template-columns: 1fr;
   }
 }

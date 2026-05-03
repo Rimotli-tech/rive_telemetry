@@ -20,4 +20,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/demo.riv
     - assets/demo_2.riv
