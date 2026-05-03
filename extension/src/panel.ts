@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { TelemetryServer } from './telemetryServer';
 import {
   RiveTelemetryCommand,
@@ -15,13 +16,18 @@ export class RiveTelemetryPanel {
 
   private constructor(
     panel: vscode.WebviewPanel,
+    context: vscode.ExtensionContext,
     private readonly telemetryServer: TelemetryServer,
   ) {
     this.panel = panel;
     this.panel.webview.options = { enableScripts: true };
+    const iconUri = this.panel.webview.asWebviewUri(
+      vscode.Uri.file(path.join(context.extensionPath, 'media', 'icon.png')),
+    );
     this.panel.webview.html = getWebviewHtml(
       this.telemetryServer.panelState,
       this.telemetryServer.status,
+      iconUri,
     );
 
     this.telemetrySubscription = this.telemetryServer.onTelemetry((state) => {
@@ -88,6 +94,7 @@ export class RiveTelemetryPanel {
 
     RiveTelemetryPanel.currentPanel = new RiveTelemetryPanel(
       panel,
+      context,
       telemetryServer,
     );
 
@@ -230,9 +237,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function getWebviewHtml(
   state: RiveTelemetryPanelState,
   status: RiveTelemetryServerStatus,
+  iconUri: vscode.Uri,
 ): string {
   const initialState = JSON.stringify(state);
   const initialStatus = JSON.stringify(status);
+  const brandIcon = JSON.stringify(iconUri.toString());
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -307,7 +316,8 @@ function getWebviewHtml(
     .brand-mark {
       width: 20px;
       height: 20px;
-      color: var(--rt-primary);
+      display: block;
+      object-fit: contain;
     }
     .status {
       display: inline-flex;
@@ -980,6 +990,7 @@ function getWebviewHtml(
   <script>
     const vscode = acquireVsCodeApi();
     const app = document.getElementById('app');
+    const brandIcon = ${brandIcon};
     let telemetryState = ${initialState};
     let serverStatus = ${initialStatus};
     let lastCommandStatus = '';
@@ -1071,10 +1082,7 @@ function getWebviewHtml(
       return \`
         <header class="app-header">
           <div class="brand">
-            <svg class="brand-mark" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z" fill="currentColor"></path>
-              <path clip-rule="evenodd" d="M39.998 35.764C39.9944 35.7463 39.9875 35.7155 39.9748 35.6706C39.9436 35.5601 39.8949 35.4259 39.8346 35.2825C39.8168 35.2403 39.7989 35.1993 39.7813 35.1602C38.5103 34.2887 35.9788 33.0607 33.7095 32.5189C30.9875 31.8691 27.6413 31.4783 24 31.4783C20.3587 31.4783 17.0125 31.8691 14.2905 32.5189C12.0012 33.0654 9.44505 34.3104 8.18538 35.1832C8.17384 35.2075 8.16216 35.233 8.15052 35.2592C8.09919 35.3751 8.05721 35.4886 8.02977 35.589C8.00356 35.6848 8.00039 35.7333 8.00004 35.7388C8.00004 35.7641 8.0104 36.0767 8.68485 36.6314C9.34546 37.1746 10.4222 37.7531 11.9291 38.2772C14.9242 39.319 19.1919 40 24 40C28.8081 40 33.0758 39.319 36.0709 38.2772C37.5778 37.7531 38.6545 37.1746 39.3151 36.6314C39.9006 36.1499 39.9857 35.8511 39.998 35.764ZM35.9868 29.004L24 9.77997L12.0131 29.004C12.4661 28.8609 12.9179 28.7342 13.3617 28.6282C16.4281 27.8961 20.0901 27.4783 24 27.4783C27.9099 27.4783 31.5719 27.8961 34.6383 28.6282C35.082 28.7342 35.5339 28.8609 35.9868 29.004Z" fill="currentColor" fill-rule="evenodd"></path>
-            </svg>
+            <img class="brand-mark" src="\${escapeAttribute(brandIcon)}" alt="" aria-hidden="true">
             <span>RiveTelemetry</span>
           </div>
           <div class="header-actions">
