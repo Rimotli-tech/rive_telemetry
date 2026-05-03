@@ -2,7 +2,7 @@
   "name": "@rimotli-tech/rive-telemetry",
   "displayName": "Rive Telemetry JS",
   "description": "Debug Rive animations in JavaScript from VS Code by inspecting and controlling state machine inputs and ViewModel properties.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

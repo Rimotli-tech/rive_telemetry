@@ -21,7 +21,7 @@ RiveTelemetry connects Rive runtimes, including Flutter and JavaScript apps, to 
 Install the packaged extension from this directory:
 
 ```sh
-code --install-extension rive-telemetry-0.3.0.vsix
+code --install-extension rive-telemetry-0.3.1.vsix
 ```
 
 Then open the command palette and run:
@@ -42,7 +42,7 @@ Add the Flutter bridge package to your app:
 
 ```yaml
 dependencies:
-  rive_telemetry: ^0.3.0
+  rive_telemetry: ^0.3.1
 ```
 
 Wrap your rendered Rive widget and pass the loaded state machine:

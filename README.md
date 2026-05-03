@@ -10,7 +10,7 @@ behavior from VS Code.
 Install the packaged extension from `extension/`:
 
 ```sh
-code --install-extension rive-telemetry-0.3.0.vsix
+code --install-extension rive-telemetry-0.3.1.vsix
 ```
 
 Then run this command from the VS Code command palette:
@@ -31,7 +31,7 @@ Add the Flutter bridge package:
 
 ```yaml
 dependencies:
-  rive_telemetry: ^0.3.0
+  rive_telemetry: ^0.3.1
 ```
 
 Wrap your rendered Rive widget and pass the loaded state machine:

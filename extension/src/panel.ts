@@ -421,6 +421,9 @@ function getWebviewHtml(
       justify-content: space-between;
       gap: 12px;
     }
+    .active-runtime-row .custom-dropdown {
+      width: 100%;
+    }
     .active-runtime-row label {
       color: var(--rt-primary);
       font-size: 11px;
@@ -490,6 +493,28 @@ function getWebviewHtml(
       border: 1px solid var(--rt-border-soft);
       border-radius: var(--rt-radius);
       background: var(--rt-surface-low);
+    }
+    .inputs-panel {
+      border-color: rgba(159, 202, 255, 0.16);
+      box-shadow: inset 0 0 0 1px rgba(159, 202, 255, 0.018);
+    }
+    .inputs-panel .section-title {
+      margin-bottom: 16px;
+    }
+    .view-model-panel {
+      border-color: rgba(196, 181, 253, 0.17);
+      box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.018);
+    }
+    .view-model-unavailable {
+      border-color: rgba(255, 180, 171, 0.24);
+      background: rgba(255, 180, 171, 0.035);
+    }
+    .view-model-unavailable .section-title,
+    .view-model-unavailable .section-icon {
+      color: var(--rt-red);
+    }
+    .view-model-unavailable .view-model-empty {
+      color: rgba(255, 218, 214, 0.78);
     }
     .property-group {
       margin-top: 16px;
@@ -648,6 +673,124 @@ function getWebviewHtml(
     input[type="number"]::-webkit-inner-spin-button {
       margin: 0;
       -webkit-appearance: none;
+    }
+    .custom-dropdown {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+    .dropdown-label {
+      color: var(--rt-muted-soft);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .runtime-dropdown {
+      display: grid;
+      grid-template-columns: max-content minmax(0, min(420px, 100%));
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .runtime-dropdown .dropdown-label {
+      color: var(--rt-primary);
+    }
+    .field-dropdown {
+      width: 180px;
+      max-width: 100%;
+    }
+    .field-dropdown .dropdown-label {
+      color: var(--rt-primary);
+    }
+    .dropdown-button {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      min-height: 34px;
+      padding: 7px 34px 7px 10px;
+      border: 1px solid rgba(95, 112, 132, 0.62);
+      border-radius: 5px;
+      background: linear-gradient(180deg, rgba(26, 35, 43, 0.98), rgba(18, 25, 32, 0.98));
+      color: var(--rt-text);
+      text-align: left;
+    }
+    .dropdown-button:hover,
+    .custom-dropdown.open .dropdown-button {
+      border-color: rgba(159, 202, 255, 0.62);
+      background: linear-gradient(180deg, rgba(32, 43, 53, 0.98), rgba(20, 29, 37, 0.98));
+    }
+    .dropdown-button:focus {
+      border-color: rgba(159, 202, 255, 0.78);
+      box-shadow: 0 0 0 1px rgba(159, 202, 255, 0.24);
+      outline: none;
+    }
+    .dropdown-value {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 600;
+    }
+    .dropdown-chevron {
+      position: absolute;
+      right: 12px;
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--rt-muted);
+      transition: transform 120ms ease;
+    }
+    .custom-dropdown.open .dropdown-chevron {
+      transform: rotate(180deg);
+    }
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      z-index: 20;
+      display: none;
+      width: min(420px, max(100%, 260px));
+      max-height: 260px;
+      overflow: auto;
+      padding: 4px;
+      border: 1px solid rgba(95, 112, 132, 0.62);
+      border-radius: 6px;
+      background: #101922;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
+    }
+    .field-dropdown .dropdown-menu {
+      left: 0;
+      right: auto;
+      width: min(320px, max(100%, 220px));
+    }
+    .custom-dropdown.open .dropdown-menu {
+      display: grid;
+      gap: 2px;
+    }
+    .dropdown-option {
+      width: 100%;
+      min-height: 30px;
+      padding: 6px 9px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--rt-text);
+      text-align: left;
+      font-weight: 500;
+    }
+    .dropdown-option:hover {
+      background: rgba(159, 202, 255, 0.1);
+    }
+    .dropdown-option.selected {
+      background: rgba(159, 202, 255, 0.18);
+      color: var(--rt-primary);
     }
     select {
       width: 180px;
@@ -979,6 +1122,14 @@ function getWebviewHtml(
       .active-runtime-row .runtime-select {
         align-items: stretch;
       }
+      .runtime-dropdown {
+        grid-template-columns: 1fr;
+      }
+      .field-dropdown,
+      .dropdown-menu,
+      .field-dropdown .dropdown-menu {
+        width: 100%;
+      }
       select {
         width: 100%;
       }
@@ -997,6 +1148,15 @@ function getWebviewHtml(
     let highlightedInput = null;
     let changedInputs = new Set();
     let previousValues = new Map();
+    let openDropdownId = null;
+
+    document.addEventListener('click', () => {
+      if (openDropdownId === null) {
+        return;
+      }
+      openDropdownId = null;
+      render();
+    });
 
     window.addEventListener('message', (event) => {
       if (event.data?.type === 'telemetry') {
@@ -1051,23 +1211,25 @@ function getWebviewHtml(
         return;
       }
 
-      const inputsSection = renderInputsSection(activePayload.inputs, controlsDisabled);
       const viewModel = normalizeViewModelTelemetry(activePayload.viewModel);
+      const inputsSection = renderInputsSection(activePayload.inputs, controlsDisabled);
+      const viewModelSection = renderViewModelSection(viewModel);
+      const orderedSections = viewModel.state === 'supported'
+        ? viewModelSection + inputsSection
+        : inputsSection + viewModelSection;
 
       app.innerHTML = \`
         <div class="layout">
           \${renderHeader(statusClass, statusText, telemetryStale)}
           <div class="stack">
             \${renderRuntimeCard(activePayload, serverFailed, telemetryStale)}
-            \${renderViewModelSection(viewModel)}
-            \${inputsSection}
+            \${orderedSections}
           </div>
           \${renderFooter()}
         </div>
       \`;
 
-      bindRuntimeSelector();
-      bindStateMachineSelector();
+      bindDropdowns();
       bindClearTelemetryControl();
       bindControls();
       if (changedInputs.size > 0) {
@@ -1112,12 +1274,7 @@ function getWebviewHtml(
             </div>
           </div>
           <div class="active-runtime-row">
-            <div class="runtime-select">
-              <label for="runtime-select">Active runtime</label>
-              <select id="runtime-select">
-                \${renderRuntimeOptions()}
-              </select>
-            </div>
+            \${renderDropdown('runtime-select', 'Active runtime', telemetryState.activeRuntimeId, runtimeDropdownOptions(), 'runtime')}
           </div>
           <div class="runtime-grid">
             \${renderStateMachineField(activePayload)}
@@ -1141,10 +1298,7 @@ function getWebviewHtml(
     function renderStateMachineField(activePayload) {
       return \`
         <div class="runtime-field focus-field">
-          <label class="field-label" for="state-machine-select">State Machine</label>
-          <select id="state-machine-select" class="field-select">
-            \${renderStateMachineOptions(activePayload)}
-          </select>
+          \${renderDropdown('state-machine-select', 'State Machine', activePayload.stateMachine, stateMachineDropdownOptions(activePayload), 'field')}
         </div>
       \`;
     }
@@ -1221,20 +1375,57 @@ function getWebviewHtml(
       return '';
     }
 
-    function renderRuntimeOptions() {
+    function runtimeDropdownOptions() {
       return telemetryState.runtimes.map((runtime) => {
         const label = runtime.label || runtime.runtimeId;
-        const selected = runtime.runtimeId === telemetryState.activeRuntimeId ? 'selected' : '';
-        return \`<option value="\${escapeAttribute(runtime.runtimeId)}" \${selected}>\${escapeHtml(label)}</option>\`;
-      }).join('');
+        return { value: runtime.runtimeId, label };
+      });
     }
 
-    function renderStateMachineOptions(activePayload) {
-      const stateMachines = stateMachinesForRuntime(activePayload);
-      return stateMachines.map((stateMachine) => {
-        const selected = stateMachine === activePayload.stateMachine ? 'selected' : '';
-        return \`<option value="\${escapeAttribute(stateMachine)}" \${selected}>\${escapeHtml(stateMachine)}</option>\`;
+    function stateMachineDropdownOptions(activePayload) {
+      return stateMachinesForRuntime(activePayload).map((stateMachine) => ({
+        value: stateMachine,
+        label: stateMachine,
+      }));
+    }
+
+    function renderDropdown(id, label, selectedValue, options, tone) {
+      const selectedOption = options.find((option) => option.value === selectedValue) ?? options[0] ?? { value: '', label: '—' };
+      const expanded = openDropdownId === id;
+      const optionRows = options.map((option) => {
+        const selected = option.value === selectedOption.value;
+        return \`
+          <button
+            type="button"
+            role="option"
+            class="dropdown-option \${selected ? 'selected' : ''}"
+            aria-selected="\${selected ? 'true' : 'false'}"
+            data-dropdown-option
+            data-dropdown-id="\${escapeAttribute(id)}"
+            data-value="\${escapeAttribute(option.value)}"
+          >\${escapeHtml(option.label)}</button>
+        \`;
       }).join('');
+
+      return \`
+        <div class="custom-dropdown \${tone === 'runtime' ? 'runtime-dropdown' : 'field-dropdown'} \${expanded ? 'open' : ''}" data-dropdown-id="\${escapeAttribute(id)}">
+          <span class="dropdown-label">\${escapeHtml(label)}</span>
+          <button
+            type="button"
+            class="dropdown-button"
+            aria-haspopup="listbox"
+            aria-expanded="\${expanded ? 'true' : 'false'}"
+            data-dropdown-button
+            data-dropdown-id="\${escapeAttribute(id)}"
+          >
+            <span class="dropdown-value">\${escapeHtml(selectedOption.label)}</span>
+            <span class="dropdown-chevron" aria-hidden="true"></span>
+          </button>
+          <div class="dropdown-menu" role="listbox">
+            \${optionRows}
+          </div>
+        </div>
+      \`;
     }
 
     function stateMachinesForRuntime(activePayload) {
@@ -1253,7 +1444,7 @@ function getWebviewHtml(
       }
 
       return \`
-        <section class="section-panel">
+        <section class="section-panel inputs-panel">
           <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
           \${renderGroupedItems(inputs, (input) => input.type, (input) => renderInputCard(input, disabled))}
         </section>
@@ -1263,7 +1454,7 @@ function getWebviewHtml(
     function renderViewModelSection(viewModel) {
       if (viewModel.state === 'not-enabled') {
         return \`
-          <section>
+          <section class="section-panel view-model-panel view-model-unavailable">
             <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
             <p class="view-model-empty">ViewModel telemetry not enabled</p>
           </section>
@@ -1272,7 +1463,7 @@ function getWebviewHtml(
 
       if (viewModel.state === 'unsupported') {
         return \`
-          <section>
+          <section class="section-panel view-model-panel view-model-unavailable">
             <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
             <p class="view-model-empty">ViewModel not available\${viewModel.reason ? ': ' + escapeHtml(viewModel.reason) : ''}</p>
           </section>
@@ -1280,7 +1471,7 @@ function getWebviewHtml(
       }
 
       return \`
-        <section class="\${viewModel.properties.length > 0 ? 'section-panel' : ''}">
+        <section class="\${viewModel.properties.length > 0 ? 'section-panel view-model-panel' : ''}">
           <div class="view-model-header">
             <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
             <div class="view-model-summary">
@@ -1592,25 +1783,36 @@ function getWebviewHtml(
       \`;
     }
 
-    function bindRuntimeSelector() {
-      const selector = document.getElementById('runtime-select');
-      if (!selector) {
-        return;
-      }
-
-      selector.addEventListener('change', () => {
-        selectRuntimeById(selector.value);
+    function bindDropdowns() {
+      app.querySelectorAll('[data-dropdown-button]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const dropdownId = button.dataset.dropdownId;
+          openDropdownId = openDropdownId === dropdownId ? null : dropdownId;
+          render();
+        });
       });
-    }
 
-    function bindStateMachineSelector() {
-      const selector = document.getElementById('state-machine-select');
-      if (!selector) {
-        return;
-      }
-
-      selector.addEventListener('change', () => {
-        selectStateMachineForActiveRuntime(selector.value);
+      app.querySelectorAll('[data-dropdown-option]').forEach((option) => {
+        option.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const dropdownId = option.dataset.dropdownId;
+          const value = option.dataset.value;
+          openDropdownId = null;
+          if (!dropdownId || value === undefined) {
+            render();
+            return;
+          }
+          if (dropdownId === 'runtime-select') {
+            selectRuntimeById(value);
+            return;
+          }
+          if (dropdownId === 'state-machine-select') {
+            selectStateMachineForActiveRuntime(value);
+            return;
+          }
+          render();
+        });
       });
     }
 

@@ -1,3 +1,8 @@
+# 0.3.1
+
+- Polished VS Code panel dropdowns and section styling.
+- Added explicit JavaScript ViewModel instance naming and demo binding support.
+
 # 0.3.0
 
 - Preserved last-known telemetry when Flutter clients disconnect.
