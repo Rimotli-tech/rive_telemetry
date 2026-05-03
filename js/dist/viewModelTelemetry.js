@@ -55,21 +55,16 @@ export function setViewModelProperty(options) {
     if (!isAssignableValue(propertyType, value)) {
         return false;
     }
-    if ('value' in property) {
-        property.value = value;
-        return true;
-    }
-    const setValue = property.setValue;
-    if (typeof setValue === 'function') {
-        setValue.call(property, value);
-        return true;
-    }
-    return false;
+    return assignPropertyValue(property, propertyType, value);
 }
 function discoverProperties(instance) {
     const direct = readArray(instance.properties);
     if (direct.length > 0) {
         return direct;
+    }
+    const fromGetter = readArray(callMethod(instance, 'getProperties'));
+    if (fromGetter.length > 0) {
+        return fromGetter;
     }
     const viewModel = instance.viewModel;
     if (isRecord(viewModel)) {
@@ -95,7 +90,7 @@ function readPropertyValue(instance, descriptor, name, type) {
     }
     const property = propertyByType(instance, type, name);
     if (isRecord(property) && 'value' in property) {
-        return property.value ?? null;
+        return serializePropertyValue(type, property.value);
     }
     if ('value' in descriptor) {
         return descriptor.value ?? null;
@@ -104,6 +99,9 @@ function readPropertyValue(instance, descriptor, name, type) {
         const list = property ?? callMethod(instance, 'list', [name]);
         if (isRecord(list) && typeof list.length === 'number') {
             return list.length;
+        }
+        if (isRecord(list) && typeof list.size === 'number') {
+            return list.size;
         }
         if (isRecord(list) && typeof list.count === 'number') {
             return list.count;
@@ -120,6 +118,15 @@ function propertyByType(instance, type, name) {
         }
     }
     return undefined;
+}
+function serializePropertyValue(type, value) {
+    if (value === undefined || value === null) {
+        return null;
+    }
+    if (type === 'color' && typeof value === 'number') {
+        return `#${(value >>> 0).toString(16).padStart(8, '0')}`;
+    }
+    return value;
 }
 function methodNamesForType(type) {
     switch (type) {
@@ -162,12 +169,46 @@ function isAssignableValue(type, value) {
         case 'boolean':
             return typeof value === 'boolean';
         case 'string':
-        case 'color':
         case 'enum':
+            return typeof value === 'string';
+        case 'color':
             return typeof value === 'string';
         default:
             return false;
     }
+}
+function assignPropertyValue(property, type, value) {
+    const nextValue = type === 'color' ? parseColor(value) : value;
+    if (nextValue === undefined) {
+        return false;
+    }
+    if ('value' in property) {
+        property.value = nextValue;
+        return true;
+    }
+    const setValue = property.setValue;
+    if (typeof setValue === 'function') {
+        setValue.call(property, nextValue);
+        return true;
+    }
+    return false;
+}
+function parseColor(value) {
+    if (typeof value !== 'string') {
+        return undefined;
+    }
+    const normalized = value.trim().replace(/^#/, '');
+    if (normalized.length !== 6 && normalized.length !== 8) {
+        return undefined;
+    }
+    if (!/^[0-9a-fA-F]+$/.test(normalized)) {
+        return undefined;
+    }
+    const parsed = Number.parseInt(normalized, 16);
+    if (Number.isNaN(parsed)) {
+        return undefined;
+    }
+    return normalized.length === 6 ? (0xff000000 | parsed) >>> 0 : parsed >>> 0;
 }
 function normalizeType(type) {
     if (!type) {

@@ -44,7 +44,9 @@ const telemetry = new RiveTelemetry({
 });
 ```
 
-To include ViewModel telemetry, pass the bound instance and optional name:
+To include ViewModel telemetry, pass the bound instance and ViewModel name. This
+matches the Flutter bridge: the package does not auto-discover ViewModel
+instances.
 
 ```ts
 const telemetry = new RiveTelemetry({
@@ -69,8 +71,9 @@ Run the browser demo while the VS Code extension panel is open:
 npm run app
 ```
 
-The demo uses `@rive-app/canvas`, loads the repo demo `.riv` asset, and streams
-telemetry with runtime id `js-demo-runtime`.
+The demo uses `@rive-app/canvas`, loads `demo.riv` and `demo_2.riv`, and
+streams two runtimes so you can test active runtime selection in the VS Code
+panel.
 
 ## Options
 

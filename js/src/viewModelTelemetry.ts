@@ -81,24 +81,18 @@ export function setViewModelProperty(options: {
     return false;
   }
 
-  if ('value' in property) {
-    property.value = value;
-    return true;
-  }
-
-  const setValue = property.setValue;
-  if (typeof setValue === 'function') {
-    setValue.call(property, value);
-    return true;
-  }
-
-  return false;
+  return assignPropertyValue(property, propertyType, value);
 }
 
 function discoverProperties(instance: Record<string, unknown>): unknown[] {
   const direct = readArray(instance.properties);
   if (direct.length > 0) {
     return direct;
+  }
+
+  const fromGetter = readArray(callMethod(instance, 'getProperties'));
+  if (fromGetter.length > 0) {
+    return fromGetter;
   }
 
   const viewModel = instance.viewModel;
@@ -118,7 +112,9 @@ function captureProperty(
   }
 
   const name = readString(property.name) ?? '';
-  const type = normalizeType(readString(property.type) ?? readString(property.kind));
+  const type = normalizeType(
+    readString(property.type) ?? readString(property.kind),
+  );
   return {
     name,
     type,
@@ -138,7 +134,7 @@ function readPropertyValue(
 
   const property = propertyByType(instance, type, name);
   if (isRecord(property) && 'value' in property) {
-    return property.value ?? null;
+    return serializePropertyValue(type, property.value);
   }
 
   if ('value' in descriptor) {
@@ -149,6 +145,9 @@ function readPropertyValue(
     const list = property ?? callMethod<unknown>(instance, 'list', [name]);
     if (isRecord(list) && typeof list.length === 'number') {
       return list.length;
+    }
+    if (isRecord(list) && typeof list.size === 'number') {
+      return list.size;
     }
     if (isRecord(list) && typeof list.count === 'number') {
       return list.count;
@@ -172,6 +171,18 @@ function propertyByType(
   }
 
   return undefined;
+}
+
+function serializePropertyValue(type: string, value: unknown): unknown {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (type === 'color' && typeof value === 'number') {
+    return `#${(value >>> 0).toString(16).padStart(8, '0')}`;
+  }
+
+  return value;
 }
 
 function methodNamesForType(type: string): string[] {
@@ -218,12 +229,59 @@ function isAssignableValue(type: string, value: unknown): boolean {
     case 'boolean':
       return typeof value === 'boolean';
     case 'string':
-    case 'color':
     case 'enum':
+      return typeof value === 'string';
+    case 'color':
       return typeof value === 'string';
     default:
       return false;
   }
+}
+
+function assignPropertyValue(
+  property: Record<string, unknown>,
+  type: string,
+  value: unknown,
+): boolean {
+  const nextValue = type === 'color' ? parseColor(value) : value;
+  if (nextValue === undefined) {
+    return false;
+  }
+
+  if ('value' in property) {
+    property.value = nextValue;
+    return true;
+  }
+
+  const setValue = property.setValue;
+  if (typeof setValue === 'function') {
+    setValue.call(property, nextValue);
+    return true;
+  }
+
+  return false;
+}
+
+function parseColor(value: unknown): number | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim().replace(/^#/, '');
+  if (normalized.length !== 6 && normalized.length !== 8) {
+    return undefined;
+  }
+
+  if (!/^[0-9a-fA-F]+$/.test(normalized)) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(normalized, 16);
+  if (Number.isNaN(parsed)) {
+    return undefined;
+  }
+
+  return normalized.length === 6 ? (0xff000000 | parsed) >>> 0 : parsed >>> 0;
 }
 
 function normalizeType(type: string | undefined): string {
