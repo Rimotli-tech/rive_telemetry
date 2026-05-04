@@ -14,7 +14,6 @@ controller ownership with your app.
 - Identify multiple Rive runtimes with `runtimeId` and `label`.
 - Stream supported ViewModel properties.
 - Mutate supported ViewModel properties at runtime.
-- Capture in-memory snapshots and compare live state against them in the panel.
 - Disable itself automatically in release builds by default.
 
 ## Production safety
@@ -134,17 +133,6 @@ Supported ViewModel mutation types:
 Unsupported or unavailable ViewModel APIs fail gracefully and are reported as
 unavailable in telemetry.
 
-## Snapshots and diffs
-
-The VS Code panel can capture an in-memory snapshot for the selected runtime and
-compare live telemetry against it. Snapshot diffing currently covers:
-
-- state machine inputs
-- supported ViewModel properties
-
-Snapshots are runtime-specific and ViewModel-instance-specific. They are not
-persisted across extension reloads.
-
 ## Protocol
 
 `rive_telemetry` sends JSON telemetry payloads with `protocolVersion: 1` to the
@@ -160,5 +148,4 @@ state machine, and one ViewModel instance.
 
 - This package is intended for development tooling, not production analytics.
 - The VS Code extension must be running for live panel telemetry.
-- Snapshot history and persistence are intentionally out of scope.
 - ViewModel support is limited to public Rive Flutter runtime APIs.
