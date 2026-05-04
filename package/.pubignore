@@ -5,6 +5,7 @@ coverage/
 *.iml
 .flutter-plugins-dependencies
 pubspec.lock
+doc/api/
 example/.dart_tool/
 example/build/
 example/.flutter-plugins-dependencies

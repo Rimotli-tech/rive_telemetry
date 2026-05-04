@@ -6,11 +6,19 @@ import 'view_model_telemetry.dart';
 
 /// Adapter boundary for reading Rive ViewModel telemetry.
 abstract interface class ViewModelTelemetryAdapter {
+  /// Captures the current serializable state of [instance].
+  ///
+  /// Returns unsupported telemetry when [instance] is omitted or cannot be
+  /// inspected through the public Rive Flutter runtime APIs.
   ViewModelTelemetry capture({
     rive.ViewModelInstance? instance,
     String? viewModelName,
   });
 
+  /// Applies a property mutation command to [instance].
+  ///
+  /// Returns `true` only when the command shape, instance name, property type,
+  /// and value are all compatible with the underlying Rive property.
   bool setProperty({
     rive.ViewModelInstance? instance,
     String? instanceName,
@@ -25,8 +33,10 @@ abstract interface class ViewModelTelemetryAdapter {
 /// This adapter only reads public ViewModel APIs. It never mutates, listens to,
 /// or disposes ViewModel objects supplied by the host application.
 class RiveViewModelTelemetryAdapter implements ViewModelTelemetryAdapter {
+  /// Creates the default Rive-backed ViewModel telemetry adapter.
   const RiveViewModelTelemetryAdapter();
 
+  /// Captures ViewModel telemetry from a Rive [instance].
   @override
   ViewModelTelemetry capture({
     rive.ViewModelInstance? instance,
@@ -69,6 +79,7 @@ class RiveViewModelTelemetryAdapter implements ViewModelTelemetryAdapter {
     }
   }
 
+  /// Applies a supported ViewModel property mutation to a Rive [instance].
   @override
   bool setProperty({
     rive.ViewModelInstance? instance,

@@ -15,6 +15,10 @@ import 'view_model_telemetry_adapter.dart';
 /// The child is returned unchanged; this widget only manages telemetry side
 /// effects for the provided [stateMachine].
 class RiveDebugger extends StatefulWidget {
+  /// Creates a telemetry wrapper around an existing Rive [child].
+  ///
+  /// Telemetry is enabled automatically outside release builds unless
+  /// [enabled] is provided.
   const RiveDebugger({
     super.key,
     required this.child,
@@ -31,17 +35,68 @@ class RiveDebugger extends StatefulWidget {
     this.enabled,
   });
 
+  /// The Rive widget, or any widget containing a Rive runtime, to render.
+  ///
+  /// [RiveDebugger] returns this widget unchanged.
   final Widget child;
+
+  /// State machine whose inputs should be inspected and controlled.
+  ///
+  /// Pass the state machine object received from your Rive controller setup.
+  /// If omitted, ViewModel telemetry can still be reported, but input controls
+  /// are empty.
   final rive.StateMachine? stateMachine;
+
+  /// Stable identifier for this running Rive instance.
+  ///
+  /// When omitted, an identifier such as `rive-runtime-1` is generated.
   final String? runtimeId;
+
+  /// Human-readable name shown in the VS Code runtime selector.
+  ///
+  /// Defaults to [runtimeId], or to the generated runtime identifier.
   final String? label;
+
+  /// Optional Rive ViewModel instance to inspect and mutate.
+  ///
+  /// The package does not discover ViewModels automatically; pass the instance
+  /// owned by your app when you want ViewModel telemetry.
   final rive.ViewModelInstance? viewModelInstance;
+
+  /// Name of the ViewModel associated with [viewModelInstance].
+  ///
+  /// Commands from the VS Code panel must match this name before a ViewModel
+  /// property mutation is applied.
   final String? viewModelName;
+
+  /// Source label sent to the VS Code extension.
+  ///
+  /// This helps distinguish Flutter telemetry from other runtimes such as the
+  /// JavaScript package.
   final String source;
+
+  /// Name of the state machine represented by [stateMachine].
+  ///
+  /// The VS Code panel uses this to scope input commands to the active runtime.
   final String stateMachineName;
+
+  /// WebSocket endpoint exposed by the Rive Telemetry VS Code extension.
   final String socketUrl;
+
+  /// Interval used to poll state-machine inputs for changes.
+  ///
+  /// Only input changes drive automatic rebroadcasts. ViewModel values are
+  /// included in payloads but do not trigger polling updates by themselves.
   final Duration pollingInterval;
+
+  /// Whether compact telemetry payloads should also be printed with
+  /// [debugPrint].
   final bool debugPrintJson;
+
+  /// Overrides the default development-only telemetry behavior.
+  ///
+  /// `true` always enables telemetry, `false` disables it, and `null` enables
+  /// telemetry only outside release builds.
   final bool? enabled;
 
   @override
