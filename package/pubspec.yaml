@@ -1,6 +1,6 @@
 name: rive_telemetry
 description: "Debug Rive animations in Flutter from VS Code by inspecting and controlling state machine inputs and ViewModel properties."
-version: 0.3.0
+version: 0.3.1
 repository: https://github.com/Rimotli-tech/rive_telemetry
 topics:
   - rive

@@ -43,7 +43,7 @@ let outputChannel;
 function activate(context) {
     console.log('RiveTelemetry extension activated');
     outputChannel = vscode.window.createOutputChannel('RiveTelemetry');
-    telemetryServer = new telemetryServer_1.TelemetryServer(outputChannel);
+    telemetryServer = new telemetryServer_1.TelemetryServer(outputChannel, configuredPort());
     telemetryServer.start();
     const disposable = vscode.commands.registerCommand('riveTelemetry.openPanel', () => {
         console.log('RiveTelemetry panel command triggered');
@@ -60,5 +60,15 @@ function deactivate() {
     outputChannel?.dispose();
     telemetryServer = undefined;
     outputChannel = undefined;
+}
+function configuredPort() {
+    const port = vscode.workspace
+        .getConfiguration('riveTelemetry')
+        .get('port', 8080);
+    if (Number.isInteger(port) && port >= 1 && port <= 65535) {
+        return port;
+    }
+    vscode.window.showWarningMessage(`RiveTelemetry port ${port} is invalid. Falling back to 8080.`);
+    return 8080;
 }
 //# sourceMappingURL=extension.js.map

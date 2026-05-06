@@ -7,7 +7,8 @@ behavior from VS Code.
 
 ### VS Code extension
 
-Install the packaged extension from `extension/`:
+Install the packaged extension from the release artifact, or build one locally
+from `extension/`:
 
 ```sh
 code --install-extension rive-telemetry-0.3.1.vsix
@@ -24,6 +25,8 @@ The extension listens for runtime clients on:
 ```text
 ws://localhost:8080
 ```
+
+The port is configurable with the VS Code setting `riveTelemetry.port`.
 
 ### Flutter
 

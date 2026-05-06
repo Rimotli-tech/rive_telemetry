@@ -30,11 +30,24 @@
         "command": "riveTelemetry.openPanel",
         "title": "RiveTelemetry: Open Panel"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "RiveTelemetry",
+      "properties": {
+        "riveTelemetry.port": {
+          "type": "number",
+          "default": 8080,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Local WebSocket port used by the RiveTelemetry VS Code extension."
+        }
+      }
+    }
   },
   "scripts": {
     "compile": "tsc -p ./",
-    "check": "tsc --noEmit -p ./"
+    "check": "tsc --noEmit -p ./",
+    "test": "npm run compile && node --test \"test/**/*.test.js\""
   },
   "dependencies": {
     "ws": "^8.18.0"

@@ -33,7 +33,7 @@ Install the Flutter package:
 
 ```yaml
 dependencies:
-  rive_telemetry: ^0.3.0
+  rive_telemetry: ^0.3.1
 ```
 
 Install and run the RiveTelemetry VS Code extension, then open:

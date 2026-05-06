@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Flutter and Dart build outputs
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+**/build/
+
+# JavaScript and VS Code extension build caches
+coverage/
+.vite/
+
+# Packaged extension artifacts are produced during release.
+*.vsix
+
+# Local editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+!.vscode/extensions.json

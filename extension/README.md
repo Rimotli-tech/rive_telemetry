@@ -18,7 +18,7 @@ RiveTelemetry connects Rive runtimes, including Flutter and JavaScript apps, to 
 
 ### Install the extension
 
-Install the packaged extension from this directory:
+Install the packaged extension from the release artifact, or build one locally:
 
 ```sh
 code --install-extension rive-telemetry-0.3.1.vsix
@@ -35,6 +35,10 @@ The extension starts a local WebSocket server at:
 ```text
 ws://localhost:8080
 ```
+
+If port `8080` conflicts with another local service, set
+`riveTelemetry.port` in VS Code settings and point runtime clients at the same
+port.
 
 ### Flutter
 

@@ -1,3 +1,10 @@
+# 0.3.1
+
+- Aligned the Flutter bridge version with the VS Code extension and JavaScript bridge.
+- Added configurable VS Code extension WebSocket port support.
+- Added extension server tests for telemetry validation, snapshots, status, and command routing.
+- Split the VS Code panel HTML renderer into its own module and added webview CSP protection.
+
 # 0.3.0
 
 - Preserved last-known telemetry when Flutter clients disconnect.
