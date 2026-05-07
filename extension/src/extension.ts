@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { RiveTelemetryPanel } from './panel';
+import { RivLoader } from './rivLoader';
 import { TelemetryServer } from './telemetryServer';
 
 let telemetryServer: TelemetryServer | undefined;
@@ -11,8 +12,9 @@ export function activate(context: vscode.ExtensionContext): void {
   outputChannel = vscode.window.createOutputChannel('RiveTelemetry');
   telemetryServer = new TelemetryServer(outputChannel, configuredPort());
   telemetryServer.start();
+  const rivLoader = new RivLoader(context, outputChannel);
 
-  const disposable = vscode.commands.registerCommand(
+  const openPanelCommand = vscode.commands.registerCommand(
     'riveTelemetry.openPanel',
     () => {
       console.log('RiveTelemetry panel command triggered');
@@ -24,7 +26,32 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   );
 
-  context.subscriptions.push(disposable, telemetryServer, outputChannel);
+  const inspectFileCommand = vscode.commands.registerCommand(
+    'riveTelemetry.inspectFile',
+    async () => {
+      try {
+        const metadata = await rivLoader.pickAndInspect();
+        if (!metadata) {
+          return;
+        }
+
+        vscode.window.showInformationMessage(
+          `Loaded Rive schema: ${metadata.artboards.length} artboard(s), ${metadata.warnings.length} warning(s).`,
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        outputChannel?.appendLine(`Rive schema inspection failed: ${message}`);
+        vscode.window.showErrorMessage(`Rive schema inspection failed: ${message}`);
+      }
+    },
+  );
+
+  context.subscriptions.push(
+    openPanelCommand,
+    inspectFileCommand,
+    telemetryServer,
+    outputChannel,
+  );
 }
 
 export function deactivate(): void {

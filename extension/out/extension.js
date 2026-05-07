@@ -37,6 +37,7 @@ exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const panel_1 = require("./panel");
+const rivLoader_1 = require("./rivLoader");
 const telemetryServer_1 = require("./telemetryServer");
 let telemetryServer;
 let outputChannel;
@@ -45,7 +46,8 @@ function activate(context) {
     outputChannel = vscode.window.createOutputChannel('RiveTelemetry');
     telemetryServer = new telemetryServer_1.TelemetryServer(outputChannel, configuredPort());
     telemetryServer.start();
-    const disposable = vscode.commands.registerCommand('riveTelemetry.openPanel', () => {
+    const rivLoader = new rivLoader_1.RivLoader(context, outputChannel);
+    const openPanelCommand = vscode.commands.registerCommand('riveTelemetry.openPanel', () => {
         console.log('RiveTelemetry panel command triggered');
         if (!telemetryServer) {
             outputChannel?.appendLine('RiveTelemetry server is not available');
@@ -53,7 +55,21 @@ function activate(context) {
         }
         panel_1.RiveTelemetryPanel.show(context, telemetryServer);
     });
-    context.subscriptions.push(disposable, telemetryServer, outputChannel);
+    const inspectFileCommand = vscode.commands.registerCommand('riveTelemetry.inspectFile', async () => {
+        try {
+            const metadata = await rivLoader.pickAndInspect();
+            if (!metadata) {
+                return;
+            }
+            vscode.window.showInformationMessage(`Loaded Rive schema: ${metadata.artboards.length} artboard(s), ${metadata.warnings.length} warning(s).`);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            outputChannel?.appendLine(`Rive schema inspection failed: ${message}`);
+            vscode.window.showErrorMessage(`Rive schema inspection failed: ${message}`);
+        }
+    });
+    context.subscriptions.push(openPanelCommand, inspectFileCommand, telemetryServer, outputChannel);
 }
 function deactivate() {
     telemetryServer?.dispose();

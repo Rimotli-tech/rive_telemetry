@@ -21,7 +21,8 @@
     "viewmodel"
   ],
   "activationEvents": [
-    "onCommand:riveTelemetry.openPanel"
+    "onCommand:riveTelemetry.openPanel",
+    "onCommand:riveTelemetry.inspectFile"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -29,6 +30,10 @@
       {
         "command": "riveTelemetry.openPanel",
         "title": "RiveTelemetry: Open Panel"
+      },
+      {
+        "command": "riveTelemetry.inspectFile",
+        "title": "RiveTelemetry: Inspect .riv File"
       }
     ],
     "configuration": {
