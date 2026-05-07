@@ -1,0 +1,11 @@
+name: rive_telemetry_core
+description: Pure-Dart Rive schema inspection, metadata JSON, and integration tooling foundations.
+version: 0.1.0
+repository: https://github.com/Rimotli-tech/rive_telemetry
+
+environment:
+  sdk: ^3.10.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

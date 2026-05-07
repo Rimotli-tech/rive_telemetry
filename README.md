@@ -1,7 +1,14 @@
 # RiveTelemetry
 
-RiveTelemetry is a developer tool for inspecting and debugging Rive runtime
-behavior from VS Code.
+RiveTelemetry is evolving into schema-first Rive integration tooling:
+
+```text
+.riv -> schema -> VS Code inspector -> Flutter/JS integration code
+```
+
+Runtime telemetry remains part of the roadmap, but the product now starts with
+loading a `.riv` file, inspecting its structure, and generating safer
+integration code before an app is running.
 
 ## Quick Start
 
@@ -75,10 +82,23 @@ telemetry.start();
 
 ## Workspace
 
+- `core/` contains the pure-Dart `.riv` inspector and metadata JSON contract.
 - `extension/` contains the VS Code extension.
 - `package/` contains the Flutter bridge/debugger wrapper.
 - `js/` contains the JavaScript/TypeScript runtime bridge and browser demo.
 - `demo/` contains the Flutter web demo app.
+
+## Rebuild Direction
+
+The current rebuild spine is:
+
+```text
+Load .riv
+-> inspect structure
+-> show schema in VS Code
+-> generate Flutter/JS integration code
+-> optionally merge runtime telemetry later
+```
 
 ## Protocol
 
