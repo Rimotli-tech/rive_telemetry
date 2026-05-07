@@ -21,6 +21,35 @@ class RiveMetadata {
   final int unknownRecordCount;
   final List<RiveInspectionWarning> warnings;
 
+  factory RiveMetadata.fromJson(Map<String, Object?> json) {
+    final schemaVersion = _readInt(json, 'schemaVersion');
+    if (schemaVersion != riveMetadataSchemaVersion) {
+      throw FormatException(
+        'Unsupported Rive metadata schemaVersion $schemaVersion',
+      );
+    }
+
+    return RiveMetadata(
+      schemaVersion: schemaVersion,
+      source: _readString(json, 'source'),
+      header: RiveHeaderMetadata.fromJson(_readMap(json, 'header')),
+      artboards: _readList(
+        json,
+        'artboards',
+      ).map((item) => RiveArtboardMetadata.fromJson(_castMap(item))).toList(),
+      viewModels: _readList(
+        json,
+        'viewModels',
+      ).map((item) => RiveViewModelMetadata.fromJson(_castMap(item))).toList(),
+      recordCount: _readInt(json, 'recordCount'),
+      unknownRecordCount: _readInt(json, 'unknownRecordCount'),
+      warnings: _readList(
+        json,
+        'warnings',
+      ).map((item) => RiveInspectionWarning.fromJson(_castMap(item))).toList(),
+    );
+  }
+
   Map<String, Object?> toJson() => {
     'schemaVersion': schemaVersion,
     'source': source,
@@ -46,6 +75,14 @@ class RiveHeaderMetadata {
   final int fileId;
   final int propertyKeyCount;
 
+  factory RiveHeaderMetadata.fromJson(Map<String, Object?> json) =>
+      RiveHeaderMetadata(
+        majorVersion: _readInt(json, 'majorVersion'),
+        minorVersion: _readInt(json, 'minorVersion'),
+        fileId: _readInt(json, 'fileId'),
+        propertyKeyCount: _readInt(json, 'propertyKeyCount'),
+      );
+
   Map<String, Object?> toJson() => {
     'majorVersion': majorVersion,
     'minorVersion': minorVersion,
@@ -66,6 +103,14 @@ class RiveInspectionWarning {
   final String message;
   final int? offset;
   final int? propertyKey;
+
+  factory RiveInspectionWarning.fromJson(Map<String, Object?> json) =>
+      RiveInspectionWarning(
+        code: _readString(json, 'code'),
+        message: _readString(json, 'message'),
+        offset: _readNullableInt(json, 'offset'),
+        propertyKey: _readNullableInt(json, 'propertyKey'),
+      );
 
   Map<String, Object?> toJson() => {
     'code': code,
@@ -91,6 +136,22 @@ class RiveArtboardMetadata {
   final List<RiveAnimationMetadata> animations;
   final List<RiveStateMachineMetadata> stateMachines;
   final List<RiveComponentMetadata> hierarchy;
+
+  factory RiveArtboardMetadata.fromJson(Map<String, Object?> json) =>
+      RiveArtboardMetadata(
+        name: _readNullableString(json, 'name'),
+        defaultStateMachineId: _readNullableInt(json, 'defaultStateMachineId'),
+        viewModelId: _readNullableInt(json, 'viewModelId'),
+        animations: _readList(json, 'animations')
+            .map((item) => RiveAnimationMetadata.fromJson(_castMap(item)))
+            .toList(),
+        stateMachines: _readList(json, 'stateMachines')
+            .map((item) => RiveStateMachineMetadata.fromJson(_castMap(item)))
+            .toList(),
+        hierarchy: _readList(json, 'hierarchy')
+            .map((item) => RiveComponentMetadata.fromJson(_castMap(item)))
+            .toList(),
+      );
 
   Map<String, Object?> toJson() => {
     'name': name,
@@ -121,6 +182,16 @@ class RiveAnimationMetadata {
   final double? speed;
   final int? loop;
 
+  factory RiveAnimationMetadata.fromJson(Map<String, Object?> json) =>
+      RiveAnimationMetadata(
+        name: _readNullableString(json, 'name'),
+        fps: _readNullableInt(json, 'fps'),
+        durationFrames: _readNullableInt(json, 'durationFrames'),
+        durationSeconds: _readNullableDouble(json, 'durationSeconds'),
+        speed: _readNullableDouble(json, 'speed'),
+        loop: _readNullableInt(json, 'loop'),
+      );
+
   Map<String, Object?> toJson() => {
     'name': name,
     'fps': fps,
@@ -136,6 +207,15 @@ class RiveStateMachineMetadata {
 
   final String? name;
   final List<RiveInputMetadata> inputs;
+
+  factory RiveStateMachineMetadata.fromJson(Map<String, Object?> json) =>
+      RiveStateMachineMetadata(
+        name: _readNullableString(json, 'name'),
+        inputs: _readList(
+          json,
+          'inputs',
+        ).map((item) => RiveInputMetadata.fromJson(_castMap(item))).toList(),
+      );
 
   Map<String, Object?> toJson() => {
     'name': name,
@@ -153,6 +233,18 @@ class RiveInputMetadata {
   final String? name;
   final RiveInputType type;
   final Object? defaultValue;
+
+  factory RiveInputMetadata.fromJson(Map<String, Object?> json) {
+    final typeName = _readString(json, 'type');
+    return RiveInputMetadata(
+      name: _readNullableString(json, 'name'),
+      type: RiveInputType.values.firstWhere(
+        (type) => type.name == typeName,
+        orElse: () => throw FormatException('Unknown input type $typeName'),
+      ),
+      defaultValue: json['defaultValue'],
+    );
+  }
 
   Map<String, Object?> toJson() => {
     'name': name,
@@ -176,6 +268,14 @@ class RiveComponentMetadata {
   final int typeKey;
   final String? typeName;
 
+  factory RiveComponentMetadata.fromJson(Map<String, Object?> json) =>
+      RiveComponentMetadata(
+        name: _readNullableString(json, 'name'),
+        parentId: _readNullableInt(json, 'parentId'),
+        typeKey: _readInt(json, 'typeKey'),
+        typeName: _readNullableString(json, 'typeName'),
+      );
+
   Map<String, Object?> toJson() => {
     'name': name,
     'parentId': parentId,
@@ -190,5 +290,81 @@ class RiveViewModelMetadata {
   final String? name;
   final int typeKey;
 
+  factory RiveViewModelMetadata.fromJson(Map<String, Object?> json) =>
+      RiveViewModelMetadata(
+        name: _readNullableString(json, 'name'),
+        typeKey: _readInt(json, 'typeKey'),
+      );
+
   Map<String, Object?> toJson() => {'name': name, 'typeKey': typeKey};
+}
+
+Map<String, Object?> _readMap(Map<String, Object?> json, String key) =>
+    _castMap(json[key]);
+
+List<Object?> _readList(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is List) {
+    return value.cast<Object?>();
+  }
+  throw FormatException('Expected "$key" to be a list');
+}
+
+Map<String, Object?> _castMap(Object? value) {
+  if (value is Map) {
+    return value.cast<String, Object?>();
+  }
+  throw const FormatException('Expected JSON object');
+}
+
+String _readString(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is String) {
+    return value;
+  }
+  throw FormatException('Expected "$key" to be a string');
+}
+
+String? _readNullableString(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return null;
+  }
+  if (value is String) {
+    return value;
+  }
+  throw FormatException('Expected "$key" to be a string or null');
+}
+
+int _readInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is int) {
+    return value;
+  }
+  throw FormatException('Expected "$key" to be an integer');
+}
+
+int? _readNullableInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return null;
+  }
+  if (value is int) {
+    return value;
+  }
+  throw FormatException('Expected "$key" to be an integer or null');
+}
+
+double? _readNullableDouble(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return null;
+  }
+  if (value is int) {
+    return value.toDouble();
+  }
+  if (value is double) {
+    return value;
+  }
+  throw FormatException('Expected "$key" to be a number or null');
 }

@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rimotli-tech/rive_telemetry/schema/rive_metadata.schema.json",
+  "title": "RiveTelemetry Metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "source",
+    "header",
+    "artboards",
+    "viewModels",
+    "recordCount",
+    "unknownRecordCount",
+    "warnings"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "source": {
+      "type": "string"
+    },
+    "header": {
+      "$ref": "#/$defs/header"
+    },
+    "artboards": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artboard"
+      }
+    },
+    "viewModels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/viewModel"
+      }
+    },
+    "recordCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unknownRecordCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/warning"
+      }
+    }
+  },
+  "$defs": {
+    "header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "majorVersion",
+        "minorVersion",
+        "fileId",
+        "propertyKeyCount"
+      ],
+      "properties": {
+        "majorVersion": {
+          "type": "integer"
+        },
+        "minorVersion": {
+          "type": "integer"
+        },
+        "fileId": {
+          "type": "integer"
+        },
+        "propertyKeyCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "propertyKey": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "artboard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "defaultStateMachineId",
+        "viewModelId",
+        "animations",
+        "stateMachines",
+        "hierarchy"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "defaultStateMachineId": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "viewModelId": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "animations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/animation"
+          }
+        },
+        "stateMachines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stateMachine"
+          }
+        },
+        "hierarchy": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/component"
+          }
+        }
+      }
+    },
+    "animation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "fps",
+        "durationFrames",
+        "durationSeconds",
+        "speed",
+        "loop"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fps": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "durationFrames": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "durationSeconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "speed": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "loop": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "stateMachine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "inputs"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/input"
+          }
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "enum": [
+            "boolean",
+            "number",
+            "trigger"
+          ]
+        },
+        "defaultValue": {
+          "type": [
+            "boolean",
+            "number",
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "parentId",
+        "typeKey",
+        "typeName"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parentId": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "typeKey": {
+          "type": "integer"
+        },
+        "typeName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "viewModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "typeKey"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "typeKey": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

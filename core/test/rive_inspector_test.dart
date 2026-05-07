@@ -46,6 +46,36 @@ void main() {
     expect(metadataToJson(first, pretty: false), isNot(contains('\n')));
   });
 
+  test('metadata JSON round trips through the stable contract', () async {
+    final metadata = await inspectRivFile(fixturePaths.first);
+    final encoded = metadataToJson(metadata);
+    final decoded = metadataFromJson(encoded);
+
+    expect(jsonEncode(decoded.toJson()), jsonEncode(metadata.toJson()));
+  });
+
+  test('metadata decoder rejects unsupported schema versions', () {
+    final json = metadataToJson(
+      RiveMetadata(
+        schemaVersion: 1,
+        source: 'memory.riv',
+        header: const RiveHeaderMetadata(
+          majorVersion: 7,
+          minorVersion: 0,
+          fileId: 1,
+          propertyKeyCount: 0,
+        ),
+        artboards: [],
+        viewModels: [],
+        recordCount: 0,
+        unknownRecordCount: 0,
+        warnings: [],
+      ),
+    ).replaceFirst('"schemaVersion": 1', '"schemaVersion": 999');
+
+    expect(() => metadataFromJson(json), throwsA(isA<FormatException>()));
+  });
+
   test(
     'captures warnings instead of crashing on unsupported record data',
     () async {
