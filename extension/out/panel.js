@@ -51,6 +51,10 @@ class RiveTelemetryPanel {
             this.updateStatus(status);
         });
         this.panel.webview.onDidReceiveMessage((message) => {
+            if (isWebviewInspectFileMessage(message)) {
+                vscode.commands.executeCommand('riveTelemetry.inspectFile');
+                return;
+            }
             if (isWebviewSelectRuntimeMessage(message)) {
                 this.telemetryServer.selectRuntime(message.runtimeId);
                 return;
@@ -110,6 +114,9 @@ class RiveTelemetryPanel {
     }
 }
 exports.RiveTelemetryPanel = RiveTelemetryPanel;
+function isWebviewInspectFileMessage(value) {
+    return isRecord(value) && value.command === 'inspectFile';
+}
 function isWebviewSelectRuntimeMessage(value) {
     return (isRecord(value) &&
         value.command === 'selectRuntime' &&

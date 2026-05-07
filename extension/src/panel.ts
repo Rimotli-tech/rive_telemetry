@@ -40,6 +40,11 @@ export class RiveTelemetryPanel {
     });
 
     this.panel.webview.onDidReceiveMessage((message: unknown) => {
+      if (isWebviewInspectFileMessage(message)) {
+        vscode.commands.executeCommand('riveTelemetry.inspectFile');
+        return;
+      }
+
       if (isWebviewSelectRuntimeMessage(message)) {
         this.telemetryServer.selectRuntime(message.runtimeId);
         return;
@@ -148,6 +153,16 @@ interface WebviewClearSnapshotMessage {
 
 interface WebviewClearTelemetryMessage {
   command: 'clearTelemetry';
+}
+
+interface WebviewInspectFileMessage {
+  command: 'inspectFile';
+}
+
+function isWebviewInspectFileMessage(
+  value: unknown,
+): value is WebviewInspectFileMessage {
+  return isRecord(value) && value.command === 'inspectFile';
 }
 
 function isWebviewSelectRuntimeMessage(

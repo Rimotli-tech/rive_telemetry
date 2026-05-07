@@ -1003,6 +1003,7 @@ export function getWebviewHtml(
       \`;
 
       bindDropdowns();
+      bindInspectRivControl();
       bindClearTelemetryControl();
       bindControls();
       if (changedInputs.size > 0) {
@@ -1021,6 +1022,7 @@ export function getWebviewHtml(
             <span>RiveTelemetry</span>
           </div>
           <div class="header-actions">
+            <button type="button" class="primary-button" data-inspect-riv>Load .riv</button>
             \${telemetryStale ? '<button type="button" class="secondary" data-clear-telemetry>Clear telemetry</button>' : ''}
             <div class="status \${statusClass}">
               <span class="dot"></span>
@@ -1598,6 +1600,19 @@ export function getWebviewHtml(
       control.addEventListener('click', () => {
         vscode.postMessage({
           command: 'clearTelemetry',
+        });
+      });
+    }
+
+    function bindInspectRivControl() {
+      const control = app.querySelector('[data-inspect-riv]');
+      if (!control) {
+        return;
+      }
+
+      control.addEventListener('click', () => {
+        vscode.postMessage({
+          command: 'inspectFile',
         });
       });
     }
