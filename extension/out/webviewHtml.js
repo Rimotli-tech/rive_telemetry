@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getWebviewHtml = getWebviewHtml;
-function getWebviewHtml(state, status, iconUri, cspSource) {
+function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
     const nonce = createNonce();
     const initialState = JSON.stringify(state);
     const initialStatus = JSON.stringify(status);
+    const initialMetadata = JSON.stringify(metadata);
     const brandIcon = JSON.stringify(iconUri.toString());
     return `<!DOCTYPE html>
 <html lang="en">
@@ -908,6 +909,7 @@ function getWebviewHtml(state, status, iconUri, cspSource) {
     const brandIcon = ${brandIcon};
     let telemetryState = ${initialState};
     let serverStatus = ${initialStatus};
+    let staticMetadata = ${initialMetadata};
     let lastCommandStatus = '';
     let highlightedInput = null;
     let changedInputs = new Set();
@@ -929,6 +931,9 @@ function getWebviewHtml(state, status, iconUri, cspSource) {
         render();
       } else if (event.data?.type === 'serverStatus') {
         serverStatus = event.data.status;
+        render();
+      } else if (event.data?.type === 'metadata') {
+        staticMetadata = event.data.metadata;
         render();
       } else if (event.data?.type === 'commandSent') {
         lastCommandStatus = 'Command sent: ' + event.data.timestamp;
@@ -959,19 +964,11 @@ function getWebviewHtml(state, status, iconUri, cspSource) {
         app.innerHTML = \`
           <div class="layout">
             \${renderHeader(statusClass, statusText, telemetryStale)}
-            <section class="snapshot-panel snapshot-empty">
-              <span class="snapshot-icon">&#9676;</span>
-              <div>
-                <h3 class="snapshot-title">Waiting for telemetry</h3>
-                <p class="snapshot-copy">Connect a Flutter app with RiveDebugger to inspect live Rive runtime telemetry.</p>
-              </div>
-              <div class="meta">
-                Connected clients: \${serverStatus.clientCount} &middot; Last telemetry: \${escapeHtml(formatTimestamp(serverStatus.lastTelemetryAt))}
-              </div>
-              \${serverFailed ? '<p class="snapshot-copy">' + escapeHtml(serverStatus.serverError) + '</p>' : ''}
-            </section>
+            \${staticMetadata ? renderStaticSchema(staticMetadata, serverFailed) : renderWaitingForTelemetry(serverFailed)}
           </div>
         \`;
+        bindInspectRivControl();
+        bindClearTelemetryControl();
         return;
       }
 
@@ -1021,6 +1018,179 @@ function getWebviewHtml(state, status, iconUri, cspSource) {
             </div>
           </div>
         </header>
+      \`;
+    }
+
+    function renderWaitingForTelemetry(serverFailed) {
+      return \`
+        <section class="snapshot-panel snapshot-empty">
+          <span class="snapshot-icon">&#9676;</span>
+          <div>
+            <h3 class="snapshot-title">Waiting for telemetry</h3>
+            <p class="snapshot-copy">Load a .riv file to inspect its schema, or connect a runtime for live telemetry.</p>
+          </div>
+          <div class="meta">
+            Connected clients: \${serverStatus.clientCount} &middot; Last telemetry: \${escapeHtml(formatTimestamp(serverStatus.lastTelemetryAt))}
+          </div>
+          \${serverFailed ? '<p class="snapshot-copy">' + escapeHtml(serverStatus.serverError) + '</p>' : ''}
+        </section>
+      \`;
+    }
+
+    function renderStaticSchema(metadata, serverFailed) {
+      const stateMachines = metadata.artboards.flatMap((artboard) =>
+        (artboard.stateMachines ?? []).map((stateMachine) => ({...stateMachine, artboardName: artboard.name ?? 'Unnamed Artboard'}))
+      );
+      const inputs = stateMachines.flatMap((stateMachine) =>
+        (stateMachine.inputs ?? []).map((input) => ({
+          name: input.name ?? 'Unnamed input',
+          type: input.type,
+          value: input.defaultValue ?? null,
+          stateMachineName: stateMachine.name ?? 'Unnamed State Machine',
+          artboardName: stateMachine.artboardName,
+        }))
+      );
+      const animations = metadata.artboards.flatMap((artboard) =>
+        (artboard.animations ?? []).map((animation) => ({...animation, artboardName: artboard.name ?? 'Unnamed Artboard'}))
+      );
+
+      return \`
+        <div class="stack">
+          <section class="card runtime-card">
+            <div class="runtime-top">
+              <div>
+                <h3 class="runtime-title">Loaded Rive Schema</h3>
+                <div class="runtime-meta">
+                  <span>\${escapeHtml(metadata.artboards.length)} artboard(s)</span>
+                  <span class="separator">&bull;</span>
+                  <span>\${escapeHtml(stateMachines.length)} state machine(s)</span>
+                  <span class="separator">&bull;</span>
+                  <span>\${escapeHtml(inputs.length)} input(s)</span>
+                  <span class="separator">&bull;</span>
+                  <span>\${escapeHtml(metadata.warnings.length)} warning(s)</span>
+                </div>
+              </div>
+            </div>
+            <div class="runtime-grid">
+              \${renderRuntimeField('Source', metadata.source, true)}
+              \${renderRuntimeField('Runtime Version', metadata.header.majorVersion + '.' + metadata.header.minorVersion, true)}
+              \${renderRuntimeField('Records', String(metadata.recordCount), true)}
+              \${renderRuntimeField('Unknown Records', String(metadata.unknownRecordCount), true)}
+            </div>
+            \${serverFailed ? '<p class="snapshot-copy">' + escapeHtml(serverStatus.serverError) + '</p>' : ''}
+          </section>
+          \${renderStaticViewModels(metadata.viewModels ?? [])}
+          \${renderStaticStateMachines(metadata.artboards ?? [])}
+          \${renderStaticInputs(inputs)}
+          \${renderStaticAnimations(animations)}
+          \${renderStaticWarnings(metadata.warnings ?? [])}
+        </div>
+      \`;
+    }
+
+    function renderStaticViewModels(viewModels) {
+      return \`
+        <section class="section-panel view-model-panel">
+          <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModels</h3>
+          \${viewModels.length === 0
+            ? '<p class="view-model-empty">No ViewModels found in the loaded schema.</p>'
+            : '<div class="input-grid">' + viewModels.map((viewModel) => renderStaticInfoCard(viewModel.name ?? 'Unnamed ViewModel', 'viewModel', 'Type key: ' + viewModel.typeKey)).join('') + '</div>'}
+        </section>
+      \`;
+    }
+
+    function renderStaticStateMachines(artboards) {
+      const rows = artboards.map((artboard) => {
+        const stateMachines = artboard.stateMachines ?? [];
+        return \`
+          <div class="property-group">
+            <div class="property-group-title">\${escapeHtml(artboard.name ?? 'Unnamed Artboard')}</div>
+            \${stateMachines.length === 0
+              ? '<p class="view-model-empty">No state machines found.</p>'
+              : '<div class="input-grid">' + stateMachines.map((stateMachine) => renderStaticInfoCard(stateMachine.name ?? 'Unnamed State Machine', 'state machine', (stateMachine.inputs ?? []).length + ' input(s)')).join('') + '</div>'}
+          </div>
+        \`;
+      }).join('');
+
+      return \`
+        <section class="section-panel">
+          <h3 class="section-title"><span class="section-icon">&#9672;</span>State Machines</h3>
+          \${rows}
+        </section>
+      \`;
+    }
+
+    function renderStaticInputs(inputs) {
+      if (inputs.length === 0) {
+        return \`
+          <section class="section-panel inputs-panel">
+            <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
+            <p class="view-model-empty">No inputs found in the loaded schema.</p>
+          </section>
+        \`;
+      }
+
+      return \`
+        <section class="section-panel inputs-panel">
+          <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
+          <p class="view-model-empty">Static schema loaded. Controls activate when matching telemetry connects.</p>
+          \${renderGroupedItems(inputs, (input) => input.type, (input) => renderStaticInputCard(input))}
+        </section>
+      \`;
+    }
+
+    function renderStaticInputCard(input) {
+      return \`
+        <div class="input-card">
+          <div class="input-main">
+            <div class="input-name-row">
+              <span class="input-name">\${escapeHtml(input.name)}</span>
+              <span class="pill">\${escapeHtml(input.type)}</span>
+            </div>
+            <div class="input-detail">
+              \${escapeHtml(input.artboardName)} &middot; \${escapeHtml(input.stateMachineName)}
+            </div>
+          </div>
+          \${renderControl(input, true)}
+        </div>
+      \`;
+    }
+
+    function renderStaticAnimations(animations) {
+      return \`
+        <section class="section-panel">
+          <h3 class="section-title"><span class="section-icon">&#9655;</span>Animations</h3>
+          \${animations.length === 0
+            ? '<p class="view-model-empty">No animations found in the loaded schema.</p>'
+            : '<div class="input-grid">' + animations.map((animation) => renderStaticInfoCard(animation.name ?? 'Unnamed Animation', 'animation', animation.artboardName + (animation.durationSeconds !== null && animation.durationSeconds !== undefined ? ' &middot; ' + animation.durationSeconds + 's' : ''))).join('') + '</div>'}
+        </section>
+      \`;
+    }
+
+    function renderStaticWarnings(warnings) {
+      if (warnings.length === 0) {
+        return '';
+      }
+
+      return \`
+        <section class="section-panel view-model-unavailable">
+          <h3 class="section-title"><span class="section-icon">&#9888;</span>Parser Warnings</h3>
+          <div class="input-grid">\${warnings.map((warning) => renderStaticInfoCard(warning.code, 'warning', warning.message)).join('')}</div>
+        </section>
+      \`;
+    }
+
+    function renderStaticInfoCard(name, type, detail) {
+      return \`
+        <div class="input-card">
+          <div class="input-main">
+            <div class="input-name-row">
+              <span class="input-name">\${escapeHtml(name)}</span>
+              <span class="pill">\${escapeHtml(type)}</span>
+            </div>
+            <div class="input-detail">\${escapeHtml(detail)}</div>
+          </div>
+        </div>
       \`;
     }
 

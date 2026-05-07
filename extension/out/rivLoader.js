@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RivLoader = void 0;
 exports.findCoreInspectorEntrypoint = findCoreInspectorEntrypoint;
 exports.inspectRivFileWithCore = inspectRivFileWithCore;
+exports.findDartExecutable = findDartExecutable;
 const childProcess = __importStar(require("child_process"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -69,7 +70,8 @@ class RivLoader {
     }
     async inspectFile(filePath) {
         const entrypoint = findCoreInspectorEntrypoint(this.context.extensionPath);
-        const metadata = await inspectRivFileWithCore(filePath, entrypoint, this.output, this.execFile);
+        const dartExecutable = findDartExecutable(this.context.extensionPath);
+        const metadata = await inspectRivFileWithCore(filePath, entrypoint, dartExecutable, this.output, this.execFile);
         const artboardCount = metadata.artboards.length;
         const stateMachineCount = metadata.artboards.reduce((count, artboard) => count + artboard.stateMachines.length, 0);
         const inputCount = metadata.artboards.reduce((count, artboard) => count +
@@ -95,9 +97,9 @@ function findCoreInspectorEntrypoint(extensionPath) {
     }
     return entrypoint;
 }
-function inspectRivFileWithCore(filePath, entrypoint, output, execFile = childProcess.execFile) {
+function inspectRivFileWithCore(filePath, entrypoint, dartExecutable, output, execFile = childProcess.execFile) {
     return new Promise((resolve, reject) => {
-        execFile('dart', ['run', entrypoint, filePath], {
+        execFile(dartExecutable, ['run', entrypoint, filePath], {
             cwd: path.dirname(path.dirname(entrypoint)),
             maxBuffer: 1024 * 1024 * 16,
         }, (error, stdout, stderr) => {
@@ -105,6 +107,10 @@ function inspectRivFileWithCore(filePath, entrypoint, output, execFile = childPr
                 output.appendLine(stderr.trim());
             }
             if (error) {
+                if (isMissingExecutableError(error)) {
+                    reject(new Error(`Dart executable was not found. Set the riveTelemetry.dartPath setting to your Dart SDK executable path. Tried: ${dartExecutable}`));
+                    return;
+                }
                 reject(new Error(stderr.trim().length > 0
                     ? stderr.trim()
                     : `Dart metadata inspector failed: ${error.message}`));
@@ -124,5 +130,29 @@ function inspectRivFileWithCore(filePath, entrypoint, output, execFile = childPr
             }
         });
     });
+}
+function findDartExecutable(extensionPath) {
+    const configured = vscode.workspace
+        .getConfiguration('riveTelemetry')
+        .get('dartPath', 'dart')
+        .trim();
+    if (configured.length > 0 && configured !== 'dart') {
+        return configured;
+    }
+    const executableName = process.platform === 'win32' ? 'dart.exe' : 'dart';
+    const candidates = [
+        process.env.DART_SDK
+            ? path.join(process.env.DART_SDK, 'bin', executableName)
+            : undefined,
+        process.env.FLUTTER_ROOT
+            ? path.join(process.env.FLUTTER_ROOT, 'bin', 'cache', 'dart-sdk', 'bin', executableName)
+            : undefined,
+        path.resolve(extensionPath, '..', '..', 'flutter', 'bin', 'cache', 'dart-sdk', 'bin', executableName),
+    ];
+    return candidates.find((candidate) => candidate && fs.existsSync(candidate)) ?? 'dart';
+}
+function isMissingExecutableError(error) {
+    return ('code' in error &&
+        error.code === 'ENOENT');
 }
 //# sourceMappingURL=rivLoader.js.map

@@ -41,9 +41,11 @@ export class RivLoader {
 
   async inspectFile(filePath: string): Promise<RiveMetadata> {
     const entrypoint = findCoreInspectorEntrypoint(this.context.extensionPath);
+    const dartExecutable = findDartExecutable(this.context.extensionPath);
     const metadata = await inspectRivFileWithCore(
       filePath,
       entrypoint,
+      dartExecutable,
       this.output,
       this.execFile,
     );
@@ -98,12 +100,13 @@ export function findCoreInspectorEntrypoint(extensionPath: string): string {
 export function inspectRivFileWithCore(
   filePath: string,
   entrypoint: string,
+  dartExecutable: string,
   output: vscode.OutputChannel,
   execFile: ExecFile = childProcess.execFile,
 ): Promise<RiveMetadata> {
   return new Promise((resolve, reject) => {
     execFile(
-      'dart',
+      dartExecutable,
       ['run', entrypoint, filePath],
       {
         cwd: path.dirname(path.dirname(entrypoint)),
@@ -115,6 +118,15 @@ export function inspectRivFileWithCore(
         }
 
         if (error) {
+          if (isMissingExecutableError(error)) {
+            reject(
+              new Error(
+                `Dart executable was not found. Set the riveTelemetry.dartPath setting to your Dart SDK executable path. Tried: ${dartExecutable}`,
+              ),
+            );
+            return;
+          }
+
           reject(
             new Error(
               stderr.trim().length > 0
@@ -140,4 +152,52 @@ export function inspectRivFileWithCore(
       },
     );
   });
+}
+
+export function findDartExecutable(extensionPath: string): string {
+  const configured = vscode.workspace
+    .getConfiguration('riveTelemetry')
+    .get<string>('dartPath', 'dart')
+    .trim();
+
+  if (configured.length > 0 && configured !== 'dart') {
+    return configured;
+  }
+
+  const executableName = process.platform === 'win32' ? 'dart.exe' : 'dart';
+  const candidates = [
+    process.env.DART_SDK
+      ? path.join(process.env.DART_SDK, 'bin', executableName)
+      : undefined,
+    process.env.FLUTTER_ROOT
+      ? path.join(
+          process.env.FLUTTER_ROOT,
+          'bin',
+          'cache',
+          'dart-sdk',
+          'bin',
+          executableName,
+        )
+      : undefined,
+    path.resolve(
+      extensionPath,
+      '..',
+      '..',
+      'flutter',
+      'bin',
+      'cache',
+      'dart-sdk',
+      'bin',
+      executableName,
+    ),
+  ];
+
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate)) ?? 'dart';
+}
+
+function isMissingExecutableError(error: Error): boolean {
+  return (
+    'code' in error &&
+    (error as NodeJS.ErrnoException).code === 'ENOENT'
+  );
 }

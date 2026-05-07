@@ -45,6 +45,11 @@
           "minimum": 1,
           "maximum": 65535,
           "description": "Local WebSocket port used by the RiveTelemetry VS Code extension."
+        },
+        "riveTelemetry.dartPath": {
+          "type": "string",
+          "default": "dart",
+          "description": "Dart executable used by the RiveTelemetry .riv metadata inspector. Set this to an absolute dart or dart.exe path if VS Code cannot find Dart on PATH."
         }
       }
     }

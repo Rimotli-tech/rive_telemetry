@@ -43,7 +43,7 @@ class RiveTelemetryPanel {
         this.panel = panel;
         this.panel.webview.options = { enableScripts: true };
         const iconUri = this.panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'media', 'icon.png')));
-        this.panel.webview.html = (0, webviewHtml_1.getWebviewHtml)(this.telemetryServer.panelState, this.telemetryServer.status, iconUri, this.panel.webview.cspSource);
+        this.panel.webview.html = (0, webviewHtml_1.getWebviewHtml)(this.telemetryServer.panelState, this.telemetryServer.status, RiveTelemetryPanel.staticMetadata, iconUri, this.panel.webview.cspSource);
         this.telemetrySubscription = this.telemetryServer.onTelemetry((state) => {
             this.updateTelemetry(state);
         });
@@ -87,11 +87,16 @@ class RiveTelemetryPanel {
             RiveTelemetryPanel.currentPanel.panel.reveal(vscode.ViewColumn.One);
             RiveTelemetryPanel.currentPanel.updateTelemetry(telemetryServer.panelState);
             RiveTelemetryPanel.currentPanel.updateStatus(telemetryServer.status);
+            RiveTelemetryPanel.currentPanel.updateMetadata(RiveTelemetryPanel.staticMetadata);
             return;
         }
         const panel = vscode.window.createWebviewPanel('riveTelemetry', 'RiveTelemetry', vscode.ViewColumn.One, { enableScripts: true, retainContextWhenHidden: true });
         RiveTelemetryPanel.currentPanel = new RiveTelemetryPanel(panel, context, telemetryServer);
         context.subscriptions.push(RiveTelemetryPanel.currentPanel);
+    }
+    static updateStaticMetadata(metadata) {
+        RiveTelemetryPanel.staticMetadata = metadata;
+        RiveTelemetryPanel.currentPanel?.updateMetadata(metadata);
     }
     dispose() {
         this.telemetrySubscription.dispose();
@@ -112,8 +117,15 @@ class RiveTelemetryPanel {
             status,
         });
     }
+    updateMetadata(metadata) {
+        this.panel.webview.postMessage({
+            type: 'metadata',
+            metadata,
+        });
+    }
 }
 exports.RiveTelemetryPanel = RiveTelemetryPanel;
+RiveTelemetryPanel.staticMetadata = null;
 function isWebviewInspectFileMessage(value) {
     return isRecord(value) && value.command === 'inspectFile';
 }

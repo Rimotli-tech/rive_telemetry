@@ -35,6 +35,11 @@ export function activate(context: vscode.ExtensionContext): void {
           return;
         }
 
+        if (telemetryServer) {
+          RiveTelemetryPanel.show(context, telemetryServer);
+          RiveTelemetryPanel.updateStaticMetadata(metadata);
+        }
+
         vscode.window.showInformationMessage(
           `Loaded Rive schema: ${metadata.artboards.length} artboard(s), ${metadata.warnings.length} warning(s).`,
         );

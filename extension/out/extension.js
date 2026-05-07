@@ -61,6 +61,10 @@ function activate(context) {
             if (!metadata) {
                 return;
             }
+            if (telemetryServer) {
+                panel_1.RiveTelemetryPanel.show(context, telemetryServer);
+                panel_1.RiveTelemetryPanel.updateStaticMetadata(metadata);
+            }
             vscode.window.showInformationMessage(`Loaded Rive schema: ${metadata.artboards.length} artboard(s), ${metadata.warnings.length} warning(s).`);
         }
         catch (error) {

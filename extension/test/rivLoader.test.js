@@ -66,6 +66,7 @@ test('inspectRivFileWithCore parses metadata JSON from Dart core', async () => {
   const result = await inspectRivFileWithCore(
     'demo.riv',
     'C:\\repo\\core\\bin\\rive_metadata_inspect.dart',
+    'dart.exe',
     output,
     execFile,
   );
@@ -84,6 +85,7 @@ test('inspectRivFileWithCore rejects parser errors with stderr details', async (
     inspectRivFileWithCore(
       'bad.riv',
       'C:\\repo\\core\\bin\\rive_metadata_inspect.dart',
+      'dart.exe',
       output,
       execFile,
     ),
@@ -102,9 +104,30 @@ test('inspectRivFileWithCore rejects invalid metadata JSON', async () => {
     inspectRivFileWithCore(
       'demo.riv',
       'C:\\repo\\core\\bin\\rive_metadata_inspect.dart',
+      'dart.exe',
       output,
       execFile,
     ),
     /invalid JSON/,
+  );
+});
+
+test('inspectRivFileWithCore reports missing Dart executable clearly', async () => {
+  const output = createOutput();
+  const execFile = (_command, _args, _options, callback) => {
+    const error = new Error('spawn dart ENOENT');
+    error.code = 'ENOENT';
+    callback(error, '', '');
+  };
+
+  await assert.rejects(
+    inspectRivFileWithCore(
+      'demo.riv',
+      'C:\\repo\\core\\bin\\rive_metadata_inspect.dart',
+      'dart',
+      output,
+      execFile,
+    ),
+    /riveTelemetry\.dartPath/,
   );
 });

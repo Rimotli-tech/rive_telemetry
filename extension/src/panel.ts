@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { RiveMetadata } from './metadataTypes';
 import { TelemetryServer } from './telemetryServer';
 import { getWebviewHtml } from './webviewHtml';
 import {
@@ -10,6 +11,7 @@ import {
 
 export class RiveTelemetryPanel {
   private static currentPanel: RiveTelemetryPanel | undefined;
+  private static staticMetadata: RiveMetadata | null = null;
 
   private readonly panel: vscode.WebviewPanel;
   private readonly telemetrySubscription: vscode.Disposable;
@@ -28,6 +30,7 @@ export class RiveTelemetryPanel {
     this.panel.webview.html = getWebviewHtml(
       this.telemetryServer.panelState,
       this.telemetryServer.status,
+      RiveTelemetryPanel.staticMetadata,
       iconUri,
       this.panel.webview.cspSource,
     );
@@ -89,6 +92,9 @@ export class RiveTelemetryPanel {
         telemetryServer.panelState,
       );
       RiveTelemetryPanel.currentPanel.updateStatus(telemetryServer.status);
+      RiveTelemetryPanel.currentPanel.updateMetadata(
+        RiveTelemetryPanel.staticMetadata,
+      );
       return;
     }
 
@@ -106,6 +112,11 @@ export class RiveTelemetryPanel {
     );
 
     context.subscriptions.push(RiveTelemetryPanel.currentPanel);
+  }
+
+  static updateStaticMetadata(metadata: RiveMetadata | null): void {
+    RiveTelemetryPanel.staticMetadata = metadata;
+    RiveTelemetryPanel.currentPanel?.updateMetadata(metadata);
   }
 
   dispose(): void {
@@ -127,6 +138,13 @@ export class RiveTelemetryPanel {
     this.panel.webview.postMessage({
       type: 'serverStatus',
       status,
+    });
+  }
+
+  private updateMetadata(metadata: RiveMetadata | null): void {
+    this.panel.webview.postMessage({
+      type: 'metadata',
+      metadata,
     });
   }
 }
