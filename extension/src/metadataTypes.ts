@@ -60,8 +60,46 @@ export interface RiveComponentMetadata {
 }
 
 export interface RiveViewModelMetadata {
+  id: number;
   name: string | null;
   typeKey: number;
+  defaultInstanceId: number | null;
+  properties: RiveViewModelPropertyMetadata[];
+  instances: RiveViewModelInstanceMetadata[];
+}
+
+export type RiveViewModelPropertyType =
+  | 'boolean'
+  | 'number'
+  | 'string'
+  | 'color'
+  | 'enumType'
+  | 'list'
+  | 'viewModel'
+  | 'unknown';
+
+export interface RiveViewModelPropertyMetadata {
+  id: number;
+  name: string | null;
+  type: RiveViewModelPropertyType;
+  typeKey: number;
+  enumId?: number;
+  viewModelReferenceId?: number;
+}
+
+export interface RiveViewModelInstanceMetadata {
+  id: number;
+  name: string | null;
+  viewModelId: number | null;
+  values: RiveViewModelInstanceValueMetadata[];
+}
+
+export interface RiveViewModelInstanceValueMetadata {
+  id: number;
+  propertyId: number | null;
+  propertyName: string | null;
+  type: RiveViewModelPropertyType;
+  value: boolean | number | string | null;
 }
 
 export function isRiveMetadata(value: unknown): value is RiveMetadata {

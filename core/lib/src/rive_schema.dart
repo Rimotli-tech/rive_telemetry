@@ -26,6 +26,25 @@ abstract final class RiveSchema {
   static const int stateMachineNumberTypeKey = 56;
   static const int stateMachineTriggerTypeKey = 58;
   static const int stateMachineBoolTypeKey = 59;
+  static const int viewModelInstanceColorTypeKey = 426;
+  static const int viewModelInstanceValueTypeKey = 428;
+  static const int viewModelPropertyNumberTypeKey = 431;
+  static const int viewModelInstanceEnumTypeKey = 432;
+  static const int viewModelInstanceStringTypeKey = 433;
+  static const int viewModelPropertyListTypeKey = 434;
+  static const int viewModelTypeKey = 435;
+  static const int viewModelPropertyViewModelTypeKey = 436;
+  static const int viewModelInstanceTypeKey = 437;
+  static const int dataEnumTypeKey = 438;
+  static const int viewModelPropertyEnumTypeKey = 439;
+  static const int viewModelPropertyColorTypeKey = 440;
+  static const int viewModelInstanceListTypeKey = 441;
+  static const int viewModelInstanceNumberTypeKey = 442;
+  static const int viewModelPropertyStringTypeKey = 443;
+  static const int viewModelInstanceViewModelTypeKey = 444;
+  static const int dataEnumValueTypeKey = 445;
+  static const int viewModelPropertyBooleanTypeKey = 448;
+  static const int viewModelInstanceBooleanTypeKey = 449;
 
   static const int componentNamePropertyKey = 4;
   static const int componentParentIdPropertyKey = 5;
@@ -39,6 +58,20 @@ abstract final class RiveSchema {
   static const int stateMachineComponentNamePropertyKey = 138;
   static const int stateMachineNumberValuePropertyKey = 140;
   static const int stateMachineBoolValuePropertyKey = 141;
+  static const int viewModelInstanceValuePropertyIdPropertyKey = 554;
+  static const int viewModelInstanceColorValuePropertyKey = 555;
+  static const int viewModelComponentNamePropertyKey = 557;
+  static const int viewModelInstanceEnumValuePropertyKey = 560;
+  static const int viewModelInstanceStringValuePropertyKey = 561;
+  static const int viewModelDefaultInstanceIdPropertyKey = 564;
+  static const int viewModelPropertyViewModelReferenceIdPropertyKey = 565;
+  static const int viewModelInstanceViewModelIdPropertyKey = 566;
+  static const int viewModelPropertyEnumIdPropertyKey = 574;
+  static const int viewModelInstanceNumberValuePropertyKey = 575;
+  static const int viewModelInstanceViewModelValuePropertyKey = 577;
+  static const int dataEnumValueKeyPropertyKey = 578;
+  static const int dataEnumValueValuePropertyKey = 579;
+  static const int viewModelInstanceBooleanValuePropertyKey = 593;
 
   static const fieldTypesByHeaderIndex = <int, RiveFieldType>{
     0: RiveFieldType.uint,
@@ -67,6 +100,69 @@ abstract final class RiveSchema {
       stateMachineBoolTypeKey,
       'StateMachineBool',
     ),
+    viewModelTypeKey: RiveCoreType(viewModelTypeKey, 'ViewModel'),
+    viewModelInstanceTypeKey: RiveCoreType(
+      viewModelInstanceTypeKey,
+      'ViewModelInstance',
+    ),
+    viewModelPropertyNumberTypeKey: RiveCoreType(
+      viewModelPropertyNumberTypeKey,
+      'ViewModelPropertyNumber',
+    ),
+    viewModelPropertyStringTypeKey: RiveCoreType(
+      viewModelPropertyStringTypeKey,
+      'ViewModelPropertyString',
+    ),
+    viewModelPropertyBooleanTypeKey: RiveCoreType(
+      viewModelPropertyBooleanTypeKey,
+      'ViewModelPropertyBoolean',
+    ),
+    viewModelPropertyColorTypeKey: RiveCoreType(
+      viewModelPropertyColorTypeKey,
+      'ViewModelPropertyColor',
+    ),
+    viewModelPropertyEnumTypeKey: RiveCoreType(
+      viewModelPropertyEnumTypeKey,
+      'ViewModelPropertyEnum',
+    ),
+    viewModelPropertyListTypeKey: RiveCoreType(
+      viewModelPropertyListTypeKey,
+      'ViewModelPropertyList',
+    ),
+    viewModelPropertyViewModelTypeKey: RiveCoreType(
+      viewModelPropertyViewModelTypeKey,
+      'ViewModelPropertyViewModel',
+    ),
+    viewModelInstanceNumberTypeKey: RiveCoreType(
+      viewModelInstanceNumberTypeKey,
+      'ViewModelInstanceNumber',
+    ),
+    viewModelInstanceStringTypeKey: RiveCoreType(
+      viewModelInstanceStringTypeKey,
+      'ViewModelInstanceString',
+    ),
+    viewModelInstanceBooleanTypeKey: RiveCoreType(
+      viewModelInstanceBooleanTypeKey,
+      'ViewModelInstanceBoolean',
+    ),
+    viewModelInstanceColorTypeKey: RiveCoreType(
+      viewModelInstanceColorTypeKey,
+      'ViewModelInstanceColor',
+    ),
+    viewModelInstanceEnumTypeKey: RiveCoreType(
+      viewModelInstanceEnumTypeKey,
+      'ViewModelInstanceEnum',
+    ),
+    viewModelInstanceListTypeKey: RiveCoreType(
+      viewModelInstanceListTypeKey,
+      'ViewModelInstanceList',
+    ),
+    viewModelInstanceViewModelTypeKey: RiveCoreType(
+      viewModelInstanceViewModelTypeKey,
+      'ViewModelInstanceViewModel',
+    ),
+    dataEnumTypeKey: RiveCoreType(dataEnumTypeKey, 'DataEnum'),
+    dataEnumValueTypeKey: RiveCoreType(dataEnumValueTypeKey, 'DataEnumValue'),
   };
 
   static const properties = <int, RivePropertyDefinition>{
@@ -117,6 +213,62 @@ abstract final class RiveSchema {
     stateMachineBoolValuePropertyKey: RivePropertyDefinition(
       'stateMachineBool.value',
       RiveFieldType.bool,
+    ),
+    viewModelComponentNamePropertyKey: RivePropertyDefinition(
+      'viewModelComponent.name',
+      RiveFieldType.string,
+    ),
+    viewModelDefaultInstanceIdPropertyKey: RivePropertyDefinition(
+      'viewModel.defaultInstanceId',
+      RiveFieldType.uint,
+    ),
+    viewModelInstanceViewModelIdPropertyKey: RivePropertyDefinition(
+      'viewModelInstance.viewModelId',
+      RiveFieldType.uint,
+    ),
+    viewModelInstanceValuePropertyIdPropertyKey: RivePropertyDefinition(
+      'viewModelInstanceValue.viewModelPropertyId',
+      RiveFieldType.uint,
+    ),
+    viewModelPropertyEnumIdPropertyKey: RivePropertyDefinition(
+      'viewModelPropertyEnum.enumId',
+      RiveFieldType.uint,
+    ),
+    viewModelPropertyViewModelReferenceIdPropertyKey: RivePropertyDefinition(
+      'viewModelPropertyViewModel.viewModelReferenceId',
+      RiveFieldType.uint,
+    ),
+    viewModelInstanceNumberValuePropertyKey: RivePropertyDefinition(
+      'viewModelInstanceNumber.propertyValue',
+      RiveFieldType.float32,
+    ),
+    viewModelInstanceStringValuePropertyKey: RivePropertyDefinition(
+      'viewModelInstanceString.propertyValue',
+      RiveFieldType.string,
+    ),
+    viewModelInstanceBooleanValuePropertyKey: RivePropertyDefinition(
+      'viewModelInstanceBoolean.propertyValue',
+      RiveFieldType.bool,
+    ),
+    viewModelInstanceColorValuePropertyKey: RivePropertyDefinition(
+      'viewModelInstanceColor.propertyValue',
+      RiveFieldType.color,
+    ),
+    viewModelInstanceEnumValuePropertyKey: RivePropertyDefinition(
+      'viewModelInstanceEnum.propertyValue',
+      RiveFieldType.uint,
+    ),
+    viewModelInstanceViewModelValuePropertyKey: RivePropertyDefinition(
+      'viewModelInstanceViewModel.propertyValue',
+      RiveFieldType.uint,
+    ),
+    dataEnumValueKeyPropertyKey: RivePropertyDefinition(
+      'dataEnumValue.key',
+      RiveFieldType.string,
+    ),
+    dataEnumValueValuePropertyKey: RivePropertyDefinition(
+      'dataEnumValue.value',
+      RiveFieldType.string,
     ),
   };
 

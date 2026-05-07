@@ -129,6 +129,61 @@ void main() {
     },
   );
 
+  test('extracts ViewModels, properties, instances, and values', () {
+    final bytes = Uint8List.fromList([
+      ...'RIVE'.codeUnits,
+      ..._varUint(7),
+      ..._varUint(0),
+      ..._varUint(1),
+      ..._varUint(0),
+      ..._varUint(435),
+      ..._varUint(557),
+      ..._string('CatViewModel'),
+      ..._varUint(564),
+      ..._varUint(0),
+      ..._varUint(0),
+      ..._varUint(431),
+      ..._varUint(557),
+      ..._string('idleHeadRotation'),
+      ..._varUint(0),
+      ..._varUint(437),
+      ..._varUint(4),
+      ..._string('catVMInstance'),
+      ..._varUint(566),
+      ..._varUint(0),
+      ..._varUint(0),
+      ..._varUint(442),
+      ..._varUint(554),
+      ..._varUint(0),
+      ..._varUint(575),
+      ..._float32(0.42),
+      ..._varUint(0),
+    ]);
+
+    final metadata = inspectRivBytes(bytes, source: 'viewmodel.riv');
+
+    expect(metadata.viewModels, hasLength(1));
+    final viewModel = metadata.viewModels.single;
+    expect(viewModel.id, 0);
+    expect(viewModel.name, 'CatViewModel');
+    expect(viewModel.defaultInstanceId, 0);
+    expect(viewModel.properties, hasLength(1));
+    expect(viewModel.properties.single.id, 0);
+    expect(viewModel.properties.single.name, 'idleHeadRotation');
+    expect(viewModel.properties.single.type, RiveViewModelPropertyType.number);
+    expect(viewModel.instances, hasLength(1));
+    expect(viewModel.instances.single.id, 0);
+    expect(viewModel.instances.single.name, 'catVMInstance');
+    expect(viewModel.instances.single.viewModelId, 0);
+    expect(viewModel.instances.single.values, hasLength(1));
+    final value = viewModel.instances.single.values.single;
+    expect(value.id, 0);
+    expect(value.propertyId, 0);
+    expect(value.propertyName, 'idleHeadRotation');
+    expect(value.type, RiveViewModelPropertyType.number);
+    expect(value.value, closeTo(0.42, 0.00001));
+  });
+
   test('repo fixtures exist for schema coverage', () {
     for (final fixturePath in fixturePaths) {
       expect(File(fixturePath).existsSync(), isTrue);
@@ -139,6 +194,11 @@ void main() {
 List<int> _string(String value) {
   final bytes = utf8.encode(value);
   return [..._varUint(bytes.length), ...bytes];
+}
+
+List<int> _float32(double value) {
+  final data = ByteData(4)..setFloat32(0, value, Endian.little);
+  return data.buffer.asUint8List().toList();
 }
 
 List<int> _varUint(int value) {

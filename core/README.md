@@ -9,7 +9,8 @@ integration code generation.
 Current capabilities:
 
 - Load `.riv` files without running an app.
-- Extract artboards, animations, state machines, and inputs from known fixtures.
+- Extract artboards, animations, state machines, inputs, and ViewModels from
+  supported schema records.
 - Preserve structured warnings for unsupported records.
 - Export deterministic metadata JSON with `schemaVersion: 1`.
 - Decode metadata JSON back into typed Dart models.

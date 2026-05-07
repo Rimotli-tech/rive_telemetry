@@ -291,10 +291,18 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "id",
         "name",
-        "typeKey"
+        "typeKey",
+        "defaultInstanceId",
+        "properties",
+        "instances"
       ],
       "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0
+        },
         "name": {
           "type": [
             "string",
@@ -303,6 +311,147 @@
         },
         "typeKey": {
           "type": "integer"
+        },
+        "defaultInstanceId": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/viewModelProperty"
+          }
+        },
+        "instances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/viewModelInstance"
+          }
+        }
+      }
+    },
+    "viewModelPropertyType": {
+      "enum": [
+        "boolean",
+        "number",
+        "string",
+        "color",
+        "enumType",
+        "list",
+        "viewModel",
+        "unknown"
+      ]
+    },
+    "viewModelProperty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "type",
+        "typeKey"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "$ref": "#/$defs/viewModelPropertyType"
+        },
+        "typeKey": {
+          "type": "integer"
+        },
+        "enumId": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "viewModelReferenceId": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "viewModelInstance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "viewModelId",
+        "values"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "viewModelId": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/viewModelInstanceValue"
+          }
+        }
+      }
+    },
+    "viewModelInstanceValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "propertyId",
+        "propertyName",
+        "type",
+        "value"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "propertyId": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "propertyName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "$ref": "#/$defs/viewModelPropertyType"
+        },
+        "value": {
+          "type": [
+            "boolean",
+            "number",
+            "string",
+            "integer",
+            "null"
+          ]
         }
       }
     }

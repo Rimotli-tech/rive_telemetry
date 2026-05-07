@@ -185,9 +185,11 @@ class _RiveMetadataParser {
 
   RiveMetadata _buildMetadata(List<_RiveRecord> records) {
     final artboards = <RiveArtboardMetadata>[];
-    final viewModels = <RiveViewModelMetadata>[];
+    final viewModelBuilders = <int, _ViewModelBuilder>{};
     RiveArtboardMetadata? currentArtboard;
     RiveStateMachineMetadata? currentStateMachine;
+    _ViewModelBuilder? currentViewModel;
+    _ViewModelInstanceBuilder? currentViewModelInstance;
 
     for (final record in records) {
       switch (record.typeKey) {
@@ -249,6 +251,66 @@ class _RiveMetadataParser {
               type: RiveInputType.trigger,
             ),
           );
+        case RiveSchema.viewModelTypeKey:
+          final viewModelId = viewModelBuilders.length;
+          currentViewModel = _ViewModelBuilder(
+            id: viewModelId,
+            name: record.stringProperty(
+              RiveSchema.viewModelComponentNamePropertyKey,
+            ),
+            typeKey: record.typeKey,
+            defaultInstanceId: record.intProperty(
+              RiveSchema.viewModelDefaultInstanceIdPropertyKey,
+            ),
+          );
+          viewModelBuilders[viewModelId] = currentViewModel;
+          currentViewModelInstance = null;
+        case RiveSchema.viewModelPropertyNumberTypeKey:
+        case RiveSchema.viewModelPropertyStringTypeKey:
+        case RiveSchema.viewModelPropertyBooleanTypeKey:
+        case RiveSchema.viewModelPropertyColorTypeKey:
+        case RiveSchema.viewModelPropertyEnumTypeKey:
+        case RiveSchema.viewModelPropertyListTypeKey:
+        case RiveSchema.viewModelPropertyViewModelTypeKey:
+          final viewModel = currentViewModel;
+          if (viewModel != null) {
+            viewModel.properties.add(
+              _viewModelPropertyFromRecord(
+                record,
+                id: viewModel.properties.length,
+              ),
+            );
+          }
+        case RiveSchema.viewModelInstanceTypeKey:
+          final viewModelId = record.intProperty(
+            RiveSchema.viewModelInstanceViewModelIdPropertyKey,
+          );
+          final viewModel = viewModelBuilders[viewModelId] ?? currentViewModel;
+          final instance = _ViewModelInstanceBuilder(
+            id: viewModel?.instances.length ?? record.index,
+            name: record.stringProperty(RiveSchema.componentNamePropertyKey),
+            viewModelId: viewModelId,
+          );
+          viewModel?.instances.add(instance);
+          currentViewModelInstance = instance;
+        case RiveSchema.viewModelInstanceNumberTypeKey:
+        case RiveSchema.viewModelInstanceStringTypeKey:
+        case RiveSchema.viewModelInstanceBooleanTypeKey:
+        case RiveSchema.viewModelInstanceColorTypeKey:
+        case RiveSchema.viewModelInstanceEnumTypeKey:
+        case RiveSchema.viewModelInstanceListTypeKey:
+        case RiveSchema.viewModelInstanceViewModelTypeKey:
+          final instanceViewModel =
+              currentViewModelInstance?.viewModelId == null
+              ? null
+              : viewModelBuilders[currentViewModelInstance!.viewModelId];
+          currentViewModelInstance?.values.add(
+            _viewModelInstanceValueFromRecord(
+              record,
+              instanceViewModel,
+              id: currentViewModelInstance.values.length,
+            ),
+          );
       }
 
       final componentName = record.stringProperty(
@@ -281,7 +343,9 @@ class _RiveMetadataParser {
         propertyKeyCount: _header.propertyKeys.length,
       ),
       artboards: artboards,
-      viewModels: viewModels,
+      viewModels: viewModelBuilders.values
+          .map((builder) => builder.toMetadata())
+          .toList(),
       recordCount: records.length,
       unknownRecordCount: records
           .where((record) => record.typeName == null)
@@ -306,6 +370,154 @@ class _RiveMetadataParser {
       loop: record.intProperty(RiveSchema.animationLoopPropertyKey),
     );
   }
+
+  RiveViewModelPropertyMetadata _viewModelPropertyFromRecord(
+    _RiveRecord record, {
+    required int id,
+  }) {
+    return RiveViewModelPropertyMetadata(
+      id: id,
+      name: record.stringProperty(RiveSchema.viewModelComponentNamePropertyKey),
+      type: _viewModelPropertyType(record.typeKey),
+      typeKey: record.typeKey,
+      enumId: record.intProperty(RiveSchema.viewModelPropertyEnumIdPropertyKey),
+      viewModelReferenceId: record.intProperty(
+        RiveSchema.viewModelPropertyViewModelReferenceIdPropertyKey,
+      ),
+    );
+  }
+
+  RiveViewModelInstanceValueMetadata _viewModelInstanceValueFromRecord(
+    _RiveRecord record,
+    _ViewModelBuilder? viewModel, {
+    required int id,
+  }) {
+    final propertyId = record.intProperty(
+      RiveSchema.viewModelInstanceValuePropertyIdPropertyKey,
+    );
+    final property = viewModel?.propertyById(propertyId);
+    return RiveViewModelInstanceValueMetadata(
+      id: id,
+      propertyId: propertyId,
+      propertyName: property?.name,
+      type: _viewModelPropertyType(record.typeKey),
+      value: _viewModelValue(record),
+    );
+  }
+
+  Object? _viewModelValue(_RiveRecord record) {
+    switch (record.typeKey) {
+      case RiveSchema.viewModelInstanceNumberTypeKey:
+        return record.doubleProperty(
+          RiveSchema.viewModelInstanceNumberValuePropertyKey,
+        );
+      case RiveSchema.viewModelInstanceStringTypeKey:
+        return record.stringProperty(
+          RiveSchema.viewModelInstanceStringValuePropertyKey,
+        );
+      case RiveSchema.viewModelInstanceBooleanTypeKey:
+        return record.boolProperty(
+          RiveSchema.viewModelInstanceBooleanValuePropertyKey,
+        );
+      case RiveSchema.viewModelInstanceColorTypeKey:
+        return record.intProperty(
+          RiveSchema.viewModelInstanceColorValuePropertyKey,
+        );
+      case RiveSchema.viewModelInstanceEnumTypeKey:
+        return record.intProperty(
+          RiveSchema.viewModelInstanceEnumValuePropertyKey,
+        );
+      case RiveSchema.viewModelInstanceViewModelTypeKey:
+        return record.intProperty(
+          RiveSchema.viewModelInstanceViewModelValuePropertyKey,
+        );
+    }
+    return null;
+  }
+
+  RiveViewModelPropertyType _viewModelPropertyType(int typeKey) {
+    switch (typeKey) {
+      case RiveSchema.viewModelPropertyNumberTypeKey:
+      case RiveSchema.viewModelInstanceNumberTypeKey:
+        return RiveViewModelPropertyType.number;
+      case RiveSchema.viewModelPropertyStringTypeKey:
+      case RiveSchema.viewModelInstanceStringTypeKey:
+        return RiveViewModelPropertyType.string;
+      case RiveSchema.viewModelPropertyBooleanTypeKey:
+      case RiveSchema.viewModelInstanceBooleanTypeKey:
+        return RiveViewModelPropertyType.boolean;
+      case RiveSchema.viewModelPropertyColorTypeKey:
+      case RiveSchema.viewModelInstanceColorTypeKey:
+        return RiveViewModelPropertyType.color;
+      case RiveSchema.viewModelPropertyEnumTypeKey:
+      case RiveSchema.viewModelInstanceEnumTypeKey:
+        return RiveViewModelPropertyType.enumType;
+      case RiveSchema.viewModelPropertyListTypeKey:
+      case RiveSchema.viewModelInstanceListTypeKey:
+        return RiveViewModelPropertyType.list;
+      case RiveSchema.viewModelPropertyViewModelTypeKey:
+      case RiveSchema.viewModelInstanceViewModelTypeKey:
+        return RiveViewModelPropertyType.viewModel;
+    }
+    return RiveViewModelPropertyType.unknown;
+  }
+}
+
+class _ViewModelBuilder {
+  _ViewModelBuilder({
+    required this.id,
+    required this.name,
+    required this.typeKey,
+    required this.defaultInstanceId,
+  });
+
+  final int id;
+  final String? name;
+  final int typeKey;
+  final int? defaultInstanceId;
+  final properties = <RiveViewModelPropertyMetadata>[];
+  final instances = <_ViewModelInstanceBuilder>[];
+
+  RiveViewModelPropertyMetadata? propertyById(int? id) {
+    if (id == null) {
+      return null;
+    }
+    for (final property in properties) {
+      if (property.id == id) {
+        return property;
+      }
+    }
+    return null;
+  }
+
+  RiveViewModelMetadata toMetadata() => RiveViewModelMetadata(
+    id: id,
+    name: name,
+    typeKey: typeKey,
+    defaultInstanceId: defaultInstanceId,
+    properties: properties,
+    instances: instances.map((instance) => instance.toMetadata()).toList(),
+  );
+}
+
+class _ViewModelInstanceBuilder {
+  _ViewModelInstanceBuilder({
+    required this.id,
+    required this.name,
+    required this.viewModelId,
+  });
+
+  final int id;
+  final String? name;
+  final int? viewModelId;
+  final values = <RiveViewModelInstanceValueMetadata>[];
+
+  RiveViewModelInstanceMetadata toMetadata() => RiveViewModelInstanceMetadata(
+    id: id,
+    name: name,
+    viewModelId: viewModelId,
+    values: values,
+  );
 }
 
 class _ParsedHeader {

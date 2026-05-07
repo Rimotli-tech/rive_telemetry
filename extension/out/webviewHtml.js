@@ -1089,14 +1089,54 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
     }
 
     function renderStaticViewModels(viewModels) {
+      const rows = viewModels.map((viewModel) => {
+        const properties = viewModel.properties ?? [];
+        const instances = viewModel.instances ?? [];
+        const instanceSummary = instances.length === 0
+          ? '<p class="view-model-empty">No ViewModel instances found.</p>'
+          : '<div class="input-grid">' + instances.map((instance) => {
+              const values = instance.values ?? [];
+              const detail = values.length === 0
+                ? 'No default values'
+                : values.map((value) => (value.propertyName ?? ('#' + value.propertyId)) + ': ' + formatViewModelValue(value.value)).join(', ');
+              return renderStaticInfoCard(instance.name ?? 'Unnamed Instance', 'instance', detail);
+            }).join('') + '</div>';
+
+        return \`
+          <div class="property-group">
+            <div class="property-group-title">
+              \${escapeHtml(viewModel.name ?? 'Unnamed ViewModel')}
+              <span class="pill">id \${escapeHtml(String(viewModel.id))}</span>
+              \${viewModel.defaultInstanceId === null || viewModel.defaultInstanceId === undefined ? '' : '<span class="pill">default ' + escapeHtml(String(viewModel.defaultInstanceId)) + '</span>'}
+            </div>
+            \${properties.length === 0
+              ? '<p class="view-model-empty">No ViewModel properties found.</p>'
+              : renderGroupedItems(properties, (property) => property.type ?? 'unknown', (property) => renderStaticInfoCard(property.name ?? 'Unnamed Property', property.type ?? 'unknown', renderStaticViewModelPropertyDetail(property)))}
+            <div class="property-group-title">Instances</div>
+            \${instanceSummary}
+          </div>
+        \`;
+      }).join('');
+
       return \`
         <section class="section-panel view-model-panel">
           <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModels</h3>
           \${viewModels.length === 0
             ? '<p class="view-model-empty">No ViewModels found in the loaded schema.</p>'
-            : '<div class="input-grid">' + viewModels.map((viewModel) => renderStaticInfoCard(viewModel.name ?? 'Unnamed ViewModel', 'viewModel', 'Type key: ' + viewModel.typeKey)).join('') + '</div>'}
+            : rows}
         </section>
       \`;
+    }
+
+    function renderStaticViewModelPropertyDetail(property) {
+      const details = ['Type key: ' + property.typeKey];
+      if (property.enumId !== undefined && property.enumId !== null) {
+        details.push('Enum id: ' + property.enumId);
+      }
+      if (property.viewModelReferenceId !== undefined && property.viewModelReferenceId !== null) {
+        details.push('Reference id: ' + property.viewModelReferenceId);
+      }
+      return details.join(' · ');
     }
 
     function renderStaticStateMachines(artboards) {

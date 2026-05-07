@@ -285,18 +285,173 @@ class RiveComponentMetadata {
 }
 
 class RiveViewModelMetadata {
-  const RiveViewModelMetadata({required this.name, required this.typeKey});
+  const RiveViewModelMetadata({
+    required this.id,
+    required this.name,
+    required this.typeKey,
+    required this.defaultInstanceId,
+    required this.properties,
+    required this.instances,
+  });
 
+  final int id;
   final String? name;
   final int typeKey;
+  final int? defaultInstanceId;
+  final List<RiveViewModelPropertyMetadata> properties;
+  final List<RiveViewModelInstanceMetadata> instances;
 
-  factory RiveViewModelMetadata.fromJson(Map<String, Object?> json) =>
-      RiveViewModelMetadata(
+  factory RiveViewModelMetadata.fromJson(
+    Map<String, Object?> json,
+  ) => RiveViewModelMetadata(
+    id: _readInt(json, 'id'),
+    name: _readNullableString(json, 'name'),
+    typeKey: _readInt(json, 'typeKey'),
+    defaultInstanceId: _readNullableInt(json, 'defaultInstanceId'),
+    properties: _readList(json, 'properties')
+        .map((item) => RiveViewModelPropertyMetadata.fromJson(_castMap(item)))
+        .toList(),
+    instances: _readList(json, 'instances')
+        .map((item) => RiveViewModelInstanceMetadata.fromJson(_castMap(item)))
+        .toList(),
+  );
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'typeKey': typeKey,
+    'defaultInstanceId': defaultInstanceId,
+    'properties': properties.map((property) => property.toJson()).toList(),
+    'instances': instances.map((instance) => instance.toJson()).toList(),
+  };
+}
+
+class RiveViewModelPropertyMetadata {
+  const RiveViewModelPropertyMetadata({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.typeKey,
+    this.enumId,
+    this.viewModelReferenceId,
+  });
+
+  final int id;
+  final String? name;
+  final RiveViewModelPropertyType type;
+  final int typeKey;
+  final int? enumId;
+  final int? viewModelReferenceId;
+
+  factory RiveViewModelPropertyMetadata.fromJson(Map<String, Object?> json) {
+    final typeName = _readString(json, 'type');
+    return RiveViewModelPropertyMetadata(
+      id: _readInt(json, 'id'),
+      name: _readNullableString(json, 'name'),
+      type: RiveViewModelPropertyType.values.firstWhere(
+        (type) => type.name == typeName,
+        orElse: () => throw FormatException('Unknown ViewModel type $typeName'),
+      ),
+      typeKey: _readInt(json, 'typeKey'),
+      enumId: _readNullableInt(json, 'enumId'),
+      viewModelReferenceId: _readNullableInt(json, 'viewModelReferenceId'),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'type': type.name,
+    'typeKey': typeKey,
+    if (enumId != null) 'enumId': enumId,
+    if (viewModelReferenceId != null)
+      'viewModelReferenceId': viewModelReferenceId,
+  };
+}
+
+enum RiveViewModelPropertyType {
+  boolean,
+  number,
+  string,
+  color,
+  enumType,
+  list,
+  viewModel,
+  unknown,
+}
+
+class RiveViewModelInstanceMetadata {
+  const RiveViewModelInstanceMetadata({
+    required this.id,
+    required this.name,
+    required this.viewModelId,
+    required this.values,
+  });
+
+  final int id;
+  final String? name;
+  final int? viewModelId;
+  final List<RiveViewModelInstanceValueMetadata> values;
+
+  factory RiveViewModelInstanceMetadata.fromJson(Map<String, Object?> json) =>
+      RiveViewModelInstanceMetadata(
+        id: _readInt(json, 'id'),
         name: _readNullableString(json, 'name'),
-        typeKey: _readInt(json, 'typeKey'),
+        viewModelId: _readNullableInt(json, 'viewModelId'),
+        values: _readList(json, 'values')
+            .map(
+              (item) =>
+                  RiveViewModelInstanceValueMetadata.fromJson(_castMap(item)),
+            )
+            .toList(),
       );
 
-  Map<String, Object?> toJson() => {'name': name, 'typeKey': typeKey};
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'viewModelId': viewModelId,
+    'values': values.map((value) => value.toJson()).toList(),
+  };
+}
+
+class RiveViewModelInstanceValueMetadata {
+  const RiveViewModelInstanceValueMetadata({
+    required this.id,
+    required this.propertyId,
+    required this.propertyName,
+    required this.type,
+    required this.value,
+  });
+
+  final int id;
+  final int? propertyId;
+  final String? propertyName;
+  final RiveViewModelPropertyType type;
+  final Object? value;
+
+  factory RiveViewModelInstanceValueMetadata.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final typeName = _readString(json, 'type');
+    return RiveViewModelInstanceValueMetadata(
+      id: _readInt(json, 'id'),
+      propertyId: _readNullableInt(json, 'propertyId'),
+      propertyName: _readNullableString(json, 'propertyName'),
+      type: RiveViewModelPropertyType.values.firstWhere(
+        (type) => type.name == typeName,
+        orElse: () => throw FormatException('Unknown ViewModel type $typeName'),
+      ),
+      value: json['value'],
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'propertyId': propertyId,
+    'propertyName': propertyName,
+    'type': type.name,
+    'value': value,
+  };
 }
 
 Map<String, Object?> _readMap(Map<String, Object?> json, String key) =>
