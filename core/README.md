@@ -14,6 +14,7 @@ Current capabilities:
 - Preserve structured warnings for unsupported records.
 - Export deterministic metadata JSON with `schemaVersion: 1`.
 - Decode metadata JSON back into typed Dart models.
+- Build language-neutral codegen plans with safe identifiers and diagnostics.
 
 This is a metadata-focused inspector, not a complete Rive runtime parser.
 Unknown or unsupported records are ignored safely when possible and reported as
@@ -78,4 +79,27 @@ Parser diagnostics:
 
 ```bash
 dart run bin/rive_telemetry.dart debug path/to/file.riv
+```
+
+## Codegen foundation
+
+Generators should start from `RiveCodegenPlanner`, not raw names. The planner
+creates deterministic symbols for artboards, animations, state machines, inputs,
+ViewModels, ViewModel properties, and ViewModel instances.
+
+It handles:
+
+- identifier sanitization
+- reserved word avoidance
+- duplicate names within a scope
+- fallback names for unnamed metadata
+- diagnostics that generators can surface before writing files
+
+```dart
+final metadata = await inspectRivFile('animation.riv');
+final plan = const RiveCodegenPlanner().build(metadata);
+
+for (final symbol in plan.symbolsFor(RiveCodegenSymbolKind.viewModelProperty)) {
+  print('${symbol.sourceName} -> ${symbol.identifier}');
+}
 ```
