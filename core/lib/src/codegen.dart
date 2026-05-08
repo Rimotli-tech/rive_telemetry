@@ -52,6 +52,18 @@ class RiveCodegenPlan {
 
   Iterable<RiveCodegenSymbol> symbolsFor(RiveCodegenSymbolKind kind) =>
       symbols.where((symbol) => symbol.kind == kind);
+
+  RiveCodegenSymbol? symbolFor({
+    required RiveCodegenSymbolKind kind,
+    required String path,
+  }) {
+    for (final symbol in symbols) {
+      if (symbol.kind == kind && symbol.path == path) {
+        return symbol;
+      }
+    }
+    return null;
+  }
 }
 
 class RiveCodegenPlanner {
