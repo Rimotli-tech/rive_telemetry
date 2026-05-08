@@ -3,6 +3,9 @@ description: Pure-Dart Rive schema inspection, metadata JSON, and integration to
 version: 0.1.0
 repository: https://github.com/Rimotli-tech/rive_telemetry
 
+executables:
+  rive-telemetry: rive_telemetry
+
 environment:
   sdk: ^3.10.0
 

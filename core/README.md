@@ -61,14 +61,21 @@ final json = metadataToJson(metadata);
 final decoded = metadataFromJson(json);
 ```
 
-Compact CLI JSON:
+Command-line inspection:
 
 ```bash
-dart run bin/rive_metadata_inspect.dart path/to/file.riv
+dart run bin/rive_telemetry.dart inspect path/to/file.riv
 ```
 
-Pretty JSON or file output:
+Stable JSON output:
 
 ```bash
-dart run bin/rive_metadata_inspect.dart --pretty --out metadata.json path/to/file.riv
+dart run bin/rive_telemetry.dart inspect --json path/to/file.riv
+dart run bin/rive_telemetry.dart export --out metadata.json path/to/file.riv
+```
+
+Parser diagnostics:
+
+```bash
+dart run bin/rive_telemetry.dart debug path/to/file.riv
 ```
