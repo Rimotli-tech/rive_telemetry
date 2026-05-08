@@ -82,6 +82,11 @@ class _RiveMetadataParser {
   RiveMetadata parse() {
     _header = _readHeader();
 
+    final records = _parseRecords();
+    return _buildMetadata(records);
+  }
+
+  List<_RiveRecord> _parseRecords() {
     final records = <_RiveRecord>[];
     while (!_reader.isEOF) {
       try {
@@ -135,8 +140,7 @@ class _RiveMetadataParser {
         _reader.seek(recoveryOffset);
       }
     }
-
-    return _buildMetadata(records);
+    return records;
   }
 
   String debugSchema() {
@@ -144,9 +148,7 @@ class _RiveMetadataParser {
 
     final records = <_RiveRecord>[];
     try {
-      while (!_reader.isEOF) {
-        records.add(_readRecord(records.length));
-      }
+      records.addAll(_parseRecords());
     } on _UnsupportedProperty catch (error) {
       return _formatSchemaDebugReport(error, records);
     } on _PropertyReadFailure catch (error) {
@@ -165,7 +167,9 @@ class _RiveMetadataParser {
       ..writeln('result: parsed without unsupported properties')
       ..writeln('records: ${metadata.recordCount}')
       ..writeln('artboards: ${metadata.artboards.length}')
-      ..writeln('viewModels: ${metadata.viewModels.length}');
+      ..writeln('viewModels: ${metadata.viewModels.length}')
+      ..writeln()
+      ..writeln(_formatViewModelDiagnostics(records, metadata));
     return buffer.toString();
   }
 
@@ -392,6 +396,7 @@ class _RiveMetadataParser {
         case RiveSchema.viewModelPropertyStringTypeKey:
         case RiveSchema.viewModelPropertyBooleanTypeKey:
         case RiveSchema.viewModelPropertyColorTypeKey:
+        case RiveSchema.viewModelPropertyTriggerTypeKey:
         case RiveSchema.viewModelPropertyEnumTypeKey:
         case RiveSchema.viewModelPropertyListTypeKey:
         case RiveSchema.viewModelPropertyViewModelTypeKey:
@@ -420,6 +425,7 @@ class _RiveMetadataParser {
         case RiveSchema.viewModelInstanceStringTypeKey:
         case RiveSchema.viewModelInstanceBooleanTypeKey:
         case RiveSchema.viewModelInstanceColorTypeKey:
+        case RiveSchema.viewModelInstanceTriggerTypeKey:
         case RiveSchema.viewModelInstanceEnumTypeKey:
         case RiveSchema.viewModelInstanceListTypeKey:
         case RiveSchema.viewModelInstanceViewModelTypeKey:
@@ -791,6 +797,127 @@ class _RiveMetadataParser {
     return buffer.toString();
   }
 
+  String _formatViewModelDiagnostics(
+    List<_RiveRecord> records,
+    RiveMetadata metadata,
+  ) {
+    final buffer = StringBuffer()..writeln('ViewModel diagnostics');
+    if (metadata.viewModels.isEmpty) {
+      return (buffer..writeln('- none extracted')).toString().trimRight();
+    }
+
+    for (final viewModel in metadata.viewModels) {
+      buffer.writeln(
+        '- ViewModel id=${viewModel.id} name=${viewModel.name ?? 'unknown'} '
+        'properties=${viewModel.properties.length} '
+        'instances=${viewModel.instances.length}',
+      );
+      for (final property in viewModel.properties) {
+        buffer.writeln(
+          '  property id=${property.id} name=${property.name ?? 'unknown'} '
+          'type=${property.type.name} typeKey=${property.typeKey}',
+        );
+      }
+      for (final instance in viewModel.instances) {
+        buffer.writeln(
+          '  instance id=${instance.id} name=${instance.name ?? 'unknown'} '
+          'viewModelId=${instance.viewModelId}',
+        );
+        for (final value in instance.values) {
+          buffer.writeln(
+            '    value id=${value.id} propertyId=${value.propertyId} '
+            'propertyName=${value.propertyName ?? 'unresolved'} '
+            'type=${value.type.name} value=${value.value ?? 'null'}',
+          );
+        }
+      }
+    }
+
+    buffer.writeln();
+    buffer.writeln('Raw ViewModel records');
+    final viewModelRecords = records.where(_isViewModelRecord).toList();
+    if (viewModelRecords.isEmpty) {
+      buffer.writeln('- none');
+    } else {
+      for (final record in viewModelRecords) {
+        buffer.writeln(
+          '- record=${record.index} offset=${_formatOffset(record.offset)} '
+          'type=${record.typeKey} '
+          'typeName=${record.typeName ?? 'unknown'} '
+          'properties=${_formatRecordProperties(record)}',
+        );
+      }
+    }
+
+    if (viewModelRecords.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Raw records in ViewModel span');
+      final firstIndex = viewModelRecords.first.index;
+      final lastIndex = viewModelRecords.last.index;
+      for (final record in records.where(
+        (record) => record.index >= firstIndex && record.index <= lastIndex,
+      )) {
+        buffer.writeln(
+          '- record=${record.index} offset=${_formatOffset(record.offset)} '
+          'type=${record.typeKey} '
+          'typeName=${record.typeName ?? 'unknown'} '
+          'name=${_recordName(record) ?? 'unknown'} '
+          'properties=${_formatRecordProperties(record)}',
+        );
+      }
+    }
+    return buffer.toString().trimRight();
+  }
+
+  bool _isViewModelRecord(_RiveRecord record) {
+    switch (record.typeKey) {
+      case RiveSchema.viewModelTypeKey:
+      case RiveSchema.viewModelPropertyNumberTypeKey:
+      case RiveSchema.viewModelPropertyStringTypeKey:
+      case RiveSchema.viewModelPropertyBooleanTypeKey:
+      case RiveSchema.viewModelPropertyColorTypeKey:
+      case RiveSchema.viewModelPropertyTriggerTypeKey:
+      case RiveSchema.viewModelPropertyEnumTypeKey:
+      case RiveSchema.viewModelPropertyListTypeKey:
+      case RiveSchema.viewModelPropertyViewModelTypeKey:
+      case RiveSchema.viewModelInstanceTypeKey:
+      case RiveSchema.viewModelInstanceNumberTypeKey:
+      case RiveSchema.viewModelInstanceStringTypeKey:
+      case RiveSchema.viewModelInstanceBooleanTypeKey:
+      case RiveSchema.viewModelInstanceColorTypeKey:
+      case RiveSchema.viewModelInstanceTriggerTypeKey:
+      case RiveSchema.viewModelInstanceEnumTypeKey:
+      case RiveSchema.viewModelInstanceListTypeKey:
+      case RiveSchema.viewModelInstanceViewModelTypeKey:
+        return true;
+    }
+    return false;
+  }
+
+  String _formatRecordProperties(_RiveRecord record) {
+    if (record.properties.isEmpty) {
+      return '{}';
+    }
+    final entries = record.properties.entries.map((entry) {
+      final definition = RiveSchema.properties[entry.key]?.name;
+      final label = definition == null
+          ? '${entry.key}'
+          : '${entry.key}($definition)';
+      return '$label=${_formatDiagnosticValue(entry.value)}';
+    });
+    return '{${entries.join(', ')}}';
+  }
+
+  String _formatDiagnosticValue(Object? value) {
+    if (value == null) {
+      return 'null';
+    }
+    if (value is Uint8List) {
+      return '<${value.length} bytes>';
+    }
+    return value.toString();
+  }
+
   RiveViewModelPropertyMetadata _viewModelPropertyFromRecord(
     _RiveRecord record, {
     required int id,
@@ -839,6 +966,8 @@ class _RiveMetadataParser {
         return record.boolProperty(
           RiveSchema.viewModelInstanceBooleanValuePropertyKey,
         );
+      case RiveSchema.viewModelInstanceTriggerTypeKey:
+        return null;
       case RiveSchema.viewModelInstanceColorTypeKey:
         return record.intProperty(
           RiveSchema.viewModelInstanceColorValuePropertyKey,
@@ -869,6 +998,9 @@ class _RiveMetadataParser {
       case RiveSchema.viewModelPropertyColorTypeKey:
       case RiveSchema.viewModelInstanceColorTypeKey:
         return RiveViewModelPropertyType.color;
+      case RiveSchema.viewModelPropertyTriggerTypeKey:
+      case RiveSchema.viewModelInstanceTriggerTypeKey:
+        return RiveViewModelPropertyType.trigger;
       case RiveSchema.viewModelPropertyEnumTypeKey:
       case RiveSchema.viewModelInstanceEnumTypeKey:
         return RiveViewModelPropertyType.enumType;
@@ -997,6 +1129,7 @@ const _metadataRecoveryTypeKeys = <int>{
   RiveSchema.viewModelPropertyStringTypeKey,
   RiveSchema.viewModelPropertyBooleanTypeKey,
   RiveSchema.viewModelPropertyColorTypeKey,
+  RiveSchema.viewModelPropertyTriggerTypeKey,
   RiveSchema.viewModelPropertyEnumTypeKey,
   RiveSchema.viewModelPropertyListTypeKey,
   RiveSchema.viewModelPropertyViewModelTypeKey,
@@ -1005,6 +1138,7 @@ const _metadataRecoveryTypeKeys = <int>{
   RiveSchema.viewModelInstanceStringTypeKey,
   RiveSchema.viewModelInstanceBooleanTypeKey,
   RiveSchema.viewModelInstanceColorTypeKey,
+  RiveSchema.viewModelInstanceTriggerTypeKey,
   RiveSchema.viewModelInstanceEnumTypeKey,
   RiveSchema.viewModelInstanceListTypeKey,
   RiveSchema.viewModelInstanceViewModelTypeKey,

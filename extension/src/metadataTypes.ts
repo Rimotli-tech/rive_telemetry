@@ -102,6 +102,7 @@ export type RiveViewModelPropertyType =
   | 'number'
   | 'string'
   | 'color'
+  | 'trigger'
   | 'enumType'
   | 'list'
   | 'viewModel'

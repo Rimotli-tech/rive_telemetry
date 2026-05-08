@@ -448,6 +448,7 @@
         "number",
         "string",
         "color",
+        "trigger",
         "enumType",
         "list",
         "viewModel",

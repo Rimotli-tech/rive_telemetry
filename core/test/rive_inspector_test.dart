@@ -120,16 +120,14 @@ void main() {
     },
   );
 
-  test('schema debug reports property read failure context', () async {
+  test('schema debug reports ViewModel diagnostics', () async {
     final report = await debugRivSchemaFile('../demo/assets/demo_2.riv');
 
-    expect(report, contains('Property read failure'));
-    expect(report, contains('object/core type id:'));
-    expect(report, contains('property key: 681'));
-    expect(report, contains('encoded field type:'));
-    expect(report, contains('surrounding property keys:'));
-    expect(report, contains('raw bytes span:'));
-    expect(report, contains('Parent relationship'));
+    expect(report, contains('ViewModel diagnostics'));
+    expect(report, contains('CatViewModel'));
+    expect(report, contains('ViewModelPropertyTrigger'));
+    expect(report, contains('ViewModelInstanceTrigger'));
+    expect(report, contains('Raw records in ViewModel span'));
   });
 
   test('missing files throw RiveInspectionException', () async {
@@ -231,18 +229,18 @@ void main() {
   });
 
   test(
-    'classifies demo_3 partial ViewModel instance data as codegen-safe risk',
+    'extracts complete demo_3 ViewModel properties and instance values',
     () async {
       final metadata = await inspectRivFile('../demo/assets/demo_3.riv');
 
-      expect(metadata.status, RiveInspectionStatus.partialWithIntegrationRisk);
+      expect(metadata.status, RiveInspectionStatus.partialUsable);
       expect(metadata.completeness.artboardsComplete, isTrue);
       expect(metadata.completeness.viewModelsComplete, isTrue);
-      expect(metadata.completeness.viewModelInstancesComplete, isFalse);
+      expect(metadata.completeness.viewModelInstancesComplete, isTrue);
       expect(metadata.codegen.canGenerateFlutter, isTrue);
       expect(metadata.codegen.canGenerateTypeScript, isTrue);
       expect(metadata.codegen.blockedReasons, isEmpty);
-      expect(metadata.codegen.warnings, isNotEmpty);
+      expect(metadata.codegen.warnings, isEmpty);
       expect(
         metadata.artboards.map((artboard) => artboard.name),
         contains('MainArtboard'),
@@ -265,7 +263,39 @@ void main() {
       final viewModel = metadata.viewModels.singleWhere(
         (viewModel) => viewModel.name == 'ViewModel1',
       );
-      expect(viewModel.properties.length, greaterThanOrEqualTo(11));
+      expect(viewModel.properties.length, 20);
+      expect(
+        viewModel.properties
+            .where(
+              (property) => property.type == RiveViewModelPropertyType.trigger,
+            )
+            .map((property) => property.name),
+        containsAll([
+          'confetti',
+          'spin',
+          'pointAtUser',
+          'puffCheeks',
+          'mock',
+          'eyeRoll',
+          'nod',
+          'headShake',
+          'waveHand',
+        ]),
+      );
+      final instance = viewModel.instances.single;
+      expect(instance.values, hasLength(20));
+      expect(
+        instance.values
+            .where((value) => value.propertyName == null)
+            .map((value) => value.propertyId),
+        isEmpty,
+      );
+      expect(
+        instance.values
+            .singleWhere((value) => value.propertyName == 'mood')
+            .type,
+        RiveViewModelPropertyType.number,
+      );
 
       final unsupportedThemeWarning = metadata.warnings.singleWhere(
         (warning) =>
@@ -274,21 +304,13 @@ void main() {
             warning.objectName == 'themeColor',
       );
       expect(unsupportedThemeWarning.severity, RiveWarningSeverity.warning);
-
       expect(
         metadata.warnings.map((warning) => warning.code),
-        contains('unresolvedViewModelInstanceValue'),
+        isNot(contains('unresolvedViewModelInstanceValue')),
       );
       expect(
-        metadata.warnings
-            .where(
-              (warning) => warning.code == 'unresolvedViewModelInstanceValue',
-            )
-            .every(
-              (warning) =>
-                  warning.severity == RiveWarningSeverity.integrationRisk,
-            ),
-        isTrue,
+        metadata.warnings.map((warning) => warning.code),
+        isNot(contains('viewModelInstanceTypeMismatch')),
       );
     },
   );

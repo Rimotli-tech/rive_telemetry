@@ -498,6 +498,7 @@ enum RiveViewModelPropertyType {
   number,
   string,
   color,
+  trigger,
   enumType,
   list,
   viewModel,

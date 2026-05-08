@@ -46,6 +46,8 @@ abstract final class RiveSchema {
   static const int dataEnumValueTypeKey = 445;
   static const int viewModelPropertyBooleanTypeKey = 448;
   static const int viewModelInstanceBooleanTypeKey = 449;
+  static const int viewModelInstanceTriggerTypeKey = 501;
+  static const int viewModelPropertyTriggerTypeKey = 502;
 
   static const int componentNamePropertyKey = 4;
   static const int componentParentIdPropertyKey = 5;
@@ -151,6 +153,14 @@ abstract final class RiveSchema {
     viewModelInstanceBooleanTypeKey: RiveCoreType(
       viewModelInstanceBooleanTypeKey,
       'ViewModelInstanceBoolean',
+    ),
+    viewModelInstanceTriggerTypeKey: RiveCoreType(
+      viewModelInstanceTriggerTypeKey,
+      'ViewModelInstanceTrigger',
+    ),
+    viewModelPropertyTriggerTypeKey: RiveCoreType(
+      viewModelPropertyTriggerTypeKey,
+      'ViewModelPropertyTrigger',
     ),
     viewModelInstanceColorTypeKey: RiveCoreType(
       viewModelInstanceColorTypeKey,
