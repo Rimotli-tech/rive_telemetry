@@ -67,6 +67,10 @@ class RiveTelemetryPanel {
                 vscode.commands.executeCommand('riveTelemetry.generateFlutterIntegration');
                 return;
             }
+            if (isWebviewCreateMetadataDeliverableMessage(message)) {
+                vscode.commands.executeCommand('riveTelemetry.createMetadataDeliverable');
+                return;
+            }
             if (isWebviewCopyTextMessage(message)) {
                 vscode.env.clipboard.writeText(message.text);
                 return;
@@ -153,6 +157,9 @@ function isWebviewExportMetadataMessage(value) {
 }
 function isWebviewGenerateFlutterMessage(value) {
     return isRecord(value) && value.command === 'generateFlutterIntegration';
+}
+function isWebviewCreateMetadataDeliverableMessage(value) {
+    return isRecord(value) && value.command === 'createMetadataDeliverable';
 }
 function isWebviewCopyTextMessage(value) {
     return (isRecord(value) &&

@@ -158,12 +158,90 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   );
 
+  const createMetadataDeliverableCommand = vscode.commands.registerCommand(
+    'riveTelemetry.createMetadataDeliverable',
+    async () => {
+      if (!lastInspectedPath) {
+        vscode.window.showInformationMessage(
+          'Load a .riv file before creating a metadata document.',
+        );
+        return;
+      }
+
+      const includeRev = await vscode.window.showInformationMessage(
+        'Include the .rev project file in this deliverable?',
+        { modal: true },
+        'Include .rev',
+        'Skip .rev',
+      );
+      if (!includeRev) {
+        return;
+      }
+
+      let revPath: string | undefined;
+      if (includeRev === 'Include .rev') {
+        const revSelection = await vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          canSelectFolders: false,
+          canSelectMany: false,
+          filters: {
+            'Rive project files': ['rev'],
+          },
+          openLabel: 'Include .rev',
+          title: 'Select Rive Project File',
+        });
+        if (!revSelection?.[0]) {
+          return;
+        }
+        revPath = revSelection[0].fsPath;
+      }
+
+      const source = path.parse(lastInspectedPath);
+      const defaultFolder = vscode.Uri.file(
+        path.join(source.dir || process.cwd(), `${source.name}-metadata-deliverable`),
+      );
+      const deliverableFolder = await vscode.window.showSaveDialog({
+        defaultUri: defaultFolder,
+        saveLabel: 'Create Metadata Deliverable',
+        title: 'Create Metadata Deliverable Folder',
+      });
+      if (!deliverableFolder) {
+        return;
+      }
+
+      try {
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Creating Rive metadata deliverable',
+          },
+          () =>
+            rivLoader.createMetadataDeliverable(
+              lastInspectedPath!,
+              deliverableFolder.fsPath,
+              revPath,
+            ),
+        );
+        vscode.window.showInformationMessage(
+          `Created metadata deliverable: ${vscode.workspace.asRelativePath(deliverableFolder)}`,
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        outputChannel?.appendLine(`Metadata deliverable creation failed: ${message}`);
+        vscode.window.showErrorMessage(
+          `Metadata deliverable creation failed: ${message}`,
+        );
+      }
+    },
+  );
+
   context.subscriptions.push(
     openPanelCommand,
     inspectFileCommand,
     reloadFileCommand,
     exportMetadataCommand,
     generateFlutterCommand,
+    createMetadataDeliverableCommand,
     telemetryServer,
     outputChannel,
   );

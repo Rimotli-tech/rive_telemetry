@@ -1,0 +1,2571 @@
+{
+  "schemaVersion": 1,
+  "source": "c:\\dev\\rive_telemetry\\demo\\assets\\demo_3.riv",
+  "status": "partialUsable",
+  "completeness": {
+    "artboardsComplete": true,
+    "stateMachinesComplete": true,
+    "inputsComplete": true,
+    "viewModelsComplete": true,
+    "viewModelInstancesComplete": true,
+    "animationsComplete": true
+  },
+  "codegen": {
+    "canGenerateFlutter": true,
+    "canGenerateTypeScript": true,
+    "blockedReasons": [],
+    "warnings": []
+  },
+  "header": {
+    "majorVersion": 7,
+    "minorVersion": 0,
+    "fileId": 2220999,
+    "propertyKeyCount": 41
+  },
+  "artboards": [
+    {
+      "name": "MainArtboard",
+      "defaultStateMachineId": 0,
+      "viewModelId": 0,
+      "animations": [
+        {
+          "name": "confetti",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "spin",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "pointAtUser",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "puffCheeks",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "eyeRoll",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "mock",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "celebrate",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "headShake",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "nod",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "neutral",
+          "fps": null,
+          "durationFrames": 180,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": 1
+        },
+        {
+          "name": "listening",
+          "fps": null,
+          "durationFrames": 180,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": 1
+        },
+        {
+          "name": "waveHand",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "thinking",
+          "fps": null,
+          "durationFrames": 180,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": 1
+        },
+        {
+          "name": "defaultPose",
+          "fps": null,
+          "durationFrames": 240,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        }
+      ],
+      "stateMachines": [
+        {
+          "name": "MainStateMachine",
+          "inputs": []
+        }
+      ],
+      "hierarchy": [
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 420,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 2,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 2,
+          "typeKey": 603,
+          "typeName": null
+        },
+        {
+          "name": "particleCount",
+          "parentId": 3,
+          "typeKey": 611,
+          "typeName": null
+        },
+        {
+          "name": "sizeRandomness",
+          "parentId": 3,
+          "typeKey": 611,
+          "typeName": null
+        }
+      ]
+    },
+    {
+      "name": "Face-transitions",
+      "defaultStateMachineId": 0,
+      "viewModelId": 0,
+      "animations": [
+        {
+          "name": "flicker",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": 1
+        }
+      ],
+      "stateMachines": [
+        {
+          "name": "Face transition SM",
+          "inputs": []
+        }
+      ],
+      "hierarchy": [
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 2,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 2,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 140,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 141,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 8,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 142,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 11,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 143,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 14,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 144,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 145,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 20,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 146,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 23,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 147,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 26,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 148,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 29,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 149,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 32,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 150,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 35,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 151,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 38,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 152,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 41,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 153,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 44,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 154,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 47,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 155,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 50,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 156,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 53,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 157,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 56,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 158,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 1,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 59,
+          "typeKey": 7,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 159,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 41,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 41,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 2,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 64,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 65,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 66,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 66,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 66,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 66,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 66,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 66,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 66,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 66,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 160,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 65,
+          "typeKey": 42,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 64,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 77,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 78,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 79,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 78,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 81,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 78,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 83,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 78,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 85,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 78,
+          "typeKey": 43,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 87,
+          "typeKey": 44,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 420,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 2,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 90,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 91,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 92,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 92,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 92,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 92,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 92,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 92,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 92,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 92,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 161,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 91,
+          "typeKey": 42,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 90,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 103,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 104,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 105,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 104,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 107,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 104,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 109,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 104,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 111,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 104,
+          "typeKey": 43,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 113,
+          "typeKey": 44,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 115,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 116,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 116,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 116,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 116,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 162,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 122,
+          "typeKey": 4,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 163,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 163,
+          "typeKey": 533,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 126,
+          "typeKey": 4,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 164,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 164,
+          "typeKey": 533,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 130,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 131,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 131,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 131,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 131,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 165,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 165,
+          "typeKey": 533,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 139,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 2,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 8,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 11,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 14,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 20,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 23,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 26,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 29,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 32,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 35,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 38,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 41,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 44,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 47,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 50,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 53,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 56,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 59,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 65,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 91,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 115,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 122,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 126,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 130,
+          "typeKey": 20,
+          "typeName": null
+        }
+      ]
+    },
+    {
+      "name": "Face-mood",
+      "defaultStateMachineId": 0,
+      "viewModelId": 0,
+      "animations": [
+        {
+          "name": "encouraging",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "playful",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": 1
+        },
+        {
+          "name": "surprise",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "eyeRoll",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "thinking",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "happy",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": 1
+        },
+        {
+          "name": "talkLow",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "neutral",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "talkActive",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "talkNeutral",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        }
+      ],
+      "stateMachines": [
+        {
+          "name": "Face Mood SM",
+          "inputs": []
+        }
+      ],
+      "hierarchy": [
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 41,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 41,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 2,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 3,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 4,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 67,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 4,
+          "typeKey": 42,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 3,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 16,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 18,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 20,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 22,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 24,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 43,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 26,
+          "typeKey": 44,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 2,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 28,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 29,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 68,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 29,
+          "typeKey": 42,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 28,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 41,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 43,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 45,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 47,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 49,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 43,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 51,
+          "typeKey": 44,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 53,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 54,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 54,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 54,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 54,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 69,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 420,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 61,
+          "typeKey": 4,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 70,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 70,
+          "typeKey": 533,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 66,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 4,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 29,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 53,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 61,
+          "typeKey": 20,
+          "typeName": null
+        }
+      ]
+    },
+    {
+      "name": "Face-reactns",
+      "defaultStateMachineId": 0,
+      "viewModelId": 0,
+      "animations": [
+        {
+          "name": "thinking",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "puffyCheeks",
+          "fps": null,
+          "durationFrames": 120,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "confetti",
+          "fps": null,
+          "durationFrames": 120,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "eyeRoll",
+          "fps": null,
+          "durationFrames": 120,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "listen",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "talkLow",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "neutral",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "talkActive",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        },
+        {
+          "name": "talkNeutral",
+          "fps": null,
+          "durationFrames": null,
+          "durationSeconds": null,
+          "speed": null,
+          "loop": null
+        }
+      ],
+      "stateMachines": [
+        {
+          "name": "Face Reaction SM",
+          "inputs": []
+        }
+      ],
+      "hierarchy": [
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 41,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 41,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 2,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 3,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 4,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 5,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 75,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 4,
+          "typeKey": 42,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 3,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 16,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 18,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 20,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 22,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 24,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 17,
+          "typeKey": 43,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 26,
+          "typeKey": 44,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 2,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 28,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 29,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 30,
+          "typeKey": 6,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 76,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 29,
+          "typeKey": 42,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 28,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 41,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 43,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 45,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 47,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 49,
+          "typeKey": 45,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 42,
+          "typeKey": 43,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 51,
+          "typeKey": 44,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 53,
+          "typeKey": 16,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 54,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 54,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 54,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 54,
+          "typeKey": 5,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 77,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 60,
+          "typeKey": 4,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 78,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 78,
+          "typeKey": 533,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 64,
+          "typeKey": 4,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 79,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 79,
+          "typeKey": 533,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 3,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 68,
+          "typeKey": 4,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 80,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 80,
+          "typeKey": 533,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 74,
+          "typeKey": 18,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 420,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 0,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 4,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 29,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 53,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 60,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 64,
+          "typeKey": 20,
+          "typeName": null
+        },
+        {
+          "name": null,
+          "parentId": 68,
+          "typeKey": 20,
+          "typeName": null
+        }
+      ]
+    }
+  ],
+  "viewModels": [
+    {
+      "id": 0,
+      "name": "ViewModel1",
+      "typeKey": 435,
+      "defaultInstanceId": null,
+      "properties": [
+        {
+          "id": 0,
+          "name": "confettiCount",
+          "type": "number",
+          "typeKey": 431
+        },
+        {
+          "id": 1,
+          "name": "confettiSize",
+          "type": "number",
+          "typeKey": 431
+        },
+        {
+          "id": 2,
+          "name": "confettiColor",
+          "type": "color",
+          "typeKey": 440
+        },
+        {
+          "id": 3,
+          "name": "confetti",
+          "type": "trigger",
+          "typeKey": 502
+        },
+        {
+          "id": 4,
+          "name": "spin",
+          "type": "trigger",
+          "typeKey": 502
+        },
+        {
+          "id": 5,
+          "name": "pointAtUser",
+          "type": "trigger",
+          "typeKey": 502
+        },
+        {
+          "id": 6,
+          "name": "puffCheeks",
+          "type": "trigger",
+          "typeKey": 502
+        },
+        {
+          "id": 7,
+          "name": "mock",
+          "type": "trigger",
+          "typeKey": 502
+        },
+        {
+          "id": 8,
+          "name": "stance",
+          "type": "number",
+          "typeKey": 431
+        },
+        {
+          "id": 9,
+          "name": "colorGradientDark",
+          "type": "color",
+          "typeKey": 440
+        },
+        {
+          "id": 10,
+          "name": "colorPrimary",
+          "type": "color",
+          "typeKey": 440
+        },
+        {
+          "id": 11,
+          "name": "colorShadowDark",
+          "type": "color",
+          "typeKey": 440
+        },
+        {
+          "id": 12,
+          "name": "colorShadowLight",
+          "type": "color",
+          "typeKey": 440
+        },
+        {
+          "id": 13,
+          "name": "eyeRoll",
+          "type": "trigger",
+          "typeKey": 502
+        },
+        {
+          "id": 14,
+          "name": "nod",
+          "type": "trigger",
+          "typeKey": 502
+        },
+        {
+          "id": 15,
+          "name": "headShake",
+          "type": "trigger",
+          "typeKey": 502
+        },
+        {
+          "id": 16,
+          "name": "waveHand",
+          "type": "trigger",
+          "typeKey": 502
+        },
+        {
+          "id": 17,
+          "name": "talkLevel",
+          "type": "number",
+          "typeKey": 431
+        },
+        {
+          "id": 18,
+          "name": "mood",
+          "type": "number",
+          "typeKey": 431
+        },
+        {
+          "id": 19,
+          "name": "faceColor",
+          "type": "color",
+          "typeKey": 440
+        }
+      ],
+      "instances": [
+        {
+          "id": 0,
+          "name": "Instance",
+          "viewModelId": 0,
+          "values": [
+            {
+              "id": 0,
+              "propertyId": 13,
+              "propertyName": "eyeRoll",
+              "type": "trigger",
+              "value": null
+            },
+            {
+              "id": 1,
+              "propertyId": 14,
+              "propertyName": "nod",
+              "type": "trigger",
+              "value": null
+            },
+            {
+              "id": 2,
+              "propertyId": 11,
+              "propertyName": "colorShadowDark",
+              "type": "color",
+              "value": 4283005002
+            },
+            {
+              "id": 3,
+              "propertyId": 10,
+              "propertyName": "colorPrimary",
+              "type": "color",
+              "value": 4283931224
+            },
+            {
+              "id": 4,
+              "propertyId": 12,
+              "propertyName": "colorShadowLight",
+              "type": "color",
+              "value": 4283994457
+            },
+            {
+              "id": 5,
+              "propertyId": 9,
+              "propertyName": "colorGradientDark",
+              "type": "color",
+              "value": 4282809158
+            },
+            {
+              "id": 6,
+              "propertyId": 8,
+              "propertyName": "stance",
+              "type": "number",
+              "value": null
+            },
+            {
+              "id": 7,
+              "propertyId": 5,
+              "propertyName": "pointAtUser",
+              "type": "trigger",
+              "value": null
+            },
+            {
+              "id": 8,
+              "propertyId": 15,
+              "propertyName": "headShake",
+              "type": "trigger",
+              "value": null
+            },
+            {
+              "id": 9,
+              "propertyId": 17,
+              "propertyName": "talkLevel",
+              "type": "number",
+              "value": null
+            },
+            {
+              "id": 10,
+              "propertyId": 7,
+              "propertyName": "mock",
+              "type": "trigger",
+              "value": null
+            },
+            {
+              "id": 11,
+              "propertyId": 16,
+              "propertyName": "waveHand",
+              "type": "trigger",
+              "value": null
+            },
+            {
+              "id": 12,
+              "propertyId": 2,
+              "propertyName": "confettiColor",
+              "type": "color",
+              "value": 4283931224
+            },
+            {
+              "id": 13,
+              "propertyId": 18,
+              "propertyName": "mood",
+              "type": "number",
+              "value": null
+            },
+            {
+              "id": 14,
+              "propertyId": 19,
+              "propertyName": "faceColor",
+              "type": "color",
+              "value": 4286513020
+            },
+            {
+              "id": 15,
+              "propertyId": 3,
+              "propertyName": "confetti",
+              "type": "trigger",
+              "value": null
+            },
+            {
+              "id": 16,
+              "propertyId": 6,
+              "propertyName": "puffCheeks",
+              "type": "trigger",
+              "value": null
+            },
+            {
+              "id": 17,
+              "propertyId": 4,
+              "propertyName": "spin",
+              "type": "trigger",
+              "value": null
+            },
+            {
+              "id": 18,
+              "propertyId": 1,
+              "propertyName": "confettiSize",
+              "type": "number",
+              "value": null
+            },
+            {
+              "id": 19,
+              "propertyId": 0,
+              "propertyName": "confettiCount",
+              "type": "number",
+              "value": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "recordCount": 15456,
+  "unknownRecordCount": 15369,
+  "warnings": [
+    {
+      "code": "unsupportedProperty",
+      "severity": "warning",
+      "message": "Skipped unsupported property key 2085476 on object 626 and resumed at offset 22254.",
+      "offset": 9699,
+      "propertyKey": 2085476,
+      "objectTypeKey": 626,
+      "objectName": "themeColor"
+    }
+  ]
+}

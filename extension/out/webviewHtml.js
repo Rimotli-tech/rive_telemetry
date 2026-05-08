@@ -1092,6 +1092,7 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
                 </div>
               </div>
               <div class="snapshot-actions">
+                <button type="button" class="primary-button" data-create-metadata-deliverable>Create Metadata Doc</button>
                 <button type="button" class="primary-button" data-generate-flutter>Generate Flutter Integration</button>
                 <button type="button" data-export-metadata>Export Metadata JSON</button>
                 <button type="button" data-reload-riv>Reload</button>
@@ -1889,6 +1890,14 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
         control.addEventListener('click', () => {
           vscode.postMessage({
             command: 'generateFlutterIntegration',
+          });
+        });
+      });
+
+      app.querySelectorAll('[data-create-metadata-deliverable]').forEach((control) => {
+        control.addEventListener('click', () => {
+          vscode.postMessage({
+            command: 'createMetadataDeliverable',
           });
         });
       });

@@ -25,7 +25,8 @@
     "onCommand:riveTelemetry.inspectFile",
     "onCommand:riveTelemetry.reloadFile",
     "onCommand:riveTelemetry.exportMetadata",
-    "onCommand:riveTelemetry.generateFlutterIntegration"
+    "onCommand:riveTelemetry.generateFlutterIntegration",
+    "onCommand:riveTelemetry.createMetadataDeliverable"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -49,6 +50,10 @@
       {
         "command": "riveTelemetry.generateFlutterIntegration",
         "title": "RiveTelemetry: Generate Flutter Integration"
+      },
+      {
+        "command": "riveTelemetry.createMetadataDeliverable",
+        "title": "RiveTelemetry: Create Metadata Deliverable"
       }
     ],
     "configuration": {

@@ -95,6 +95,28 @@ export class RivLoader {
     );
     this.output.appendLine(`Generated Flutter integration: ${outputPath}`);
   }
+
+  async createMetadataDeliverable(
+    filePath: string,
+    outputDirectory: string,
+    revPath?: string,
+  ): Promise<void> {
+    const entrypoint = findCoreCliEntrypoint(this.context.extensionPath);
+    const dartExecutable = findDartExecutable(this.context.extensionPath);
+    const args = ['run', entrypoint, 'deliverable', '--out', outputDirectory];
+    if (revPath) {
+      args.push('--rev', revPath);
+    }
+    args.push(filePath);
+    await runCoreCommand(
+      args,
+      entrypoint,
+      dartExecutable,
+      this.output,
+      this.execFile,
+    );
+    this.output.appendLine(`Created metadata deliverable: ${outputDirectory}`);
+  }
 }
 
 export function findCoreInspectorEntrypoint(extensionPath: string): string {

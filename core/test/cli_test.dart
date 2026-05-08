@@ -187,6 +187,49 @@ void main() {
     expect(out.toString(), contains('unnamedArtboard'));
   });
 
+  test(
+    'deliverable creates handoff folder with riv pdf json and rev',
+    () async {
+      final temp = await Directory.systemTemp.createTemp('rive_cli_test_');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      final output = '${temp.path}${Platform.pathSeparator}handoff';
+      final rev = File('${temp.path}${Platform.pathSeparator}project.rev');
+      rev.writeAsStringSync('mock rev');
+      final out = StringBuffer();
+      final err = StringBuffer();
+
+      final code = await runRiveTelemetryCli(
+        ['deliverable', '--out', output, '--rev', rev.path, fixture],
+        stdoutSink: out,
+        stderrSink: err,
+      );
+
+      expect(code, 0);
+      expect(err.toString(), isEmpty);
+      expect(
+        File('$output${Platform.pathSeparator}demo-new-1.riv').existsSync(),
+        isTrue,
+      );
+      expect(
+        File('$output${Platform.pathSeparator}project.rev').existsSync(),
+        isTrue,
+      );
+      final pdf = File(
+        '$output${Platform.pathSeparator}demo-new-1.metadata.pdf',
+      );
+      expect(pdf.existsSync(), isTrue);
+      expect(pdf.readAsBytesSync().take(8), '%PDF-1.4'.codeUnits);
+      expect(
+        File(
+          '$output${Platform.pathSeparator}demo-new-1.metadata.json',
+        ).existsSync(),
+        isTrue,
+      );
+      expect(out.toString(), contains('Rive metadata deliverable'));
+      expect(out.toString(), contains('validation: integrationRisk'));
+    },
+  );
+
   test('debug prints parser diagnostics', () async {
     final out = StringBuffer();
     final err = StringBuffer();

@@ -4,6 +4,7 @@ import 'codegen.dart';
 import 'exceptions.dart';
 import 'flutter_generator.dart';
 import 'json_export.dart';
+import 'metadata_document.dart';
 import 'metadata.dart';
 import 'rive_inspector.dart';
 import 'typescript_generator.dart';
@@ -34,6 +35,8 @@ Future<int> runRiveTelemetryCli(
         return await _runGenerate(rest, out, err);
       case 'validate':
         return await _runValidate(rest, out, err);
+      case 'deliverable':
+        return await _runDeliverable(rest, out, err);
       case 'debug':
         return await _runDebug(rest, out, err);
       default:
@@ -48,6 +51,72 @@ Future<int> runRiveTelemetryCli(
     err.writeln(error);
     return 1;
   }
+}
+
+Future<int> _runDeliverable(
+  List<String> args,
+  StringSink out,
+  StringSink err,
+) async {
+  final options = _DeliverableOptions.parse(args);
+  if (options.error != null) {
+    err.writeln(options.error);
+    _writeDeliverableUsage(err);
+    return 64;
+  }
+  if (options.inputPath == null || options.outputDirectory == null) {
+    _writeDeliverableUsage(err);
+    return 64;
+  }
+
+  final metadata = await inspectRivFile(options.inputPath!);
+  final validation = const RiveMetadataValidator().validate(metadata);
+  final outputDirectory = Directory(options.outputDirectory!);
+  outputDirectory.createSync(recursive: true);
+
+  final rivFile = File(options.inputPath!);
+  final rivOutputPath = _joinPath(
+    outputDirectory.path,
+    _basename(rivFile.path),
+  );
+  rivFile.copySync(rivOutputPath);
+
+  String? revOutputPath;
+  if (options.revPath != null) {
+    final revFile = File(options.revPath!);
+    if (!revFile.existsSync()) {
+      throw RiveInspectionException('Missing .rev file: ${options.revPath}');
+    }
+    revOutputPath = _joinPath(outputDirectory.path, _basename(revFile.path));
+    revFile.copySync(revOutputPath);
+  }
+
+  final baseName = _basenameWithoutExtension(rivFile.path);
+  final pdfPath = _joinPath(outputDirectory.path, '$baseName.metadata.pdf');
+  final jsonPath = _joinPath(outputDirectory.path, '$baseName.metadata.json');
+  File(pdfPath).writeAsBytesSync(
+    buildRiveMetadataPdf(
+      metadata,
+      validation: validation,
+      generatedAt: DateTime.now().toUtc(),
+    ),
+  );
+  File(jsonPath).writeAsStringSync(metadataToJson(metadata, pretty: true));
+
+  out
+    ..writeln('Rive metadata deliverable')
+    ..writeln('folder: ${outputDirectory.path}')
+    ..writeln('riv: $rivOutputPath')
+    ..writeln('pdf: $pdfPath')
+    ..writeln('json: $jsonPath');
+  if (revOutputPath != null) {
+    out.writeln('rev: $revOutputPath');
+  }
+  out.writeln(
+    'validation: ${validation.hasIntegrationRisk ? 'integrationRisk' : 'ok'}',
+  );
+
+  return 0;
 }
 
 Future<int> _runValidate(
@@ -313,6 +382,7 @@ void _writeUsage(StringSink sink) {
   sink.writeln('  export    Export stable metadata JSON');
   sink.writeln('  generate  Generate integration helpers');
   sink.writeln('  validate  Detect integration-risk metadata issues');
+  sink.writeln('  deliverable Create a metadata document handoff folder');
   sink.writeln('  debug     Print parser diagnostics');
 }
 
@@ -336,6 +406,12 @@ void _writeDebugUsage(StringSink sink) {
 
 void _writeValidateUsage(StringSink sink) {
   sink.writeln('Usage: rive-telemetry validate <file.riv>');
+}
+
+void _writeDeliverableUsage(StringSink sink) {
+  sink.writeln(
+    'Usage: rive-telemetry deliverable --out folder [--rev project.rev] <file.riv>',
+  );
 }
 
 void _writeGenerateUsage(StringSink sink) {
@@ -436,3 +512,72 @@ class _CliOptions {
     );
   }
 }
+
+class _DeliverableOptions {
+  const _DeliverableOptions({
+    required this.inputPath,
+    required this.outputDirectory,
+    required this.revPath,
+    this.error,
+  });
+
+  final String? inputPath;
+  final String? outputDirectory;
+  final String? revPath;
+  final String? error;
+
+  static _DeliverableOptions parse(List<String> args) {
+    String? inputPath;
+    String? outputDirectory;
+    String? revPath;
+    String? error;
+
+    for (var index = 0; index < args.length; index++) {
+      final arg = args[index];
+      switch (arg) {
+        case '--out':
+          if (index + 1 >= args.length) {
+            error = 'Missing folder after --out';
+            break;
+          }
+          outputDirectory = args[++index];
+        case '--rev':
+          if (index + 1 >= args.length) {
+            error = 'Missing file after --rev';
+            break;
+          }
+          revPath = args[++index];
+        default:
+          if (arg.startsWith('-')) {
+            error = 'Unknown option: $arg';
+          } else if (inputPath == null) {
+            inputPath = arg;
+          } else {
+            error = 'Expected only one .riv file';
+          }
+      }
+    }
+
+    return _DeliverableOptions(
+      inputPath: inputPath,
+      outputDirectory: outputDirectory,
+      revPath: revPath,
+      error: error,
+    );
+  }
+}
+
+String _basename(String path) {
+  final normalized = path.replaceAll(r'\', '/');
+  final index = normalized.lastIndexOf('/');
+  return index == -1 ? normalized : normalized.substring(index + 1);
+}
+
+String _basenameWithoutExtension(String path) {
+  final name = _basename(path);
+  final index = name.lastIndexOf('.');
+  return index == -1 ? name : name.substring(0, index);
+}
+
+String _joinPath(String directory, String fileName) =>
+    '${directory.endsWith(Platform.pathSeparator) ? directory.substring(0, directory.length - 1) : directory}${Platform.pathSeparator}$fileName';

@@ -1,0 +1,339 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 1395 >>
+stream
+BT
+/F1 11 Tf
+14 TL
+50 742 Td
+(Rive Metadata Document) Tj
+T*
+() Tj
+T*
+(Source: c:\\dev\\rive_telemetry\\demo\\assets\\demo_3.riv) Tj
+T*
+(Generated: 2026-05-08T19:28:28.848414Z) Tj
+T*
+(Schema version: 1) Tj
+T*
+(Inspection status: partialUsable) Tj
+T*
+(Runtime version: 7.0) Tj
+T*
+(Records: 15456) Tj
+T*
+(Unknown records: 15369) Tj
+T*
+() Tj
+T*
+(Summary) Tj
+T*
+(- Artboards: 4) Tj
+T*
+(- State machines: 4) Tj
+T*
+(- Inputs: 0) Tj
+T*
+(- ViewModels: 1) Tj
+T*
+(- ViewModel properties: 20) Tj
+T*
+(- Animations: 34) Tj
+T*
+() Tj
+T*
+(Code generation) Tj
+T*
+(- Flutter: available) Tj
+T*
+(- TypeScript: available) Tj
+T*
+() Tj
+T*
+(Validation) Tj
+T*
+(- No validation issues found.) Tj
+T*
+() Tj
+T*
+(Parser warnings) Tj
+T*
+(- warning unsupportedProperty: Skipped unsupported property key 2085476 on object 626 and resumed at) Tj
+T*
+(  offset 22254.) Tj
+T*
+() Tj
+T*
+(Artboards) Tj
+T*
+(1. MainArtboard) Tj
+T*
+(   ViewModel id: 0) Tj
+T*
+(   Default state machine id: 0) Tj
+T*
+(   State machines) Tj
+T*
+(   - MainStateMachine) Tj
+T*
+(   Animations) Tj
+T*
+(   - confetti) Tj
+T*
+(   - spin) Tj
+T*
+(   - pointAtUser) Tj
+T*
+(   - puffCheeks) Tj
+T*
+(   - eyeRoll) Tj
+T*
+(   - mock) Tj
+T*
+(   - celebrate) Tj
+T*
+(   - headShake) Tj
+T*
+(   - nod) Tj
+T*
+(   - neutral) Tj
+T*
+(   - listening) Tj
+T*
+(   - waveHand) Tj
+T*
+(   - thinking) Tj
+T*
+(   - defaultPose) Tj
+T*
+(2. Face-transitions) Tj
+T*
+(   ViewModel id: 0) Tj
+T*
+ET
+
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 1452 >>
+stream
+BT
+/F1 11 Tf
+14 TL
+50 742 Td
+(   Default state machine id: 0) Tj
+T*
+(   State machines) Tj
+T*
+(   - Face transition SM) Tj
+T*
+(   Animations) Tj
+T*
+(   - flicker) Tj
+T*
+(3. Face-mood) Tj
+T*
+(   ViewModel id: 0) Tj
+T*
+(   Default state machine id: 0) Tj
+T*
+(   State machines) Tj
+T*
+(   - Face Mood SM) Tj
+T*
+(   Animations) Tj
+T*
+(   - encouraging) Tj
+T*
+(   - playful) Tj
+T*
+(   - surprise) Tj
+T*
+(   - eyeRoll) Tj
+T*
+(   - thinking) Tj
+T*
+(   - happy) Tj
+T*
+(   - talkLow) Tj
+T*
+(   - neutral) Tj
+T*
+(   - talkActive) Tj
+T*
+(   - talkNeutral) Tj
+T*
+(4. Face-reactns) Tj
+T*
+(   ViewModel id: 0) Tj
+T*
+(   Default state machine id: 0) Tj
+T*
+(   State machines) Tj
+T*
+(   - Face Reaction SM) Tj
+T*
+(   Animations) Tj
+T*
+(   - thinking) Tj
+T*
+(   - puffyCheeks) Tj
+T*
+(   - confetti) Tj
+T*
+(   - eyeRoll) Tj
+T*
+(   - listen) Tj
+T*
+(   - talkLow) Tj
+T*
+(   - neutral) Tj
+T*
+(   - talkActive) Tj
+T*
+(   - talkNeutral) Tj
+T*
+() Tj
+T*
+(ViewModels) Tj
+T*
+(- ViewModel1) Tj
+T*
+(  id: 0) Tj
+T*
+(  Properties) Tj
+T*
+(  - confettiCount: number \(id 0\)) Tj
+T*
+(  - confettiSize: number \(id 1\)) Tj
+T*
+(  - confettiColor: color \(id 2\)) Tj
+T*
+(  - confetti: trigger \(id 3\)) Tj
+T*
+(  - spin: trigger \(id 4\)) Tj
+T*
+(  - pointAtUser: trigger \(id 5\)) Tj
+T*
+(  - puffCheeks: trigger \(id 6\)) Tj
+T*
+(  - mock: trigger \(id 7\)) Tj
+T*
+(  - stance: number \(id 8\)) Tj
+T*
+(  - colorGradientDark: color \(id 9\)) Tj
+T*
+(  - colorPrimary: color \(id 10\)) Tj
+T*
+ET
+
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 997 >>
+stream
+BT
+/F1 11 Tf
+14 TL
+50 742 Td
+(  - colorShadowDark: color \(id 11\)) Tj
+T*
+(  - colorShadowLight: color \(id 12\)) Tj
+T*
+(  - eyeRoll: trigger \(id 13\)) Tj
+T*
+(  - nod: trigger \(id 14\)) Tj
+T*
+(  - headShake: trigger \(id 15\)) Tj
+T*
+(  - waveHand: trigger \(id 16\)) Tj
+T*
+(  - talkLevel: number \(id 17\)) Tj
+T*
+(  - mood: number \(id 18\)) Tj
+T*
+(  - faceColor: color \(id 19\)) Tj
+T*
+(  Instances) Tj
+T*
+(  - Instance) Tj
+T*
+(    eyeRoll: -) Tj
+T*
+(    nod: -) Tj
+T*
+(    colorShadowDark: 4283005002) Tj
+T*
+(    colorPrimary: 4283931224) Tj
+T*
+(    colorShadowLight: 4283994457) Tj
+T*
+(    colorGradientDark: 4282809158) Tj
+T*
+(    stance: -) Tj
+T*
+(    pointAtUser: -) Tj
+T*
+(    headShake: -) Tj
+T*
+(    talkLevel: -) Tj
+T*
+(    mock: -) Tj
+T*
+(    waveHand: -) Tj
+T*
+(    confettiColor: 4283931224) Tj
+T*
+(    mood: -) Tj
+T*
+(    faceColor: 4286513020) Tj
+T*
+(    confetti: -) Tj
+T*
+(    puffCheeks: -) Tj
+T*
+(    spin: -) Tj
+T*
+(    confettiSize: -) Tj
+T*
+(    confettiCount: -) Tj
+T*
+ET
+
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000323 00000 n 
+0000001770 00000 n 
+0000001896 00000 n 
+0000003400 00000 n 
+0000003526 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R /Info << /Title (Rive Metadata) >> >>
+startxref
+4574
+%%EOF
