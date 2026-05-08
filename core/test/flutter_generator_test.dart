@@ -33,15 +33,21 @@ void main() {
       expect(generated.source, contains('final class Demo3RiveArtboards'));
       expect(
         generated.source,
-        contains("final mainArtboard = 'MainArtboard';"),
+        contains("static const mainArtboard = 'MainArtboard';"),
       );
       expect(
         generated.source,
-        contains("final mainArtboardMainStateMachine = 'MainStateMachine';"),
+        contains(
+          "static const mainArtboardMainStateMachine = 'MainStateMachine';",
+        ),
       );
       expect(
         generated.source,
-        contains("final faceReactnsThinking = 'thinking';"),
+        contains("static const faceReactnsThinking = 'thinking';"),
+      );
+      expect(
+        generated.source,
+        contains("static const viewModel1 = 'ViewModel1';"),
       );
       expect(
         generated.source,

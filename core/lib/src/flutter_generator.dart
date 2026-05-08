@@ -182,7 +182,7 @@ class RiveFlutterIntegrationGenerator {
         path: 'artboards[$index]',
       );
       buffer.writeln(
-        '  final ${symbol?.identifier ?? 'artboard${index + 1}'} = '
+        '  static const ${symbol?.identifier ?? 'artboard${index + 1}'} = '
         '${_dartString(metadata.artboards[index].name ?? '')};',
       );
     }
@@ -226,7 +226,7 @@ class RiveFlutterIntegrationGenerator {
               'stateMachine${stateMachineIndex + 1}',
         );
         buffer.writeln(
-          '  final $identifier = '
+          '  static const $identifier = '
           '${_dartString(artboard.stateMachines[stateMachineIndex].name ?? '')};',
         );
       }
@@ -270,7 +270,7 @@ class RiveFlutterIntegrationGenerator {
           animationSymbol?.identifier ?? 'animation${animationIndex + 1}',
         );
         buffer.writeln(
-          '  final $identifier = '
+          '  static const $identifier = '
           '${_dartString(artboard.animations[animationIndex].name ?? '')};',
         );
       }
@@ -295,7 +295,7 @@ class RiveFlutterIntegrationGenerator {
         path: 'viewModels[$index]',
       );
       buffer.writeln(
-        '  final ${symbol?.identifier ?? 'viewModel${index + 1}'} = '
+        '  static const ${symbol?.identifier ?? 'viewModel${index + 1}'} = '
         '${_dartString(metadata.viewModels[index].name ?? '')};',
       );
     }
