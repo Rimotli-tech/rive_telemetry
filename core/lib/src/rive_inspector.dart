@@ -164,10 +164,16 @@ class _RiveMetadataParser {
         'fileId=${metadata.header.fileId}, '
         'propertyKeyCount=${metadata.header.propertyKeyCount}',
       )
-      ..writeln('result: parsed without unsupported properties')
+      ..writeln(
+        metadata.warnings.isEmpty
+            ? 'result: parsed without warnings'
+            : 'result: parsed with ${metadata.warnings.length} warning(s)',
+      )
       ..writeln('records: ${metadata.recordCount}')
       ..writeln('artboards: ${metadata.artboards.length}')
       ..writeln('viewModels: ${metadata.viewModels.length}')
+      ..writeln('warnings:')
+      ..writeln(_formatWarningDiagnostics(metadata.warnings))
       ..writeln()
       ..writeln(_formatViewModelDiagnostics(records, metadata));
     return buffer.toString();
@@ -795,6 +801,21 @@ class _RiveMetadataParser {
       ..writeln()
       ..writeln('Records parsed before failure: ${records.length}');
     return buffer.toString();
+  }
+
+  String _formatWarningDiagnostics(List<RiveInspectionWarning> warnings) {
+    if (warnings.isEmpty) {
+      return '  none';
+    }
+    return warnings
+        .map(
+          (warning) =>
+              '  - ${warning.code} severity=${warning.severity.name} '
+              'object=${warning.objectTypeKey ?? 'unknown'} '
+              'property=${warning.propertyKey ?? 'unknown'} '
+              'message=${warning.message}',
+        )
+        .join('\n');
   }
 
   String _formatViewModelDiagnostics(

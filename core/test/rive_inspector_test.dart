@@ -11,6 +11,7 @@ void main() {
     '../demo/assets/demo_2.riv',
     '../demo/assets/demo_2_v2.riv',
     '../demo/assets/demo_2_v3.riv',
+    '../demo/assets/demo_3.riv',
     '../demo/assets/demo-new-1.riv',
     '../demo/assets/demo-new-2.riv',
   ];
@@ -123,6 +124,8 @@ void main() {
   test('schema debug reports ViewModel diagnostics', () async {
     final report = await debugRivSchemaFile('../demo/assets/demo_2.riv');
 
+    expect(report, contains('result: parsed with 1 warning(s)'));
+    expect(report, contains('propertyReadFailure'));
     expect(report, contains('ViewModel diagnostics'));
     expect(report, contains('CatViewModel'));
     expect(report, contains('ViewModelPropertyTrigger'));
@@ -142,6 +145,52 @@ void main() {
       () => inspectRivBytes(Uint8List.fromList([0, 1, 2, 3])),
       throwsA(isA<RiveInspectionException>()),
     );
+  });
+
+  test('all repo fixtures produce usable integration metadata', () async {
+    for (final fixturePath in fixturePaths) {
+      final metadata = await inspectRivFile(fixturePath);
+
+      expect(
+        metadata.status,
+        isNot(RiveInspectionStatus.failed),
+        reason: fixturePath,
+      );
+      expect(metadata.artboards, isNotEmpty, reason: fixturePath);
+      expect(
+        metadata.artboards.expand((artboard) => artboard.animations),
+        isNotEmpty,
+        reason: fixturePath,
+      );
+      expect(
+        metadata.artboards.expand((artboard) => artboard.stateMachines),
+        isNotEmpty,
+        reason: fixturePath,
+      );
+      expect(metadata.completeness.artboardsComplete, isTrue);
+      expect(metadata.completeness.animationsComplete, isTrue);
+      expect(metadata.completeness.stateMachinesComplete, isTrue);
+      expect(metadata.completeness.viewModelsComplete, isTrue);
+      expect(metadata.completeness.viewModelInstancesComplete, isTrue);
+      expect(metadata.codegen.canGenerateFlutter, isTrue, reason: fixturePath);
+      expect(
+        metadata.codegen.canGenerateTypeScript,
+        isTrue,
+        reason: fixturePath,
+      );
+      expect(metadata.codegen.blockedReasons, isEmpty, reason: fixturePath);
+      expect(
+        metadata.warnings
+            .where(
+              (warning) =>
+                  warning.severity == RiveWarningSeverity.integrationRisk ||
+                  warning.severity == RiveWarningSeverity.fatal,
+            )
+            .map((warning) => warning.code),
+        isEmpty,
+        reason: fixturePath,
+      );
+    }
   });
 
   test(
