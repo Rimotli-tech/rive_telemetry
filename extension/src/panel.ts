@@ -53,6 +53,16 @@ export class RiveTelemetryPanel {
         return;
       }
 
+      if (isWebviewExportMetadataMessage(message)) {
+        vscode.commands.executeCommand('riveTelemetry.exportMetadata');
+        return;
+      }
+
+      if (isWebviewGenerateFlutterMessage(message)) {
+        vscode.commands.executeCommand('riveTelemetry.generateFlutterIntegration');
+        return;
+      }
+
       if (isWebviewCopyTextMessage(message)) {
         vscode.env.clipboard.writeText(message.text);
         return;
@@ -191,6 +201,14 @@ interface WebviewReloadFileMessage {
   command: 'reloadFile';
 }
 
+interface WebviewExportMetadataMessage {
+  command: 'exportMetadata';
+}
+
+interface WebviewGenerateFlutterMessage {
+  command: 'generateFlutterIntegration';
+}
+
 interface WebviewCopyTextMessage {
   command: 'copyText';
   text: string;
@@ -206,6 +224,18 @@ function isWebviewReloadFileMessage(
   value: unknown,
 ): value is WebviewReloadFileMessage {
   return isRecord(value) && value.command === 'reloadFile';
+}
+
+function isWebviewExportMetadataMessage(
+  value: unknown,
+): value is WebviewExportMetadataMessage {
+  return isRecord(value) && value.command === 'exportMetadata';
+}
+
+function isWebviewGenerateFlutterMessage(
+  value: unknown,
+): value is WebviewGenerateFlutterMessage {
+  return isRecord(value) && value.command === 'generateFlutterIntegration';
 }
 
 function isWebviewCopyTextMessage(

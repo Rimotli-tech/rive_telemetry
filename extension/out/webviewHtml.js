@@ -981,6 +981,7 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
         \`;
         bindInspectRivControl();
         bindReloadRivControl();
+        bindGenerateControls();
         bindCopyControls();
         bindClearTelemetryControl();
         return;
@@ -1007,6 +1008,7 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
       bindDropdowns();
       bindInspectRivControl();
       bindReloadRivControl();
+      bindGenerateControls();
       bindCopyControls();
       bindClearTelemetryControl();
       bindControls();
@@ -1090,6 +1092,8 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
                 </div>
               </div>
               <div class="snapshot-actions">
+                <button type="button" class="primary-button" data-generate-flutter>Generate Flutter Integration</button>
+                <button type="button" data-export-metadata>Export Metadata JSON</button>
                 <button type="button" data-reload-riv>Reload</button>
                 <button type="button" class="secondary" data-copy-text="\${escapeAttribute(metadata.source)}">Copy source</button>
               </div>
@@ -1867,6 +1871,24 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
         control.addEventListener('click', () => {
           vscode.postMessage({
             command: 'reloadFile',
+          });
+        });
+      });
+    }
+
+    function bindGenerateControls() {
+      app.querySelectorAll('[data-export-metadata]').forEach((control) => {
+        control.addEventListener('click', () => {
+          vscode.postMessage({
+            command: 'exportMetadata',
+          });
+        });
+      });
+
+      app.querySelectorAll('[data-generate-flutter]').forEach((control) => {
+        control.addEventListener('click', () => {
+          vscode.postMessage({
+            command: 'generateFlutterIntegration',
           });
         });
       });

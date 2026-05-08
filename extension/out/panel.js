@@ -59,6 +59,14 @@ class RiveTelemetryPanel {
                 vscode.commands.executeCommand('riveTelemetry.reloadFile');
                 return;
             }
+            if (isWebviewExportMetadataMessage(message)) {
+                vscode.commands.executeCommand('riveTelemetry.exportMetadata');
+                return;
+            }
+            if (isWebviewGenerateFlutterMessage(message)) {
+                vscode.commands.executeCommand('riveTelemetry.generateFlutterIntegration');
+                return;
+            }
             if (isWebviewCopyTextMessage(message)) {
                 vscode.env.clipboard.writeText(message.text);
                 return;
@@ -139,6 +147,12 @@ function isWebviewInspectFileMessage(value) {
 }
 function isWebviewReloadFileMessage(value) {
     return isRecord(value) && value.command === 'reloadFile';
+}
+function isWebviewExportMetadataMessage(value) {
+    return isRecord(value) && value.command === 'exportMetadata';
+}
+function isWebviewGenerateFlutterMessage(value) {
+    return isRecord(value) && value.command === 'generateFlutterIntegration';
 }
 function isWebviewCopyTextMessage(value) {
     return (isRecord(value) &&

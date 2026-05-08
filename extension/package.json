@@ -23,7 +23,9 @@
   "activationEvents": [
     "onCommand:riveTelemetry.openPanel",
     "onCommand:riveTelemetry.inspectFile",
-    "onCommand:riveTelemetry.reloadFile"
+    "onCommand:riveTelemetry.reloadFile",
+    "onCommand:riveTelemetry.exportMetadata",
+    "onCommand:riveTelemetry.generateFlutterIntegration"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -39,6 +41,14 @@
       {
         "command": "riveTelemetry.reloadFile",
         "title": "RiveTelemetry: Reload Current .riv File"
+      },
+      {
+        "command": "riveTelemetry.exportMetadata",
+        "title": "RiveTelemetry: Export Metadata JSON"
+      },
+      {
+        "command": "riveTelemetry.generateFlutterIntegration",
+        "title": "RiveTelemetry: Generate Flutter Integration"
       }
     ],
     "configuration": {

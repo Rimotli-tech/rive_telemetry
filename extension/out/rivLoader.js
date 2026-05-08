@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RivLoader = void 0;
 exports.findCoreInspectorEntrypoint = findCoreInspectorEntrypoint;
+exports.findCoreCliEntrypoint = findCoreCliEntrypoint;
 exports.inspectRivFileWithCore = inspectRivFileWithCore;
 exports.findDartExecutable = findDartExecutable;
 const childProcess = __importStar(require("child_process"));
@@ -84,6 +85,12 @@ class RivLoader {
         }
         return metadata;
     }
+    async generateFlutterIntegration(filePath, outputPath) {
+        const entrypoint = findCoreCliEntrypoint(this.context.extensionPath);
+        const dartExecutable = findDartExecutable(this.context.extensionPath);
+        await runCoreCommand(['run', entrypoint, 'generate', 'flutter', '--out', outputPath, filePath], entrypoint, dartExecutable, this.output, this.execFile);
+        this.output.appendLine(`Generated Flutter integration: ${outputPath}`);
+    }
 }
 exports.RivLoader = RivLoader;
 function findCoreInspectorEntrypoint(extensionPath) {
@@ -94,6 +101,17 @@ function findCoreInspectorEntrypoint(extensionPath) {
     const entrypoint = candidates.find((candidate) => fs.existsSync(candidate));
     if (!entrypoint) {
         throw new Error('Rive metadata inspector was not found. Expected core/bin/rive_metadata_inspect.dart.');
+    }
+    return entrypoint;
+}
+function findCoreCliEntrypoint(extensionPath) {
+    const candidates = [
+        path.resolve(extensionPath, '..', 'core', 'bin', 'rive_telemetry.dart'),
+        path.resolve(extensionPath, 'core', 'bin', 'rive_telemetry.dart'),
+    ];
+    const entrypoint = candidates.find((candidate) => fs.existsSync(candidate));
+    if (!entrypoint) {
+        throw new Error('RiveTelemetry CLI was not found. Expected core/bin/rive_telemetry.dart.');
     }
     return entrypoint;
 }
@@ -128,6 +146,32 @@ function inspectRivFileWithCore(filePath, entrypoint, dartExecutable, output, ex
                 const message = parseError instanceof Error ? parseError.message : String(parseError);
                 reject(new Error(`Failed to parse Rive metadata JSON: ${message}`));
             }
+        });
+    });
+}
+function runCoreCommand(args, entrypoint, dartExecutable, output, execFile = childProcess.execFile) {
+    return new Promise((resolve, reject) => {
+        execFile(dartExecutable, args, {
+            cwd: path.dirname(path.dirname(entrypoint)),
+            maxBuffer: 1024 * 1024 * 16,
+        }, (error, stdout, stderr) => {
+            if (stdout.trim().length > 0) {
+                output.appendLine(stdout.trim());
+            }
+            if (stderr.trim().length > 0) {
+                output.appendLine(stderr.trim());
+            }
+            if (error) {
+                if (isMissingExecutableError(error)) {
+                    reject(new Error(`Dart executable was not found. Set the riveTelemetry.dartPath setting to your Dart SDK executable path. Tried: ${dartExecutable}`));
+                    return;
+                }
+                reject(new Error(stderr.trim().length > 0
+                    ? stderr.trim()
+                    : `Dart generation failed: ${error.message}`));
+                return;
+            }
+            resolve();
         });
     });
 }

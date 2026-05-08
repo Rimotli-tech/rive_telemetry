@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
+const path = __importStar(require("path"));
 const panel_1 = require("./panel");
 const rivLoader_1 = require("./rivLoader");
 const telemetryServer_1 = require("./telemetryServer");
@@ -48,6 +49,7 @@ function activate(context) {
     telemetryServer.start();
     const rivLoader = new rivLoader_1.RivLoader(context, outputChannel);
     let lastInspectedPath;
+    let lastMetadata;
     async function inspectAndShow(filePath) {
         try {
             const metadata = filePath
@@ -60,6 +62,7 @@ function activate(context) {
                 return;
             }
             lastInspectedPath = metadata.source;
+            lastMetadata = metadata;
             if (telemetryServer) {
                 panel_1.RiveTelemetryPanel.show(context, telemetryServer);
                 panel_1.RiveTelemetryPanel.updateStaticMetadata(metadata);
@@ -88,7 +91,56 @@ function activate(context) {
         }
         await inspectAndShow(lastInspectedPath);
     });
-    context.subscriptions.push(openPanelCommand, inspectFileCommand, reloadFileCommand, telemetryServer, outputChannel);
+    const exportMetadataCommand = vscode.commands.registerCommand('riveTelemetry.exportMetadata', async () => {
+        if (!lastMetadata) {
+            vscode.window.showInformationMessage('Load a .riv file before exporting metadata.');
+            return;
+        }
+        const defaultUri = defaultGeneratedUri(lastInspectedPath ?? lastMetadata.source, '.metadata.json');
+        const target = await vscode.window.showSaveDialog({
+            defaultUri,
+            filters: {
+                'JSON files': ['json'],
+            },
+            saveLabel: 'Export Metadata JSON',
+            title: 'Export Rive Metadata JSON',
+        });
+        if (!target) {
+            return;
+        }
+        await vscode.workspace.fs.writeFile(target, Buffer.from(`${JSON.stringify(lastMetadata, null, 2)}\n`, 'utf8'));
+        vscode.window.showInformationMessage(`Exported Rive metadata: ${vscode.workspace.asRelativePath(target)}`);
+    });
+    const generateFlutterCommand = vscode.commands.registerCommand('riveTelemetry.generateFlutterIntegration', async () => {
+        if (!lastInspectedPath) {
+            vscode.window.showInformationMessage('Load a .riv file before generating Flutter integration.');
+            return;
+        }
+        const target = await vscode.window.showSaveDialog({
+            defaultUri: defaultGeneratedUri(lastInspectedPath, '_rive.dart'),
+            filters: {
+                'Dart files': ['dart'],
+            },
+            saveLabel: 'Generate Flutter Integration',
+            title: 'Generate Flutter Rive Integration',
+        });
+        if (!target) {
+            return;
+        }
+        try {
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Generating Flutter integration',
+            }, () => rivLoader.generateFlutterIntegration(lastInspectedPath, target.fsPath));
+            vscode.window.showInformationMessage(`Generated Flutter integration: ${vscode.workspace.asRelativePath(target)}`);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            outputChannel?.appendLine(`Flutter integration generation failed: ${message}`);
+            vscode.window.showErrorMessage(`Flutter integration generation failed: ${message}`);
+        }
+    });
+    context.subscriptions.push(openPanelCommand, inspectFileCommand, reloadFileCommand, exportMetadataCommand, generateFlutterCommand, telemetryServer, outputChannel);
 }
 function deactivate() {
     telemetryServer?.dispose();
@@ -105,5 +157,11 @@ function configuredPort() {
     }
     vscode.window.showWarningMessage(`RiveTelemetry port ${port} is invalid. Falling back to 8080.`);
     return 8080;
+}
+function defaultGeneratedUri(sourcePath, suffix) {
+    const parsed = path.parse(sourcePath);
+    const directory = parsed.dir || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const fileName = `${parsed.name}${suffix}`;
+    return vscode.Uri.file(path.join(directory ?? process.cwd(), fileName));
 }
 //# sourceMappingURL=extension.js.map
