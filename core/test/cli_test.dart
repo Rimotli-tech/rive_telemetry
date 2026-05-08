@@ -170,6 +170,23 @@ void main() {
     expect(out.toString(), isNot(contains('final class DemoNew1Rive')));
   });
 
+  test('validate reports metadata lint result', () async {
+    final out = StringBuffer();
+    final err = StringBuffer();
+
+    final code = await runRiveTelemetryCli(
+      ['validate', fixture],
+      stdoutSink: out,
+      stderrSink: err,
+    );
+
+    expect(code, 1);
+    expect(err.toString(), isEmpty);
+    expect(out.toString(), contains('Rive validation'));
+    expect(out.toString(), contains('status: integrationRisk'));
+    expect(out.toString(), contains('unnamedArtboard'));
+  });
+
   test('debug prints parser diagnostics', () async {
     final out = StringBuffer();
     final err = StringBuffer();

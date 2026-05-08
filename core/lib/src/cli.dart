@@ -7,6 +7,7 @@ import 'json_export.dart';
 import 'metadata.dart';
 import 'rive_inspector.dart';
 import 'typescript_generator.dart';
+import 'validation.dart';
 
 Future<int> runRiveTelemetryCli(
   List<String> args, {
@@ -31,6 +32,8 @@ Future<int> runRiveTelemetryCli(
         return await _runExport(rest, out, err);
       case 'generate':
         return await _runGenerate(rest, out, err);
+      case 'validate':
+        return await _runValidate(rest, out, err);
       case 'debug':
         return await _runDebug(rest, out, err);
       default:
@@ -45,6 +48,49 @@ Future<int> runRiveTelemetryCli(
     err.writeln(error);
     return 1;
   }
+}
+
+Future<int> _runValidate(
+  List<String> args,
+  StringSink out,
+  StringSink err,
+) async {
+  final options = _CliOptions.parse(args, defaultPretty: false);
+  if (options.error != null) {
+    err.writeln(options.error);
+    _writeValidateUsage(err);
+    return 64;
+  }
+  if (options.paths.length != 1) {
+    _writeValidateUsage(err);
+    return 64;
+  }
+
+  final metadata = await inspectRivFile(options.paths.single);
+  final result = const RiveMetadataValidator().validate(metadata);
+  out.write(_formatValidationSummary(metadata, result));
+  return result.hasIntegrationRisk ? 1 : 0;
+}
+
+String _formatValidationSummary(
+  RiveMetadata metadata,
+  RiveValidationResult result,
+) {
+  final buffer = StringBuffer()
+    ..writeln('Rive validation')
+    ..writeln('source: ${metadata.source}')
+    ..writeln('issues: ${result.issues.length}')
+    ..writeln(
+      'status: ${result.hasIntegrationRisk ? 'integrationRisk' : 'ok'}',
+    );
+
+  for (final issue in result.issues) {
+    buffer.writeln(
+      '- ${issue.severity.name} ${issue.code} at ${issue.path}: ${issue.message}',
+    );
+  }
+
+  return buffer.toString();
 }
 
 Future<int> _runGenerate(
@@ -266,6 +312,7 @@ void _writeUsage(StringSink sink) {
   sink.writeln('  inspect   Print a metadata summary, or JSON with --json');
   sink.writeln('  export    Export stable metadata JSON');
   sink.writeln('  generate  Generate integration helpers');
+  sink.writeln('  validate  Detect integration-risk metadata issues');
   sink.writeln('  debug     Print parser diagnostics');
 }
 
@@ -285,6 +332,10 @@ void _writeExportUsage(StringSink sink) {
 
 void _writeDebugUsage(StringSink sink) {
   sink.writeln('Usage: rive-telemetry debug <file.riv>');
+}
+
+void _writeValidateUsage(StringSink sink) {
+  sink.writeln('Usage: rive-telemetry validate <file.riv>');
 }
 
 void _writeGenerateUsage(StringSink sink) {
