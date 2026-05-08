@@ -6,6 +6,7 @@
 /// and mutate state machine inputs and ViewModel properties while the app runs.
 library;
 
+export 'src/generated_runtime_helpers.dart';
 export 'src/rive_debugger.dart';
 export 'src/view_model_telemetry.dart';
 export 'src/view_model_telemetry_adapter.dart';

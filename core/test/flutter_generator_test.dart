@@ -2,62 +2,79 @@ import 'package:rive_telemetry_core/rive_telemetry_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('generates Flutter constants and ViewModel helpers for demo_3', () async {
+  test(
+    'generates Flutter constants and ViewModel helpers for demo_3',
+    () async {
+      final metadata = await inspectRivFile('../demo/assets/demo_3.riv');
+      final generated = const RiveFlutterIntegrationGenerator().generate(
+        metadata,
+        options: const RiveFlutterGeneratorOptions(className: 'Demo3Rive'),
+      );
+
+      expect(
+        generated.diagnostics.any(
+          (diagnostic) =>
+              diagnostic.severity == RiveCodegenDiagnosticSeverity.error,
+        ),
+        isFalse,
+      );
+      expect(generated.source, contains('// Generated from demo_3.riv.'));
+      expect(generated.source, contains('final class Demo3Rive {'));
+      expect(generated.source, contains('const Demo3Rive(this.instance);'));
+      expect(
+        generated.source,
+        contains("import 'package:rive_telemetry/rive_telemetry.dart';"),
+      );
+      expect(
+        generated.source,
+        isNot(contains('final class RiveNumberViewModelProperty')),
+      );
+      expect(generated.source, isNot(contains('Usage')));
+      expect(generated.source, contains('final class Demo3RiveArtboards'));
+      expect(
+        generated.source,
+        contains("final mainArtboard = 'MainArtboard';"),
+      );
+      expect(
+        generated.source,
+        contains("final mainArtboardMainStateMachine = 'MainStateMachine';"),
+      );
+      expect(
+        generated.source,
+        contains("final faceReactnsThinking = 'thinking';"),
+      );
+      expect(
+        generated.source,
+        contains("static const viewModelName = 'ViewModel1';"),
+      );
+      expect(
+        generated.source,
+        contains("static const instanceName = 'Instance';"),
+      );
+      expect(
+        generated.source,
+        contains("RtTrigger get confetti => RtTrigger(instance, 'confetti');"),
+      );
+      expect(
+        generated.source,
+        contains("RtNumber get talkLevel => RtNumber(instance, 'talkLevel');"),
+      );
+      expect(
+        generated.source,
+        contains("RtColor get faceColor => RtColor(instance, 'faceColor');"),
+      );
+    },
+  );
+
+  test('defaults generated root class name from the Rive filename', () async {
     final metadata = await inspectRivFile('../demo/assets/demo_3.riv');
     final generated = const RiveFlutterIntegrationGenerator().generate(
       metadata,
-      options: const RiveFlutterGeneratorOptions(classPrefix: 'CatRive'),
+      options: const RiveFlutterGeneratorOptions(includeHeader: false),
     );
 
-    expect(
-      generated.diagnostics.any(
-        (diagnostic) =>
-            diagnostic.severity == RiveCodegenDiagnosticSeverity.error,
-      ),
-      isFalse,
-    );
-    expect(generated.source, contains('abstract final class CatRiveArtboards'));
-    expect(
-      generated.source,
-      contains("static const mainArtboard = 'MainArtboard';"),
-    );
-    expect(
-      generated.source,
-      contains(
-        "static const mainArtboardMainStateMachine = 'MainStateMachine';",
-      ),
-    );
-    expect(
-      generated.source,
-      contains("static const faceReactnsThinking = 'thinking';"),
-    );
-    expect(generated.source, contains('final class CatRiveViewModel1Binding'));
-    expect(
-      generated.source,
-      contains("static const viewModelName = 'ViewModel1';"),
-    );
-    expect(
-      generated.source,
-      contains("static const instanceName = 'Instance';"),
-    );
-    expect(
-      generated.source,
-      contains(
-        "RiveTriggerViewModelProperty get confetti => RiveTriggerViewModelProperty(instance, 'confetti');",
-      ),
-    );
-    expect(
-      generated.source,
-      contains(
-        "RiveNumberViewModelProperty get talkLevel => RiveNumberViewModelProperty(instance, 'talkLevel');",
-      ),
-    );
-    expect(
-      generated.source,
-      contains(
-        "RiveColorViewModelProperty get faceColor => RiveColorViewModelProperty(instance, 'faceColor');",
-      ),
-    );
+    expect(generated.source, startsWith("import 'package:rive/rive.dart'"));
+    expect(generated.source, contains('final class Demo3Rive {'));
   });
 
   test('marks unsupported ViewModel property helpers with diagnostics', () {
@@ -110,13 +127,13 @@ void main() {
 
     final generated = const RiveFlutterIntegrationGenerator().generate(
       metadata,
-      options: const RiveFlutterGeneratorOptions(classPrefix: 'Demo'),
+      options: const RiveFlutterGeneratorOptions(className: 'DemoRive'),
     );
 
     expect(
       generated.source,
       contains(
-        "RiveUnsupportedViewModelProperty get nested => RiveUnsupportedViewModelProperty(instance, 'nested');",
+        "RtUnsupported get nested => RtUnsupported(instance, 'nested');",
       ),
     );
     expect(
