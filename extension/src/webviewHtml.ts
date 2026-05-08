@@ -126,6 +126,15 @@ export function getWebviewHtml(
       border-color: rgba(34, 197, 94, 0.16);
       background: rgba(34, 197, 94, 0.06);
     }
+    .schema-loaded {
+      color: var(--rt-primary);
+      border-color: rgba(159, 202, 255, 0.24);
+      background: rgba(159, 202, 255, 0.08);
+    }
+    .schema-loaded .dot {
+      background: var(--rt-primary);
+      box-shadow: 0 0 8px rgba(159, 202, 255, 0.48);
+    }
     .failed {
       color: var(--rt-red);
       border-color: rgba(255, 180, 171, 0.22);
@@ -962,11 +971,14 @@ export function getWebviewHtml(
       const telemetryStale = Boolean(serverStatus.telemetryStale);
       const receiving = Boolean(activePayload) && hasClients && !serverFailed;
       const controlsDisabled = !hasClients || serverFailed;
-      const statusClass = serverFailed ? 'failed' : receiving ? 'receiving' : telemetryStale ? 'stale' : '';
+      const schemaLoaded = Boolean(staticMetadata) && !activePayload;
+      const statusClass = serverFailed ? 'failed' : receiving ? 'receiving' : schemaLoaded ? 'schema-loaded' : telemetryStale ? 'stale' : '';
       const statusText = serverFailed
         ? 'Server failed to start'
         : receiving
           ? 'Receiving telemetry'
+          : schemaLoaded
+            ? 'Schema loaded'
           : telemetryStale
             ? 'Telemetry stale'
             : 'Waiting for telemetry...';
@@ -979,6 +991,8 @@ export function getWebviewHtml(
           </div>
         \`;
         bindInspectRivControl();
+        bindReloadRivControl();
+        bindCopyControls();
         bindClearTelemetryControl();
         return;
       }
@@ -1003,6 +1017,8 @@ export function getWebviewHtml(
 
       bindDropdowns();
       bindInspectRivControl();
+      bindReloadRivControl();
+      bindCopyControls();
       bindClearTelemetryControl();
       bindControls();
       if (changedInputs.size > 0) {
@@ -1022,6 +1038,7 @@ export function getWebviewHtml(
           </div>
           <div class="header-actions">
             <button type="button" class="primary-button" data-inspect-riv>Load .riv</button>
+            \${staticMetadata ? '<button type="button" data-reload-riv>Reload</button>' : ''}
             \${telemetryStale ? '<button type="button" class="secondary" data-clear-telemetry>Clear telemetry</button>' : ''}
             <div class="status \${statusClass}">
               <span class="dot"></span>
@@ -1083,6 +1100,10 @@ export function getWebviewHtml(
                   <span>\${escapeHtml(metadata.status ?? 'unknown')}</span>
                 </div>
               </div>
+              <div class="snapshot-actions">
+                <button type="button" data-reload-riv>Reload</button>
+                <button type="button" class="secondary" data-copy-text="\${escapeAttribute(metadata.source)}">Copy source</button>
+              </div>
             </div>
             <div class="runtime-grid">
               \${renderRuntimeField('Source', metadata.source, true)}
@@ -1132,7 +1153,7 @@ export function getWebviewHtml(
               const detail = values.length === 0
                 ? 'No default values'
                 : values.map((value) => (value.propertyName ?? ('#' + value.propertyId)) + ': ' + formatViewModelValue(value.value)).join(', ');
-              return renderStaticInfoCard(instance.name ?? 'Unnamed Instance', 'instance', detail);
+              return renderStaticInfoCard(instance.name ?? 'Unnamed Instance', 'instance', detail, instance.name ?? '');
             }).join('') + '</div>';
 
         return \`
@@ -1144,7 +1165,7 @@ export function getWebviewHtml(
             </div>
             \${properties.length === 0
               ? '<p class="view-model-empty">No ViewModel properties found.</p>'
-              : renderGroupedItems(properties, (property) => property.type ?? 'unknown', (property) => renderStaticInfoCard(property.name ?? 'Unnamed Property', property.type ?? 'unknown', renderStaticViewModelPropertyDetail(property)))}
+              : renderGroupedItems(properties, (property) => property.type ?? 'unknown', (property) => renderStaticInfoCard(property.name ?? 'Unnamed Property', property.type ?? 'unknown', renderStaticViewModelPropertyDetail(property), property.name ?? ''))}
             <div class="property-group-title">Instances</div>
             \${instanceSummary}
           </div>
@@ -1180,7 +1201,7 @@ export function getWebviewHtml(
             <div class="property-group-title">\${escapeHtml(artboard.name ?? 'Unnamed Artboard')}</div>
             \${stateMachines.length === 0
               ? '<p class="view-model-empty">No state machines found.</p>'
-              : '<div class="input-grid">' + stateMachines.map((stateMachine) => renderStaticInfoCard(stateMachine.name ?? 'Unnamed State Machine', 'state machine', (stateMachine.inputs ?? []).length + ' input(s)')).join('') + '</div>'}
+              : '<div class="input-grid">' + stateMachines.map((stateMachine) => renderStaticInfoCard(stateMachine.name ?? 'Unnamed State Machine', 'state machine', (stateMachine.inputs ?? []).length + ' input(s)', stateMachine.name ?? '')).join('') + '</div>'}
           </div>
         \`;
       }).join('');
@@ -1235,7 +1256,7 @@ export function getWebviewHtml(
           <h3 class="section-title"><span class="section-icon">&#9655;</span>Animations</h3>
           \${animations.length === 0
             ? '<p class="view-model-empty">No animations found in the loaded schema.</p>'
-            : '<div class="input-grid">' + animations.map((animation) => renderStaticInfoCard(animation.name ?? 'Unnamed Animation', 'animation', animation.artboardName + (animation.durationSeconds !== null && animation.durationSeconds !== undefined ? ' &middot; ' + animation.durationSeconds + 's' : ''))).join('') + '</div>'}
+            : '<div class="input-grid">' + animations.map((animation) => renderStaticInfoCard(animation.name ?? 'Unnamed Animation', 'animation', animation.artboardName + (animation.durationSeconds !== null && animation.durationSeconds !== undefined ? ' &middot; ' + animation.durationSeconds + 's' : ''), animation.name ?? '')).join('') + '</div>'}
         </section>
       \`;
     }
@@ -1248,12 +1269,12 @@ export function getWebviewHtml(
       return \`
         <section class="section-panel view-model-unavailable">
           <h3 class="section-title"><span class="section-icon">&#9888;</span>Parser Warnings</h3>
-          <div class="input-grid">\${warnings.map((warning) => renderStaticInfoCard(warning.code, warning.severity ?? 'warning', warning.message)).join('')}</div>
+          <div class="input-grid">\${warnings.map((warning) => renderStaticInfoCard(warning.code, warning.severity ?? 'warning', warning.message, warning.message)).join('')}</div>
         </section>
       \`;
     }
 
-    function renderStaticInfoCard(name, type, detail) {
+    function renderStaticInfoCard(name, type, detail, copyValue) {
       return \`
         <div class="input-card">
           <div class="input-main">
@@ -1263,6 +1284,7 @@ export function getWebviewHtml(
             </div>
             <div class="input-detail">\${escapeHtml(detail)}</div>
           </div>
+          \${copyValue ? '<button type="button" class="secondary" data-copy-text="' + escapeAttribute(copyValue) + '">Copy</button>' : ''}
         </div>
       \`;
     }
@@ -1847,6 +1869,33 @@ export function getWebviewHtml(
       control.addEventListener('click', () => {
         vscode.postMessage({
           command: 'inspectFile',
+        });
+      });
+    }
+
+    function bindReloadRivControl() {
+      app.querySelectorAll('[data-reload-riv]').forEach((control) => {
+        control.addEventListener('click', () => {
+          vscode.postMessage({
+            command: 'reloadFile',
+          });
+        });
+      });
+    }
+
+    function bindCopyControls() {
+      app.querySelectorAll('[data-copy-text]').forEach((control) => {
+        control.addEventListener('click', () => {
+          const text = control.dataset.copyText;
+          if (!text) {
+            return;
+          }
+          vscode.postMessage({
+            command: 'copyText',
+            text,
+          });
+          lastCommandStatus = 'Copied';
+          render();
         });
       });
     }

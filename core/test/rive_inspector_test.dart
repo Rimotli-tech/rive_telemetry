@@ -62,6 +62,59 @@ void main() {
     expect(jsonEncode(decoded.toJson()), jsonEncode(metadata.toJson()));
   });
 
+  test('metadata JSON schema matches public contract constants', () {
+    final schema = _metadataSchema();
+
+    expect(schema[r'$id'], riveMetadataSchemaId);
+    expect(
+      (schema['properties'] as Map)['schemaVersion'],
+      containsPair('const', riveMetadataSchemaVersion),
+    );
+    expect(riveMetadataMediaType, contains('schemaVersion=1'));
+  });
+
+  test('metadata JSON root keys match schema required keys', () async {
+    final metadata = await inspectRivFile(fixturePaths.first);
+    final schema = _metadataSchema();
+    final required = ((schema['required'] as List).cast<String>()).toSet();
+    final properties = ((schema['properties'] as Map).keys.cast<String>())
+        .toSet();
+    final actual = metadata.toJson().keys.toSet();
+
+    expect(actual, required);
+    expect(actual, properties);
+  });
+
+  test('metadata JSON enum values match schema definitions', () {
+    final defs = _metadataSchema()[r'$defs'] as Map;
+
+    expect(
+      (defs['inspectionStatus'] as Map)['enum'],
+      RiveInspectionStatus.values.map((value) => value.name).toList(),
+    );
+    expect(
+      (defs['warningSeverity'] as Map)['enum'],
+      RiveWarningSeverity.values.map((value) => value.name).toList(),
+    );
+    expect(
+      (defs['viewModelPropertyType'] as Map)['enum'],
+      RiveViewModelPropertyType.values.map((value) => value.name).toList(),
+    );
+  });
+
+  test('all fixture metadata round trips through JSON contract', () async {
+    for (final fixturePath in fixturePaths) {
+      final metadata = await inspectRivFile(fixturePath);
+      final decoded = metadataFromJson(metadataToJson(metadata));
+
+      expect(
+        jsonEncode(decoded.toJson()),
+        jsonEncode(metadata.toJson()),
+        reason: fixturePath,
+      );
+    }
+  });
+
   test('metadata decoder rejects unsupported schema versions', () {
     final json = metadataToJson(
       RiveMetadata(
@@ -393,4 +446,11 @@ List<int> _varUint(int value) {
     bytes.add(byte);
   } while (remaining != 0);
   return bytes;
+}
+
+Map<String, Object?> _metadataSchema() {
+  final decoded = jsonDecode(
+    File('schema/rive_metadata.schema.json').readAsStringSync(),
+  );
+  return (decoded as Map).cast<String, Object?>();
 }

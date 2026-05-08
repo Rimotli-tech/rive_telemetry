@@ -1,4 +1,8 @@
 const riveMetadataSchemaVersion = 1;
+const riveMetadataSchemaId =
+    'https://github.com/Rimotli-tech/rive_telemetry/schema/rive_metadata.schema.json';
+const riveMetadataMediaType =
+    'application/vnd.rive-telemetry.metadata+json; schemaVersion=1';
 
 class RiveMetadata {
   const RiveMetadata({

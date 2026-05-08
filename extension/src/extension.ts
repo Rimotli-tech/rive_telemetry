@@ -13,6 +13,39 @@ export function activate(context: vscode.ExtensionContext): void {
   telemetryServer = new TelemetryServer(outputChannel, configuredPort());
   telemetryServer.start();
   const rivLoader = new RivLoader(context, outputChannel);
+  let lastInspectedPath: string | undefined;
+
+  async function inspectAndShow(filePath?: string): Promise<void> {
+    try {
+      const metadata = filePath
+        ? await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: `Inspecting ${vscode.workspace.asRelativePath(filePath)}`,
+            },
+            () => rivLoader.inspectFile(filePath),
+          )
+        : await rivLoader.pickAndInspect();
+      if (!metadata) {
+        return;
+      }
+
+      lastInspectedPath = metadata.source;
+
+      if (telemetryServer) {
+        RiveTelemetryPanel.show(context, telemetryServer);
+        RiveTelemetryPanel.updateStaticMetadata(metadata);
+      }
+
+      vscode.window.showInformationMessage(
+        `Loaded Rive schema: ${metadata.artboards.length} artboard(s), ${metadata.warnings.length} warning(s).`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      outputChannel?.appendLine(`Rive schema inspection failed: ${message}`);
+      vscode.window.showErrorMessage(`Rive schema inspection failed: ${message}`);
+    }
+  }
 
   const openPanelCommand = vscode.commands.registerCommand(
     'riveTelemetry.openPanel',
@@ -28,32 +61,24 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const inspectFileCommand = vscode.commands.registerCommand(
     'riveTelemetry.inspectFile',
+    () => inspectAndShow(),
+  );
+
+  const reloadFileCommand = vscode.commands.registerCommand(
+    'riveTelemetry.reloadFile',
     async () => {
-      try {
-        const metadata = await rivLoader.pickAndInspect();
-        if (!metadata) {
-          return;
-        }
-
-        if (telemetryServer) {
-          RiveTelemetryPanel.show(context, telemetryServer);
-          RiveTelemetryPanel.updateStaticMetadata(metadata);
-        }
-
-        vscode.window.showInformationMessage(
-          `Loaded Rive schema: ${metadata.artboards.length} artboard(s), ${metadata.warnings.length} warning(s).`,
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        outputChannel?.appendLine(`Rive schema inspection failed: ${message}`);
-        vscode.window.showErrorMessage(`Rive schema inspection failed: ${message}`);
+      if (!lastInspectedPath) {
+        vscode.window.showInformationMessage('Load a .riv file before reloading.');
+        return;
       }
+      await inspectAndShow(lastInspectedPath);
     },
   );
 
   context.subscriptions.push(
     openPanelCommand,
     inspectFileCommand,
+    reloadFileCommand,
     telemetryServer,
     outputChannel,
   );

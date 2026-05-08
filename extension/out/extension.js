@@ -47,20 +47,19 @@ function activate(context) {
     telemetryServer = new telemetryServer_1.TelemetryServer(outputChannel, configuredPort());
     telemetryServer.start();
     const rivLoader = new rivLoader_1.RivLoader(context, outputChannel);
-    const openPanelCommand = vscode.commands.registerCommand('riveTelemetry.openPanel', () => {
-        console.log('RiveTelemetry panel command triggered');
-        if (!telemetryServer) {
-            outputChannel?.appendLine('RiveTelemetry server is not available');
-            return;
-        }
-        panel_1.RiveTelemetryPanel.show(context, telemetryServer);
-    });
-    const inspectFileCommand = vscode.commands.registerCommand('riveTelemetry.inspectFile', async () => {
+    let lastInspectedPath;
+    async function inspectAndShow(filePath) {
         try {
-            const metadata = await rivLoader.pickAndInspect();
+            const metadata = filePath
+                ? await vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: `Inspecting ${vscode.workspace.asRelativePath(filePath)}`,
+                }, () => rivLoader.inspectFile(filePath))
+                : await rivLoader.pickAndInspect();
             if (!metadata) {
                 return;
             }
+            lastInspectedPath = metadata.source;
             if (telemetryServer) {
                 panel_1.RiveTelemetryPanel.show(context, telemetryServer);
                 panel_1.RiveTelemetryPanel.updateStaticMetadata(metadata);
@@ -72,8 +71,24 @@ function activate(context) {
             outputChannel?.appendLine(`Rive schema inspection failed: ${message}`);
             vscode.window.showErrorMessage(`Rive schema inspection failed: ${message}`);
         }
+    }
+    const openPanelCommand = vscode.commands.registerCommand('riveTelemetry.openPanel', () => {
+        console.log('RiveTelemetry panel command triggered');
+        if (!telemetryServer) {
+            outputChannel?.appendLine('RiveTelemetry server is not available');
+            return;
+        }
+        panel_1.RiveTelemetryPanel.show(context, telemetryServer);
     });
-    context.subscriptions.push(openPanelCommand, inspectFileCommand, telemetryServer, outputChannel);
+    const inspectFileCommand = vscode.commands.registerCommand('riveTelemetry.inspectFile', () => inspectAndShow());
+    const reloadFileCommand = vscode.commands.registerCommand('riveTelemetry.reloadFile', async () => {
+        if (!lastInspectedPath) {
+            vscode.window.showInformationMessage('Load a .riv file before reloading.');
+            return;
+        }
+        await inspectAndShow(lastInspectedPath);
+    });
+    context.subscriptions.push(openPanelCommand, inspectFileCommand, reloadFileCommand, telemetryServer, outputChannel);
 }
 function deactivate() {
     telemetryServer?.dispose();

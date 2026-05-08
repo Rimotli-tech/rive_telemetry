@@ -55,6 +55,14 @@ class RiveTelemetryPanel {
                 vscode.commands.executeCommand('riveTelemetry.inspectFile');
                 return;
             }
+            if (isWebviewReloadFileMessage(message)) {
+                vscode.commands.executeCommand('riveTelemetry.reloadFile');
+                return;
+            }
+            if (isWebviewCopyTextMessage(message)) {
+                vscode.env.clipboard.writeText(message.text);
+                return;
+            }
             if (isWebviewSelectRuntimeMessage(message)) {
                 this.telemetryServer.selectRuntime(message.runtimeId);
                 return;
@@ -128,6 +136,14 @@ exports.RiveTelemetryPanel = RiveTelemetryPanel;
 RiveTelemetryPanel.staticMetadata = null;
 function isWebviewInspectFileMessage(value) {
     return isRecord(value) && value.command === 'inspectFile';
+}
+function isWebviewReloadFileMessage(value) {
+    return isRecord(value) && value.command === 'reloadFile';
+}
+function isWebviewCopyTextMessage(value) {
+    return (isRecord(value) &&
+        value.command === 'copyText' &&
+        typeof value.text === 'string');
 }
 function isWebviewSelectRuntimeMessage(value) {
     return (isRecord(value) &&

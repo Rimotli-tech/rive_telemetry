@@ -48,6 +48,16 @@ export class RiveTelemetryPanel {
         return;
       }
 
+      if (isWebviewReloadFileMessage(message)) {
+        vscode.commands.executeCommand('riveTelemetry.reloadFile');
+        return;
+      }
+
+      if (isWebviewCopyTextMessage(message)) {
+        vscode.env.clipboard.writeText(message.text);
+        return;
+      }
+
       if (isWebviewSelectRuntimeMessage(message)) {
         this.telemetryServer.selectRuntime(message.runtimeId);
         return;
@@ -177,10 +187,35 @@ interface WebviewInspectFileMessage {
   command: 'inspectFile';
 }
 
+interface WebviewReloadFileMessage {
+  command: 'reloadFile';
+}
+
+interface WebviewCopyTextMessage {
+  command: 'copyText';
+  text: string;
+}
+
 function isWebviewInspectFileMessage(
   value: unknown,
 ): value is WebviewInspectFileMessage {
   return isRecord(value) && value.command === 'inspectFile';
+}
+
+function isWebviewReloadFileMessage(
+  value: unknown,
+): value is WebviewReloadFileMessage {
+  return isRecord(value) && value.command === 'reloadFile';
+}
+
+function isWebviewCopyTextMessage(
+  value: unknown,
+): value is WebviewCopyTextMessage {
+  return (
+    isRecord(value) &&
+    value.command === 'copyText' &&
+    typeof value.text === 'string'
+  );
 }
 
 function isWebviewSelectRuntimeMessage(

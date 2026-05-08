@@ -22,7 +22,8 @@
   ],
   "activationEvents": [
     "onCommand:riveTelemetry.openPanel",
-    "onCommand:riveTelemetry.inspectFile"
+    "onCommand:riveTelemetry.inspectFile",
+    "onCommand:riveTelemetry.reloadFile"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -34,6 +35,10 @@
       {
         "command": "riveTelemetry.inspectFile",
         "title": "RiveTelemetry: Inspect .riv File"
+      },
+      {
+        "command": "riveTelemetry.reloadFile",
+        "title": "RiveTelemetry: Reload Current .riv File"
       }
     ],
     "configuration": {

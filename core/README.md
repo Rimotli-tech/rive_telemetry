@@ -30,6 +30,27 @@ schema/rive_metadata.schema.json
 The current schema version is `1`. Consumers should reject unsupported schema
 versions instead of guessing.
 
+The contract is the shared boundary for the CLI, VS Code extension, and future
+generators. Root fields are stable and intentionally explicit:
+
+- `schemaVersion`: metadata contract version. Currently `1`.
+- `source`: inspected `.riv` source path or label.
+- `status`: `complete`, `partialUsable`, `partialWithIntegrationRisk`, or
+  `failed`.
+- `completeness`: per-section extraction flags.
+- `codegen`: whether Flutter/TypeScript generators may safely run.
+- `header`: parsed Rive file header metadata.
+- `artboards`: artboards with animations, state machines, inputs, and hierarchy.
+- `viewModels`: ViewModels, properties, instances, and instance values.
+- `recordCount` / `unknownRecordCount`: traversal diagnostics.
+- `warnings`: structured parser or integration warnings with severity.
+
+The exported media type constant is:
+
+```text
+application/vnd.rive-telemetry.metadata+json; schemaVersion=1
+```
+
 ## Usage
 
 ```dart
@@ -38,4 +59,16 @@ import 'package:rive_telemetry_core/rive_telemetry_core.dart';
 final metadata = await inspectRivFile('animation.riv');
 final json = metadataToJson(metadata);
 final decoded = metadataFromJson(json);
+```
+
+Compact CLI JSON:
+
+```bash
+dart run bin/rive_metadata_inspect.dart path/to/file.riv
+```
+
+Pretty JSON or file output:
+
+```bash
+dart run bin/rive_metadata_inspect.dart --pretty --out metadata.json path/to/file.riv
 ```
