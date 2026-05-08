@@ -320,6 +320,26 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
       border-color: rgba(138, 145, 157, 0.78);
       background: #151d25;
     }
+    .input-card.live-matched,
+    .input-card.runtime-active {
+      border-color: rgba(34, 197, 94, 0.28);
+      background: rgba(34, 197, 94, 0.045);
+    }
+    .input-card.live-missing {
+      border-color: rgba(250, 204, 21, 0.28);
+      background: rgba(250, 204, 21, 0.045);
+    }
+    .input-card.type-mismatch {
+      border-color: rgba(255, 180, 171, 0.34);
+      background: rgba(255, 180, 171, 0.055);
+    }
+    .input-card.unexpected-runtime {
+      border-color: rgba(159, 202, 255, 0.3);
+      background: rgba(159, 202, 255, 0.055);
+    }
+    .input-card.static-only {
+      opacity: 0.78;
+    }
     .input-main {
       min-width: 0;
     }
@@ -343,6 +363,41 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
       color: rgba(192, 199, 211, 0.7);
       font-size: 9px;
       line-height: 15px;
+    }
+    .state-pill {
+      padding: 0 6px;
+      border-radius: 3px;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 16px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .state-pill.live-matched,
+    .state-pill.runtime-active {
+      color: #86efac;
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.28);
+    }
+    .state-pill.live-missing {
+      color: #fde68a;
+      background: rgba(250, 204, 21, 0.11);
+      border: 1px solid rgba(250, 204, 21, 0.26);
+    }
+    .state-pill.type-mismatch {
+      color: var(--rt-red);
+      background: rgba(255, 180, 171, 0.11);
+      border: 1px solid rgba(255, 180, 171, 0.28);
+    }
+    .state-pill.unexpected-runtime {
+      color: var(--rt-primary);
+      background: rgba(159, 202, 255, 0.11);
+      border: 1px solid rgba(159, 202, 255, 0.28);
+    }
+    .state-pill.static-only {
+      color: rgba(192, 199, 211, 0.72);
+      background: rgba(192, 199, 211, 0.07);
+      border: 1px solid rgba(192, 199, 211, 0.18);
     }
     .input-detail {
       margin-top: 3px;
@@ -976,7 +1031,7 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
         app.innerHTML = \`
           <div class="layout">
             \${renderHeader(statusClass, statusText, telemetryStale)}
-            \${staticMetadata ? renderStaticSchema(staticMetadata, serverFailed) : renderWaitingForTelemetry(serverFailed)}
+            \${staticMetadata ? renderStaticSchema(staticMetadata, serverFailed, null, null, true) : renderWaitingForTelemetry(serverFailed)}
           </div>
         \`;
         bindInspectRivControl();
@@ -988,11 +1043,12 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
       }
 
       const viewModel = normalizeViewModelTelemetry(activePayload.viewModel);
+      const mergedSchemaSections = staticMetadata
+        ? renderStaticSchema(staticMetadata, serverFailed, activePayload, viewModel, controlsDisabled)
+        : null;
       const inputsSection = renderInputsSection(activePayload.inputs, controlsDisabled);
       const viewModelSection = renderViewModelSection(viewModel);
-      const orderedSections = viewModel.state === 'supported'
-        ? viewModelSection + inputsSection
-        : inputsSection + viewModelSection;
+      const orderedSections = mergedSchemaSections ?? (viewModelSection + inputsSection);
 
       app.innerHTML = \`
         <div class="layout">
@@ -1056,7 +1112,7 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
       \`;
     }
 
-    function renderStaticSchema(metadata, serverFailed) {
+    function renderStaticSchema(metadata, serverFailed, activePayload, liveViewModel, controlsDisabled) {
       const stateMachines = metadata.artboards.flatMap((artboard) =>
         (artboard.stateMachines ?? []).map((stateMachine) => ({...stateMachine, artboardName: artboard.name ?? 'Unnamed Artboard'}))
       );
@@ -1110,9 +1166,9 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
             \${renderCodegenNotes(metadata.codegen)}
             \${serverFailed ? '<p class="snapshot-copy">' + escapeHtml(serverStatus.serverError) + '</p>' : ''}
           </section>
-          \${renderStaticViewModels(metadata.viewModels ?? [])}
-          \${renderStaticStateMachines(metadata.artboards ?? [])}
-          \${renderStaticInputs(inputs)}
+          \${activePayload ? renderMergedViewModels(metadata.viewModels ?? [], liveViewModel, controlsDisabled) : renderStaticViewModels(metadata.viewModels ?? [])}
+          \${activePayload ? renderMergedStateMachines(metadata.artboards ?? [], activePayload) : renderStaticStateMachines(metadata.artboards ?? [])}
+          \${activePayload ? renderMergedInputs(inputs, activePayload.inputs ?? [], controlsDisabled) : renderStaticInputs(inputs)}
           \${renderStaticAnimations(animations)}
           \${renderStaticWarnings(metadata.warnings ?? [])}
         </div>
@@ -1174,6 +1230,272 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
             : rows}
         </section>
       \`;
+    }
+
+    function renderMergedViewModels(viewModels, liveViewModel, controlsDisabled) {
+      const live = liveViewModel && liveViewModel.state === 'supported' ? liveViewModel : null;
+      const schemaViewModel = matchSchemaViewModel(viewModels, live);
+      const usedLiveNames = new Set();
+      const groups = [];
+
+      for (const viewModel of viewModels) {
+        const isMatchedViewModel = schemaViewModel === viewModel && live;
+        const livePropertiesByName = new Map((isMatchedViewModel ? live.properties : []).map((property) => [property.name, property]));
+        const properties = (viewModel.properties ?? []).map((property) => {
+          const liveProperty = livePropertiesByName.get(property.name ?? '');
+          if (liveProperty) {
+            usedLiveNames.add(liveProperty.name);
+          }
+          const schemaType = normalizeTelemetryType(property.type ?? 'unknown');
+          const liveType = liveProperty ? normalizeTelemetryType(liveProperty.type) : null;
+          const state = !live
+            ? 'static-only'
+            : liveProperty
+              ? schemaType === liveType ? 'live-matched' : 'type-mismatch'
+              : 'live-missing';
+          return {
+            name: property.name ?? 'Unnamed Property',
+            type: schemaType,
+            schemaType,
+            liveType,
+            value: liveProperty?.value ?? null,
+            detail: liveProperty
+              ? schemaType === liveType
+                ? 'Runtime value: ' + formatViewModelValue(liveProperty.value)
+                : 'Expected ' + schemaType + ', runtime reported ' + liveType
+              : 'Expected from schema; no matching runtime value',
+            state,
+            liveProperty,
+          };
+        });
+
+        if (isMatchedViewModel) {
+          for (const liveProperty of live.properties) {
+            if (usedLiveNames.has(liveProperty.name)) {
+              continue;
+            }
+            properties.push({
+              name: liveProperty.name,
+              type: normalizeTelemetryType(liveProperty.type),
+              schemaType: null,
+              liveType: normalizeTelemetryType(liveProperty.type),
+              value: liveProperty.value,
+              detail: 'Runtime property was not found in loaded schema',
+              state: 'unexpected-runtime',
+              liveProperty,
+            });
+          }
+        }
+
+        groups.push(\`
+          <div class="property-group">
+            <div class="property-group-title">
+              \${escapeHtml(viewModel.name ?? 'Unnamed ViewModel')}
+              \${isMatchedViewModel ? renderStatePill('runtime-active') : renderStatePill(live ? 'live-missing' : 'static-only')}
+            </div>
+            \${properties.length === 0
+              ? '<p class="view-model-empty">No ViewModel properties found.</p>'
+              : renderGroupedItems(properties, (property) => property.type, (property) => renderMergedViewModelProperty(live, property, controlsDisabled))}
+          </div>
+        \`);
+      }
+
+      if (live && !schemaViewModel) {
+        groups.push(\`
+          <div class="property-group">
+            <div class="property-group-title">
+              \${escapeHtml(live.viewModelName || 'Runtime ViewModel')}
+              \${renderStatePill('unexpected-runtime')}
+            </div>
+            \${live.properties.length === 0
+              ? '<p class="view-model-empty">Runtime ViewModel reported no properties.</p>'
+              : renderGroupedItems(live.properties.map((property) => ({
+                  name: property.name,
+                  type: normalizeTelemetryType(property.type),
+                  value: property.value,
+                  detail: 'Runtime ViewModel was not found in loaded schema',
+                  state: 'unexpected-runtime',
+                  liveProperty: property,
+                })), (property) => property.type, (property) => renderMergedViewModelProperty(live, property, controlsDisabled))}
+          </div>
+        \`);
+      }
+
+      return \`
+        <section class="section-panel view-model-panel">
+          <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModels</h3>
+          \${!live && liveViewModel?.state === 'unsupported' ? '<p class="view-model-empty">Runtime ViewModel not available: ' + escapeHtml(liveViewModel.reason || '') + '</p>' : ''}
+          \${groups.length === 0 ? '<p class="view-model-empty">No ViewModels found in the loaded schema.</p>' : groups.join('')}
+        </section>
+      \`;
+    }
+
+    function renderMergedViewModelProperty(viewModel, property, controlsDisabled) {
+      const canControl = property.liveProperty && property.state !== 'type-mismatch' && !controlsDisabled;
+      const controlViewModel = viewModel && property.liveProperty
+        ? {...viewModel, properties: [property.liveProperty]}
+        : null;
+      return \`
+        <div data-input-name="\${escapeAttribute(property.name)}" class="input-card \${escapeAttribute(property.state)}">
+          <div class="input-main">
+            <div class="input-name-row">
+              <span class="input-name">\${escapeHtml(property.name)}</span>
+              <span class="pill">\${escapeHtml(property.schemaType ? 'schema ' + property.schemaType : property.type)}</span>
+              \${property.liveType && property.liveType !== property.schemaType ? '<span class="pill">runtime ' + escapeHtml(property.liveType) + '</span>' : ''}
+              \${renderStatePill(property.state)}
+            </div>
+            <div class="input-detail">\${escapeHtml(property.detail)}</div>
+          </div>
+          \${canControl ? renderViewModelPropertyControl(controlViewModel, property.liveProperty) : '<button type="button" disabled>Inactive</button>'}
+        </div>
+      \`;
+    }
+
+    function renderMergedStateMachines(artboards, activePayload) {
+      const runtimeStateMachine = activePayload?.stateMachine ?? '';
+      const runtimeArtboard = activePayload?.artboard ?? '';
+      const rows = artboards.map((artboard) => {
+        const stateMachines = artboard.stateMachines ?? [];
+        const cards = stateMachines.map((stateMachine) => {
+          const artboardMatches = !runtimeArtboard || runtimeArtboard === artboard.name;
+          const matched = artboardMatches && runtimeStateMachine === stateMachine.name;
+          const state = matched ? 'runtime-active' : 'static-only';
+          return renderMergedInfoCard(stateMachine.name ?? 'Unnamed State Machine', 'state machine', (stateMachine.inputs ?? []).length + ' input(s)', state, stateMachine.name ?? '');
+        }).join('');
+        return \`
+          <div class="property-group">
+            <div class="property-group-title">\${escapeHtml(artboard.name ?? 'Unnamed Artboard')}</div>
+            \${stateMachines.length === 0 ? '<p class="view-model-empty">No state machines found.</p>' : '<div class="input-grid">' + cards + '</div>'}
+          </div>
+        \`;
+      }).join('');
+
+      const knownRuntime = artboards.some((artboard) =>
+        (artboard.stateMachines ?? []).some((stateMachine) =>
+          (!runtimeArtboard || runtimeArtboard === artboard.name) && stateMachine.name === runtimeStateMachine
+        )
+      );
+      const unexpected = runtimeStateMachine && !knownRuntime
+        ? '<div class="property-group"><div class="property-group-title">Runtime only</div><div class="input-grid">' + renderMergedInfoCard(runtimeStateMachine, 'state machine', 'Runtime state machine was not found in loaded schema', 'unexpected-runtime', runtimeStateMachine) + '</div></div>'
+        : '';
+
+      return \`
+        <section class="section-panel">
+          <h3 class="section-title"><span class="section-icon">&#9672;</span>State Machines</h3>
+          \${rows}\${unexpected}
+        </section>
+      \`;
+    }
+
+    function renderMergedInputs(schemaInputs, liveInputs, controlsDisabled) {
+      const liveByKey = new Map((liveInputs ?? []).map((input) => [input.name + '|' + normalizeTelemetryType(input.type), input]));
+      const liveByName = new Map((liveInputs ?? []).map((input) => [input.name, input]));
+      const usedLive = new Set();
+      const rows = schemaInputs.map((input) => {
+        const schemaType = normalizeTelemetryType(input.type);
+        const liveExact = liveByKey.get(input.name + '|' + schemaType);
+        const liveBySameName = liveByName.get(input.name);
+        const live = liveExact ?? liveBySameName;
+        if (live) {
+          usedLive.add(live.name);
+        }
+        const liveType = live ? normalizeTelemetryType(live.type) : null;
+        const state = live
+          ? schemaType === liveType ? 'live-matched' : 'type-mismatch'
+          : 'live-missing';
+        return {
+          ...input,
+          type: schemaType,
+          value: live?.value ?? input.value,
+          liveType,
+          state,
+          detail: live
+            ? schemaType === liveType
+              ? input.artboardName + ' - ' + input.stateMachineName + ' - Value: ' + formatValue(live.value)
+              : 'Expected ' + schemaType + ', runtime reported ' + liveType
+            : input.artboardName + ' - ' + input.stateMachineName + ' - No matching runtime input',
+        };
+      });
+
+      for (const live of liveInputs ?? []) {
+        if (usedLive.has(live.name)) {
+          continue;
+        }
+        rows.push({
+          name: live.name,
+          type: normalizeTelemetryType(live.type),
+          value: live.value,
+          liveType: normalizeTelemetryType(live.type),
+          state: 'unexpected-runtime',
+          detail: 'Runtime input was not found in loaded schema',
+        });
+      }
+
+      return \`
+        <section class="section-panel inputs-panel">
+          <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
+          \${rows.length === 0
+            ? '<p class="view-model-empty">No inputs found in the loaded schema or runtime.</p>'
+            : renderGroupedItems(rows, (input) => input.type, (input) => renderMergedInputCard(input, controlsDisabled))}
+        </section>
+      \`;
+    }
+
+    function renderMergedInputCard(input, controlsDisabled) {
+      const canControl = input.state !== 'live-missing' && input.state !== 'type-mismatch';
+      return \`
+        <div data-input-name="\${escapeAttribute(input.name)}" class="input-card \${escapeAttribute(input.state)} \${rowClass(input)}">
+          <div class="input-main">
+            <div class="input-name-row">
+              <span class="input-name">\${escapeHtml(input.name)}</span>
+              <span class="pill">\${escapeHtml(input.type)}</span>
+              \${input.liveType && input.liveType !== input.type ? '<span class="pill">runtime ' + escapeHtml(input.liveType) + '</span>' : ''}
+              \${renderStatePill(input.state)}
+            </div>
+            <div class="input-detail">\${escapeHtml(input.detail)}</div>
+          </div>
+          \${canControl ? renderControl(input, controlsDisabled) : '<button type="button" disabled>Inactive</button>'}
+        </div>
+      \`;
+    }
+
+    function renderMergedInfoCard(name, type, detail, state, copyValue) {
+      return \`
+        <div class="input-card \${escapeAttribute(state)}">
+          <div class="input-main">
+            <div class="input-name-row">
+              <span class="input-name">\${escapeHtml(name)}</span>
+              <span class="pill">\${escapeHtml(type)}</span>
+              \${renderStatePill(state)}
+            </div>
+            <div class="input-detail">\${escapeHtml(detail)}</div>
+          </div>
+          \${copyValue ? '<button type="button" class="secondary" data-copy-text="' + escapeAttribute(copyValue) + '">Copy</button>' : ''}
+        </div>
+      \`;
+    }
+
+    function renderStatePill(state) {
+      const labels = {
+        'live-matched': 'Live matched',
+        'live-missing': 'Live missing',
+        'unexpected-runtime': 'Unexpected runtime',
+        'type-mismatch': 'Type mismatch',
+        'static-only': 'Static only',
+        'runtime-active': 'Runtime active',
+      };
+      return '<span class="state-pill ' + escapeAttribute(state) + '">' + escapeHtml(labels[state] ?? state) + '</span>';
+    }
+
+    function matchSchemaViewModel(viewModels, live) {
+      if (!live) {
+        return null;
+      }
+      const byName = viewModels.find((viewModel) => viewModel.name === live.viewModelName);
+      if (byName) {
+        return byName;
+      }
+      return viewModels.length === 1 ? viewModels[0] : null;
     }
 
     function renderStaticViewModelPropertyDetail(property) {
@@ -1303,6 +1625,7 @@ function getWebviewHtml(state, status, metadata, iconUri, cspSource) {
           </div>
           <div class="runtime-grid">
             \${renderStateMachineField(activePayload)}
+            \${activePayload.artboard ? renderRuntimeField('Artboard', activePayload.artboard, true) : ''}
             \${renderRuntimeField('Runtime ID', activePayload.runtimeId, true)}
             \${renderRuntimeField('Source', activePayload.source, true)}
             \${renderRuntimeField('Timestamp', formatTimestamp(activePayload.timestamp), true)}
