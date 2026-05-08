@@ -6,7 +6,14 @@ import 'package:rive_telemetry_core/rive_telemetry_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  final fixturePaths = ['../demo/assets/demo.riv', '../demo/assets/demo_2.riv'];
+  final fixturePaths = [
+    '../demo/assets/demo.riv',
+    '../demo/assets/demo_2.riv',
+    '../demo/assets/demo_2_v2.riv',
+    '../demo/assets/demo_2_v3.riv',
+    '../demo/assets/demo-new-1.riv',
+    '../demo/assets/demo-new-2.riv',
+  ];
 
   test('extracts schema metadata from repo fixtures', () async {
     final metadata = <RiveMetadata>[];
@@ -59,6 +66,21 @@ void main() {
       RiveMetadata(
         schemaVersion: 1,
         source: 'memory.riv',
+        status: RiveInspectionStatus.complete,
+        completeness: const RiveMetadataCompleteness(
+          artboardsComplete: true,
+          stateMachinesComplete: true,
+          inputsComplete: true,
+          viewModelsComplete: true,
+          viewModelInstancesComplete: true,
+          animationsComplete: true,
+        ),
+        codegen: const RiveCodegenEligibility(
+          canGenerateFlutter: true,
+          canGenerateTypeScript: true,
+          blockedReasons: [],
+          warnings: [],
+        ),
         header: const RiveHeaderMetadata(
           majorVersion: 7,
           minorVersion: 0,
@@ -77,14 +99,38 @@ void main() {
   });
 
   test(
-    'captures warnings instead of crashing on unsupported record data',
+    'captures warnings instead of crashing on unsupported property data',
     () async {
-      final metadata = await inspectRivFile(fixturePaths.last);
+      final bytes = Uint8List.fromList([
+        ...'RIVE'.codeUnits,
+        ..._varUint(7),
+        ..._varUint(0),
+        ..._varUint(1),
+        ..._varUint(0),
+        ..._varUint(12345),
+        ..._varUint(999),
+        ..._varUint(1),
+        ..._varUint(0),
+      ]);
+
+      final metadata = inspectRivBytes(bytes, source: 'unsupported.riv');
 
       expect(metadata.warnings, isNotEmpty);
       expect(metadata.warnings.first.code, 'unsupportedProperty');
     },
   );
+
+  test('schema debug reports property read failure context', () async {
+    final report = await debugRivSchemaFile('../demo/assets/demo_2.riv');
+
+    expect(report, contains('Property read failure'));
+    expect(report, contains('object/core type id:'));
+    expect(report, contains('property key: 681'));
+    expect(report, contains('encoded field type:'));
+    expect(report, contains('surrounding property keys:'));
+    expect(report, contains('raw bytes span:'));
+    expect(report, contains('Parent relationship'));
+  });
 
   test('missing files throw RiveInspectionException', () async {
     expect(
@@ -183,6 +229,69 @@ void main() {
     expect(value.type, RiveViewModelPropertyType.number);
     expect(value.value, closeTo(0.42, 0.00001));
   });
+
+  test(
+    'classifies demo_3 partial ViewModel instance data as codegen-safe risk',
+    () async {
+      final metadata = await inspectRivFile('../demo/assets/demo_3.riv');
+
+      expect(metadata.status, RiveInspectionStatus.partialWithIntegrationRisk);
+      expect(metadata.completeness.artboardsComplete, isTrue);
+      expect(metadata.completeness.viewModelsComplete, isTrue);
+      expect(metadata.completeness.viewModelInstancesComplete, isFalse);
+      expect(metadata.codegen.canGenerateFlutter, isTrue);
+      expect(metadata.codegen.canGenerateTypeScript, isTrue);
+      expect(metadata.codegen.blockedReasons, isEmpty);
+      expect(metadata.codegen.warnings, isNotEmpty);
+      expect(
+        metadata.artboards.map((artboard) => artboard.name),
+        contains('MainArtboard'),
+      );
+      expect(
+        metadata.artboards.expand((artboard) => artboard.animations).length,
+        greaterThanOrEqualTo(30),
+      );
+      expect(
+        metadata.artboards.expand((artboard) => artboard.stateMachines).length,
+        greaterThanOrEqualTo(4),
+      );
+      expect(
+        metadata.artboards
+            .expand((artboard) => artboard.stateMachines)
+            .map((stateMachine) => stateMachine.name),
+        contains('MainStateMachine'),
+      );
+
+      final viewModel = metadata.viewModels.singleWhere(
+        (viewModel) => viewModel.name == 'ViewModel1',
+      );
+      expect(viewModel.properties.length, greaterThanOrEqualTo(11));
+
+      final unsupportedThemeWarning = metadata.warnings.singleWhere(
+        (warning) =>
+            warning.code == 'unsupportedProperty' &&
+            warning.objectTypeKey == 626 &&
+            warning.objectName == 'themeColor',
+      );
+      expect(unsupportedThemeWarning.severity, RiveWarningSeverity.warning);
+
+      expect(
+        metadata.warnings.map((warning) => warning.code),
+        contains('unresolvedViewModelInstanceValue'),
+      );
+      expect(
+        metadata.warnings
+            .where(
+              (warning) => warning.code == 'unresolvedViewModelInstanceValue',
+            )
+            .every(
+              (warning) =>
+                  warning.severity == RiveWarningSeverity.integrationRisk,
+            ),
+        isTrue,
+      );
+    },
+  );
 
   test('repo fixtures exist for schema coverage', () {
     for (final fixturePath in fixturePaths) {

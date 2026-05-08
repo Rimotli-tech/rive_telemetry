@@ -1079,6 +1079,8 @@ export function getWebviewHtml(
                   <span>\${escapeHtml(inputs.length)} input(s)</span>
                   <span class="separator">&bull;</span>
                   <span>\${escapeHtml(metadata.warnings.length)} warning(s)</span>
+                  <span class="separator">&bull;</span>
+                  <span>\${escapeHtml(metadata.status ?? 'unknown')}</span>
                 </div>
               </div>
             </div>
@@ -1087,7 +1089,10 @@ export function getWebviewHtml(
               \${renderRuntimeField('Runtime Version', metadata.header.majorVersion + '.' + metadata.header.minorVersion, true)}
               \${renderRuntimeField('Records', String(metadata.recordCount), true)}
               \${renderRuntimeField('Unknown Records', String(metadata.unknownRecordCount), true)}
+              \${renderRuntimeField('Flutter Codegen', metadata.codegen?.canGenerateFlutter ? 'available' : 'blocked', true)}
+              \${renderRuntimeField('TypeScript Codegen', metadata.codegen?.canGenerateTypeScript ? 'available' : 'blocked', true)}
             </div>
+            \${renderCodegenNotes(metadata.codegen)}
             \${serverFailed ? '<p class="snapshot-copy">' + escapeHtml(serverStatus.serverError) + '</p>' : ''}
           </section>
           \${renderStaticViewModels(metadata.viewModels ?? [])}
@@ -1095,6 +1100,23 @@ export function getWebviewHtml(
           \${renderStaticInputs(inputs)}
           \${renderStaticAnimations(animations)}
           \${renderStaticWarnings(metadata.warnings ?? [])}
+        </div>
+      \`;
+    }
+
+    function renderCodegenNotes(codegen) {
+      if (!codegen) {
+        return '';
+      }
+      const blocked = codegen.blockedReasons ?? [];
+      const warnings = codegen.warnings ?? [];
+      if (blocked.length === 0 && warnings.length === 0) {
+        return '';
+      }
+      return \`
+        <div class="snapshot-copy">
+          \${blocked.map((reason) => '<div>Blocked: ' + escapeHtml(reason) + '</div>').join('')}
+          \${warnings.map((warning) => '<div>Warning: ' + escapeHtml(warning) + '</div>').join('')}
         </div>
       \`;
     }
@@ -1226,7 +1248,7 @@ export function getWebviewHtml(
       return \`
         <section class="section-panel view-model-unavailable">
           <h3 class="section-title"><span class="section-icon">&#9888;</span>Parser Warnings</h3>
-          <div class="input-grid">\${warnings.map((warning) => renderStaticInfoCard(warning.code, 'warning', warning.message)).join('')}</div>
+          <div class="input-grid">\${warnings.map((warning) => renderStaticInfoCard(warning.code, warning.severity ?? 'warning', warning.message)).join('')}</div>
         </section>
       \`;
     }

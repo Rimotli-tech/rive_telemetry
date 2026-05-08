@@ -26,6 +26,7 @@ abstract final class RiveSchema {
   static const int stateMachineNumberTypeKey = 56;
   static const int stateMachineTriggerTypeKey = 58;
   static const int stateMachineBoolTypeKey = 59;
+  static const int fileAssetContentsTypeKey = 106;
   static const int viewModelInstanceColorTypeKey = 426;
   static const int viewModelInstanceValueTypeKey = 428;
   static const int viewModelPropertyNumberTypeKey = 431;
@@ -58,6 +59,8 @@ abstract final class RiveSchema {
   static const int stateMachineComponentNamePropertyKey = 138;
   static const int stateMachineNumberValuePropertyKey = 140;
   static const int stateMachineBoolValuePropertyKey = 141;
+  static const int fileAssetContentsBytesPropertyKey = 212;
+  static const int fileAssetContentsUnknown911PropertyKey = 911;
   static const int viewModelInstanceValuePropertyIdPropertyKey = 554;
   static const int viewModelInstanceColorValuePropertyKey = 555;
   static const int viewModelComponentNamePropertyKey = 557;
@@ -99,6 +102,10 @@ abstract final class RiveSchema {
     stateMachineBoolTypeKey: RiveCoreType(
       stateMachineBoolTypeKey,
       'StateMachineBool',
+    ),
+    fileAssetContentsTypeKey: RiveCoreType(
+      fileAssetContentsTypeKey,
+      'FileAssetContents',
     ),
     viewModelTypeKey: RiveCoreType(viewModelTypeKey, 'ViewModel'),
     viewModelInstanceTypeKey: RiveCoreType(
@@ -213,6 +220,16 @@ abstract final class RiveSchema {
     stateMachineBoolValuePropertyKey: RivePropertyDefinition(
       'stateMachineBool.value',
       RiveFieldType.bool,
+    ),
+    fileAssetContentsBytesPropertyKey: RivePropertyDefinition(
+      'fileAssetContents.bytes',
+      RiveFieldType.bytes,
+    ),
+    // Seen in newer files after fileAssetContents.bytes. The generated Rive
+    // 0.13.20 schema does not name this field; treat it only as a bytes skip.
+    fileAssetContentsUnknown911PropertyKey: RivePropertyDefinition(
+      'fileAssetContents.unknown911',
+      RiveFieldType.bytes,
     ),
     viewModelComponentNamePropertyKey: RivePropertyDefinition(
       'viewModelComponent.name',

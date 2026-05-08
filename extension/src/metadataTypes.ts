@@ -1,12 +1,37 @@
 export interface RiveMetadata {
   schemaVersion: 1;
   source: string;
+  status: RiveInspectionStatus;
+  completeness: RiveMetadataCompleteness;
+  codegen: RiveCodegenEligibility;
   header: RiveHeaderMetadata;
   artboards: RiveArtboardMetadata[];
   viewModels: RiveViewModelMetadata[];
   recordCount: number;
   unknownRecordCount: number;
   warnings: RiveInspectionWarning[];
+}
+
+export type RiveInspectionStatus =
+  | 'complete'
+  | 'partialUsable'
+  | 'partialWithIntegrationRisk'
+  | 'failed';
+
+export interface RiveMetadataCompleteness {
+  artboardsComplete: boolean;
+  stateMachinesComplete: boolean;
+  inputsComplete: boolean;
+  viewModelsComplete: boolean;
+  viewModelInstancesComplete: boolean;
+  animationsComplete: boolean;
+}
+
+export interface RiveCodegenEligibility {
+  canGenerateFlutter: boolean;
+  canGenerateTypeScript: boolean;
+  blockedReasons: string[];
+  warnings: string[];
 }
 
 export interface RiveHeaderMetadata {
@@ -18,9 +43,13 @@ export interface RiveHeaderMetadata {
 
 export interface RiveInspectionWarning {
   code: string;
+  severity: 'info' | 'warning' | 'integrationRisk' | 'fatal';
   message: string;
   offset?: number;
   propertyKey?: number;
+  objectTypeKey?: number;
+  objectTypeName?: string | null;
+  objectName?: string | null;
 }
 
 export interface RiveArtboardMetadata {
@@ -110,6 +139,9 @@ export function isRiveMetadata(value: unknown): value is RiveMetadata {
   return (
     value.schemaVersion === 1 &&
     typeof value.source === 'string' &&
+    typeof value.status === 'string' &&
+    isRecord(value.completeness) &&
+    isRecord(value.codegen) &&
     isRecord(value.header) &&
     typeof value.header.majorVersion === 'number' &&
     typeof value.header.minorVersion === 'number' &&

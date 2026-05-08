@@ -4,6 +4,9 @@ class RiveMetadata {
   const RiveMetadata({
     required this.schemaVersion,
     required this.source,
+    required this.status,
+    required this.completeness,
+    required this.codegen,
     required this.header,
     required this.artboards,
     required this.viewModels,
@@ -14,6 +17,9 @@ class RiveMetadata {
 
   final int schemaVersion;
   final String source;
+  final RiveInspectionStatus status;
+  final RiveMetadataCompleteness completeness;
+  final RiveCodegenEligibility codegen;
   final RiveHeaderMetadata header;
   final List<RiveArtboardMetadata> artboards;
   final List<RiveViewModelMetadata> viewModels;
@@ -32,6 +38,16 @@ class RiveMetadata {
     return RiveMetadata(
       schemaVersion: schemaVersion,
       source: _readString(json, 'source'),
+      status: _readEnum(
+        json,
+        'status',
+        RiveInspectionStatus.values,
+        'inspection status',
+      ),
+      completeness: RiveMetadataCompleteness.fromJson(
+        _readMap(json, 'completeness'),
+      ),
+      codegen: RiveCodegenEligibility.fromJson(_readMap(json, 'codegen')),
       header: RiveHeaderMetadata.fromJson(_readMap(json, 'header')),
       artboards: _readList(
         json,
@@ -53,12 +69,97 @@ class RiveMetadata {
   Map<String, Object?> toJson() => {
     'schemaVersion': schemaVersion,
     'source': source,
+    'status': status.name,
+    'completeness': completeness.toJson(),
+    'codegen': codegen.toJson(),
     'header': header.toJson(),
     'artboards': artboards.map((artboard) => artboard.toJson()).toList(),
     'viewModels': viewModels.map((viewModel) => viewModel.toJson()).toList(),
     'recordCount': recordCount,
     'unknownRecordCount': unknownRecordCount,
     'warnings': warnings.map((warning) => warning.toJson()).toList(),
+  };
+}
+
+enum RiveInspectionStatus {
+  complete,
+  partialUsable,
+  partialWithIntegrationRisk,
+  failed,
+}
+
+class RiveMetadataCompleteness {
+  const RiveMetadataCompleteness({
+    required this.artboardsComplete,
+    required this.stateMachinesComplete,
+    required this.inputsComplete,
+    required this.viewModelsComplete,
+    required this.viewModelInstancesComplete,
+    required this.animationsComplete,
+  });
+
+  final bool artboardsComplete;
+  final bool stateMachinesComplete;
+  final bool inputsComplete;
+  final bool viewModelsComplete;
+  final bool viewModelInstancesComplete;
+  final bool animationsComplete;
+
+  factory RiveMetadataCompleteness.fromJson(Map<String, Object?> json) =>
+      RiveMetadataCompleteness(
+        artboardsComplete: _readBool(json, 'artboardsComplete'),
+        stateMachinesComplete: _readBool(json, 'stateMachinesComplete'),
+        inputsComplete: _readBool(json, 'inputsComplete'),
+        viewModelsComplete: _readBool(json, 'viewModelsComplete'),
+        viewModelInstancesComplete: _readBool(
+          json,
+          'viewModelInstancesComplete',
+        ),
+        animationsComplete: _readBool(json, 'animationsComplete'),
+      );
+
+  Map<String, Object?> toJson() => {
+    'artboardsComplete': artboardsComplete,
+    'stateMachinesComplete': stateMachinesComplete,
+    'inputsComplete': inputsComplete,
+    'viewModelsComplete': viewModelsComplete,
+    'viewModelInstancesComplete': viewModelInstancesComplete,
+    'animationsComplete': animationsComplete,
+  };
+}
+
+class RiveCodegenEligibility {
+  const RiveCodegenEligibility({
+    required this.canGenerateFlutter,
+    required this.canGenerateTypeScript,
+    required this.blockedReasons,
+    required this.warnings,
+  });
+
+  final bool canGenerateFlutter;
+  final bool canGenerateTypeScript;
+  final List<String> blockedReasons;
+  final List<String> warnings;
+
+  factory RiveCodegenEligibility.fromJson(Map<String, Object?> json) =>
+      RiveCodegenEligibility(
+        canGenerateFlutter: _readBool(json, 'canGenerateFlutter'),
+        canGenerateTypeScript: _readBool(json, 'canGenerateTypeScript'),
+        blockedReasons: _readList(
+          json,
+          'blockedReasons',
+        ).map((item) => item as String).toList(),
+        warnings: _readList(
+          json,
+          'warnings',
+        ).map((item) => item as String).toList(),
+      );
+
+  Map<String, Object?> toJson() => {
+    'canGenerateFlutter': canGenerateFlutter,
+    'canGenerateTypeScript': canGenerateTypeScript,
+    'blockedReasons': blockedReasons,
+    'warnings': warnings,
   };
 }
 
@@ -94,31 +195,54 @@ class RiveHeaderMetadata {
 class RiveInspectionWarning {
   const RiveInspectionWarning({
     required this.code,
+    required this.severity,
     required this.message,
     this.offset,
     this.propertyKey,
+    this.objectTypeKey,
+    this.objectTypeName,
+    this.objectName,
   });
 
   final String code;
+  final RiveWarningSeverity severity;
   final String message;
   final int? offset;
   final int? propertyKey;
+  final int? objectTypeKey;
+  final String? objectTypeName;
+  final String? objectName;
 
   factory RiveInspectionWarning.fromJson(Map<String, Object?> json) =>
       RiveInspectionWarning(
         code: _readString(json, 'code'),
+        severity: _readEnum(
+          json,
+          'severity',
+          RiveWarningSeverity.values,
+          'warning severity',
+        ),
         message: _readString(json, 'message'),
         offset: _readNullableInt(json, 'offset'),
         propertyKey: _readNullableInt(json, 'propertyKey'),
+        objectTypeKey: _readNullableInt(json, 'objectTypeKey'),
+        objectTypeName: _readNullableString(json, 'objectTypeName'),
+        objectName: _readNullableString(json, 'objectName'),
       );
 
   Map<String, Object?> toJson() => {
     'code': code,
+    'severity': severity.name,
     'message': message,
     if (offset != null) 'offset': offset,
     if (propertyKey != null) 'propertyKey': propertyKey,
+    if (objectTypeKey != null) 'objectTypeKey': objectTypeKey,
+    if (objectTypeName != null) 'objectTypeName': objectTypeName,
+    if (objectName != null) 'objectName': objectName,
   };
 }
+
+enum RiveWarningSeverity { info, warning, integrationRisk, fatal }
 
 class RiveArtboardMetadata {
   RiveArtboardMetadata({
@@ -522,4 +646,25 @@ double? _readNullableDouble(Map<String, Object?> json, String key) {
     return value;
   }
   throw FormatException('Expected "$key" to be a number or null');
+}
+
+bool _readBool(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is bool) {
+    return value;
+  }
+  throw FormatException('Expected "$key" to be a boolean');
+}
+
+T _readEnum<T extends Enum>(
+  Map<String, Object?> json,
+  String key,
+  List<T> values,
+  String label,
+) {
+  final name = _readString(json, key);
+  return values.firstWhere(
+    (value) => value.name == name,
+    orElse: () => throw FormatException('Unknown $label $name'),
+  );
 }

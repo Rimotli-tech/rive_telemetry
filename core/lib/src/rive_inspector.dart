@@ -31,6 +31,29 @@ class RiveInspector {
     final parser = _RiveMetadataParser(bytes, source);
     return parser.parse();
   }
+
+  Future<String> debugSchemaFile(String path) async {
+    final file = File(path);
+    if (!await file.exists()) {
+      throw RiveInspectionException('File does not exist: $path');
+    }
+
+    try {
+      return debugSchemaBytes(await file.readAsBytes(), source: path);
+    } on RiveInspectionException {
+      rethrow;
+    } catch (error) {
+      throw RiveInspectionException(
+        'Failed to inspect .riv file schema',
+        cause: error,
+      );
+    }
+  }
+
+  String debugSchemaBytes(Uint8List bytes, {String source = '<memory>'}) {
+    final parser = _RiveMetadataParser(bytes, source);
+    return parser.debugSchema();
+  }
 }
 
 Future<RiveMetadata> inspectRivFile(String path) =>
@@ -39,10 +62,18 @@ Future<RiveMetadata> inspectRivFile(String path) =>
 RiveMetadata inspectRivBytes(Uint8List bytes, {String source = '<memory>'}) =>
     const RiveInspector().inspectBytes(bytes, source: source);
 
+Future<String> debugRivSchemaFile(String path) =>
+    const RiveInspector().debugSchemaFile(path);
+
+String debugRivSchemaBytes(Uint8List bytes, {String source = '<memory>'}) =>
+    const RiveInspector().debugSchemaBytes(bytes, source: source);
+
 class _RiveMetadataParser {
   _RiveMetadataParser(Uint8List bytes, this.source)
-    : _reader = RiveBinaryReader(bytes);
+    : _bytes = bytes,
+      _reader = RiveBinaryReader(bytes);
 
+  final Uint8List _bytes;
   final RiveBinaryReader _reader;
   final String source;
   final _warnings = <RiveInspectionWarning>[];
@@ -52,24 +83,90 @@ class _RiveMetadataParser {
     _header = _readHeader();
 
     final records = <_RiveRecord>[];
+    while (!_reader.isEOF) {
+      try {
+        records.add(_readRecord(records.length));
+      } on _UnsupportedProperty catch (error) {
+        final recoveryOffset = _findNextMetadataRecordOffset(
+          error.valueOffset ?? error.offset,
+        );
+        _warnings.add(
+          RiveInspectionWarning(
+            code: 'unsupportedProperty',
+            severity: RiveWarningSeverity.warning,
+            message: recoveryOffset == null
+                ? 'Stopped at unsupported property key ${error.propertyKey}. '
+                      'Parsed metadata before this point was kept.'
+                : 'Skipped unsupported property key ${error.propertyKey} on '
+                      'object ${error.typeKey} and resumed at offset '
+                      '$recoveryOffset.',
+            offset: error.offset,
+            propertyKey: error.propertyKey,
+            objectTypeKey: error.typeKey,
+            objectTypeName: error.typeName,
+            objectName: error.objectName,
+          ),
+        );
+        if (recoveryOffset == null || recoveryOffset <= _reader.offset) {
+          break;
+        }
+        _reader.seek(recoveryOffset);
+      } on _PropertyReadFailure catch (error) {
+        final recoveryOffset = _findNextMetadataRecordOffset(error.valueOffset);
+        _warnings.add(
+          RiveInspectionWarning(
+            code: 'propertyReadFailure',
+            severity: RiveWarningSeverity.warning,
+            message: recoveryOffset == null
+                ? 'Stopped after property ${error.propertyKey} failed to read: '
+                      '${error.cause}.'
+                : 'Skipped unreadable property ${error.propertyKey} on object '
+                      '${error.typeKey} and resumed at offset $recoveryOffset.',
+            offset: error.offset,
+            propertyKey: error.propertyKey,
+            objectTypeKey: error.typeKey,
+            objectTypeName: error.typeName,
+            objectName: error.objectName,
+          ),
+        );
+        if (recoveryOffset == null || recoveryOffset <= _reader.offset) {
+          break;
+        }
+        _reader.seek(recoveryOffset);
+      }
+    }
+
+    return _buildMetadata(records);
+  }
+
+  String debugSchema() {
+    _header = _readHeader();
+
+    final records = <_RiveRecord>[];
     try {
       while (!_reader.isEOF) {
         records.add(_readRecord(records.length));
       }
     } on _UnsupportedProperty catch (error) {
-      _warnings.add(
-        RiveInspectionWarning(
-          code: 'unsupportedProperty',
-          message:
-              'Stopped at unsupported property key ${error.propertyKey}. '
-              'Parsed metadata before this point was kept.',
-          offset: error.offset,
-          propertyKey: error.propertyKey,
-        ),
-      );
+      return _formatSchemaDebugReport(error, records);
+    } on _PropertyReadFailure catch (error) {
+      return _formatPropertyReadFailureReport(error, records);
     }
 
-    return _buildMetadata(records);
+    final metadata = _buildMetadata(records);
+    final buffer = StringBuffer()
+      ..writeln('Rive schema debug')
+      ..writeln('source: $source')
+      ..writeln(
+        'header: ${metadata.header.majorVersion}.${metadata.header.minorVersion}, '
+        'fileId=${metadata.header.fileId}, '
+        'propertyKeyCount=${metadata.header.propertyKeyCount}',
+      )
+      ..writeln('result: parsed without unsupported properties')
+      ..writeln('records: ${metadata.recordCount}')
+      ..writeln('artboards: ${metadata.artboards.length}')
+      ..writeln('viewModels: ${metadata.viewModels.length}');
+    return buffer.toString();
   }
 
   _ParsedHeader _readHeader() {
@@ -144,7 +241,33 @@ class _RiveMetadataParser {
       if (propertyKey == 0) {
         break;
       }
-      properties[propertyKey] = _readPropertyValue(propertyKey);
+      final valueOffset = _reader.offset;
+      try {
+        properties[propertyKey] = _readPropertyValue(propertyKey);
+      } on _UnsupportedProperty catch (error) {
+        throw error.withRecordContext(
+          recordIndex: index,
+          recordOffset: recordOffset,
+          typeKey: typeKey,
+          typeName: RiveSchema.coreTypes[typeKey]?.name,
+          propertiesRead: Map.unmodifiable(properties),
+          previousPropertyKeys: List.unmodifiable(properties.keys),
+          valueOffset: valueOffset,
+        );
+      } catch (error) {
+        throw _PropertyReadFailure(
+          propertyKey: propertyKey,
+          offset: valueOffset,
+          recordIndex: index,
+          recordOffset: recordOffset,
+          typeKey: typeKey,
+          typeName: RiveSchema.coreTypes[typeKey]?.name,
+          propertiesRead: Map.unmodifiable(properties),
+          previousPropertyKeys: List.unmodifiable(properties.keys),
+          valueOffset: valueOffset,
+          cause: error,
+        );
+      }
     }
 
     return _RiveRecord(
@@ -333,9 +456,20 @@ class _RiveMetadataParser {
       }
     }
 
+    final viewModels = viewModelBuilders.values
+        .map((builder) => builder.toMetadata())
+        .toList();
+    _addIntegrationWarnings(artboards, viewModels);
+    final completeness = _completenessFor(artboards, viewModels);
+    final status = _statusFor(artboards, viewModels);
+    final codegen = _codegenFor(artboards, viewModels, status);
+
     return RiveMetadata(
       schemaVersion: riveMetadataSchemaVersion,
       source: source,
+      status: status,
+      completeness: completeness,
+      codegen: codegen,
       header: RiveHeaderMetadata(
         majorVersion: _header.majorVersion,
         minorVersion: _header.minorVersion,
@@ -343,14 +477,142 @@ class _RiveMetadataParser {
         propertyKeyCount: _header.propertyKeys.length,
       ),
       artboards: artboards,
-      viewModels: viewModelBuilders.values
-          .map((builder) => builder.toMetadata())
-          .toList(),
+      viewModels: viewModels,
       recordCount: records.length,
       unknownRecordCount: records
           .where((record) => record.typeName == null)
           .length,
       warnings: List.unmodifiable(_warnings),
+    );
+  }
+
+  void _addIntegrationWarnings(
+    List<RiveArtboardMetadata> artboards,
+    List<RiveViewModelMetadata> viewModels,
+  ) {
+    for (final viewModel in viewModels) {
+      final propertiesById = {
+        for (final property in viewModel.properties) property.id: property,
+      };
+      for (final instance in viewModel.instances) {
+        for (final value in instance.values) {
+          final property = value.propertyId == null
+              ? null
+              : propertiesById[value.propertyId];
+          if (property == null) {
+            _warnings.add(
+              RiveInspectionWarning(
+                code: 'unresolvedViewModelInstanceValue',
+                severity: RiveWarningSeverity.integrationRisk,
+                message:
+                    'ViewModel "${viewModel.name ?? viewModel.id}" instance '
+                    '"${instance.name ?? instance.id}" has a value for unresolved '
+                    'property id ${value.propertyId}. Generated property '
+                    'accessors can still be created, but instance defaults may '
+                    'be incomplete.',
+              ),
+            );
+          } else if (property.type != value.type) {
+            _warnings.add(
+              RiveInspectionWarning(
+                code: 'viewModelInstanceTypeMismatch',
+                severity: RiveWarningSeverity.integrationRisk,
+                message:
+                    'ViewModel "${viewModel.name ?? viewModel.id}" instance '
+                    '"${instance.name ?? instance.id}" reports '
+                    '${value.type.name} for "${property.name ?? property.id}", '
+                    'but the property definition is ${property.type.name}.',
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    if (artboards.isEmpty && viewModels.isEmpty && _warnings.isNotEmpty) {
+      _warnings.add(
+        const RiveInspectionWarning(
+          code: 'noIntegrationMetadataExtracted',
+          severity: RiveWarningSeverity.fatal,
+          message:
+              'Inspection stopped before artboards or ViewModels could be extracted.',
+        ),
+      );
+    }
+  }
+
+  RiveMetadataCompleteness _completenessFor(
+    List<RiveArtboardMetadata> artboards,
+    List<RiveViewModelMetadata> viewModels,
+  ) {
+    final failed =
+        artboards.isEmpty &&
+        viewModels.isEmpty &&
+        _warnings.any(
+          (warning) => warning.severity == RiveWarningSeverity.fatal,
+        );
+    final viewModelInstanceRisk = _warnings.any(
+      (warning) =>
+          warning.code == 'unresolvedViewModelInstanceValue' ||
+          warning.code == 'viewModelInstanceTypeMismatch',
+    );
+    final basicComplete = !failed;
+    return RiveMetadataCompleteness(
+      artboardsComplete: basicComplete && artboards.isNotEmpty,
+      stateMachinesComplete: basicComplete && artboards.isNotEmpty,
+      inputsComplete: basicComplete && artboards.isNotEmpty,
+      viewModelsComplete: basicComplete,
+      viewModelInstancesComplete: basicComplete && !viewModelInstanceRisk,
+      animationsComplete: basicComplete && artboards.isNotEmpty,
+    );
+  }
+
+  RiveInspectionStatus _statusFor(
+    List<RiveArtboardMetadata> artboards,
+    List<RiveViewModelMetadata> viewModels,
+  ) {
+    if (_warnings.any(
+      (warning) => warning.severity == RiveWarningSeverity.fatal,
+    )) {
+      return RiveInspectionStatus.failed;
+    }
+    if (_warnings.any(
+      (warning) => warning.severity == RiveWarningSeverity.integrationRisk,
+    )) {
+      return RiveInspectionStatus.partialWithIntegrationRisk;
+    }
+    if (_warnings.isNotEmpty) {
+      return RiveInspectionStatus.partialUsable;
+    }
+    return RiveInspectionStatus.complete;
+  }
+
+  RiveCodegenEligibility _codegenFor(
+    List<RiveArtboardMetadata> artboards,
+    List<RiveViewModelMetadata> viewModels,
+    RiveInspectionStatus status,
+  ) {
+    final blockedReasons = <String>[];
+    final codegenWarnings = <String>[];
+    if (status == RiveInspectionStatus.failed) {
+      blockedReasons.add(
+        'Inspection failed before integration metadata was available.',
+      );
+    }
+    if (artboards.isEmpty && viewModels.isEmpty) {
+      blockedReasons.add('No artboards or ViewModels were extracted.');
+    }
+    for (final warning in _warnings) {
+      if (warning.severity == RiveWarningSeverity.integrationRisk) {
+        codegenWarnings.add(warning.message);
+      }
+    }
+    final canGenerate = blockedReasons.isEmpty;
+    return RiveCodegenEligibility(
+      canGenerateFlutter: canGenerate,
+      canGenerateTypeScript: canGenerate,
+      blockedReasons: blockedReasons,
+      warnings: codegenWarnings,
     );
   }
 
@@ -369,6 +631,164 @@ class _RiveMetadataParser {
       speed: record.doubleProperty(RiveSchema.animationSpeedPropertyKey),
       loop: record.intProperty(RiveSchema.animationLoopPropertyKey),
     );
+  }
+
+  String _formatSchemaDebugReport(
+    _UnsupportedProperty error,
+    List<_RiveRecord> records,
+  ) {
+    final propertiesRead = error.propertiesRead ?? const <int, Object?>{};
+    final objectName =
+        _stringFrom(propertiesRead, RiveSchema.componentNamePropertyKey) ??
+        _stringFrom(propertiesRead, RiveSchema.animationNamePropertyKey) ??
+        _stringFrom(
+          propertiesRead,
+          RiveSchema.stateMachineComponentNamePropertyKey,
+        ) ??
+        _stringFrom(
+          propertiesRead,
+          RiveSchema.viewModelComponentNamePropertyKey,
+        );
+    final parentId = _intFrom(
+      propertiesRead,
+      RiveSchema.componentParentIdPropertyKey,
+    );
+    final headerFieldType = _header.propertyFieldTypes[error.propertyKey];
+    final schemaFieldType = RiveSchema.properties[error.propertyKey]?.type;
+    final skipFieldType = RiveSchema.corePropertyFieldTypes[error.propertyKey];
+    final encodedFieldType = schemaFieldType != null
+        ? 'vendored semantic schema: ${schemaFieldType.name}'
+        : skipFieldType != null
+        ? 'vendored skip map: ${skipFieldType.name}'
+        : headerFieldType != null
+        ? 'file header: ${headerFieldType.name}'
+        : 'unknown; key is absent from vendored schema, skip map, and file header';
+    final previousKeys = error.previousPropertyKeys ?? const <int>[];
+    final valueOffset = error.valueOffset ?? error.offset;
+    final rawStart = (valueOffset - 16).clamp(0, _bytes.length).toInt();
+    final rawEnd = (valueOffset + 48).clamp(0, _bytes.length).toInt();
+    final followingCandidates = _readVarUintCandidates(valueOffset, 8);
+    final parentRecord =
+        parentId == null || parentId < 0 || parentId >= records.length
+        ? null
+        : records[parentId];
+
+    final buffer = StringBuffer()
+      ..writeln('Rive schema debug')
+      ..writeln('source: $source')
+      ..writeln(
+        'header: ${_header.majorVersion}.${_header.minorVersion}, '
+        'fileId=${_header.fileId}, '
+        'propertyKeyCount=${_header.propertyKeys.length}',
+      )
+      ..writeln()
+      ..writeln('Unsupported property')
+      ..writeln('- object/core type id: ${error.typeKey ?? 'unknown'}')
+      ..writeln('- object/core type name: ${error.typeName ?? 'unknown'}')
+      ..writeln('- object record index: ${error.recordIndex ?? 'unknown'}')
+      ..writeln('- object record offset: ${_formatOffset(error.recordOffset)}')
+      ..writeln('- object name if known: ${objectName ?? 'unknown'}')
+      ..writeln('- property key: ${error.propertyKey}')
+      ..writeln('- property key offset: ${_formatOffset(error.offset)}')
+      ..writeln('- property value offset: ${_formatOffset(error.valueOffset)}')
+      ..writeln('- encoded field type: $encodedFieldType')
+      ..writeln(
+        '- surrounding property keys: previous=[${previousKeys.join(', ')}], '
+        'next-varuint-candidates=[${followingCandidates.join(', ')}]',
+      )
+      ..writeln(
+        '- raw bytes span: ${_formatOffset(rawStart)}..${_formatOffset(rawEnd)}',
+      )
+      ..writeln(_formatHexSpan(rawStart, rawEnd))
+      ..writeln()
+      ..writeln('Parent relationship')
+      ..writeln(
+        '- parent id property: ${parentId ?? 'not present before failure'}',
+      )
+      ..writeln(
+        '- parent object: ${parentRecord == null ? 'unknown' : '${parentRecord.index} '
+                  'type=${parentRecord.typeKey} '
+                  'name=${parentRecord.typeName ?? 'unknown'} '
+                  'objectName=${_recordName(parentRecord) ?? 'unknown'}'}',
+      )
+      ..writeln()
+      ..writeln('Records parsed before failure: ${records.length}');
+    return buffer.toString();
+  }
+
+  String _formatPropertyReadFailureReport(
+    _PropertyReadFailure error,
+    List<_RiveRecord> records,
+  ) {
+    final propertiesRead = error.propertiesRead;
+    final objectName =
+        _stringFrom(propertiesRead, RiveSchema.componentNamePropertyKey) ??
+        _stringFrom(propertiesRead, RiveSchema.animationNamePropertyKey) ??
+        _stringFrom(
+          propertiesRead,
+          RiveSchema.stateMachineComponentNamePropertyKey,
+        ) ??
+        _stringFrom(
+          propertiesRead,
+          RiveSchema.viewModelComponentNamePropertyKey,
+        );
+    final parentId = _intFrom(
+      propertiesRead,
+      RiveSchema.componentParentIdPropertyKey,
+    );
+    final previousKeys = error.previousPropertyKeys;
+    final rawStart = (error.valueOffset - 16).clamp(0, _bytes.length).toInt();
+    final rawEnd = (error.valueOffset + 64).clamp(0, _bytes.length).toInt();
+    final parentRecord =
+        parentId == null || parentId < 0 || parentId >= records.length
+        ? null
+        : records[parentId];
+
+    final buffer = StringBuffer()
+      ..writeln('Rive schema debug')
+      ..writeln('source: $source')
+      ..writeln(
+        'header: ${_header.majorVersion}.${_header.minorVersion}, '
+        'fileId=${_header.fileId}, '
+        'propertyKeyCount=${_header.propertyKeys.length}',
+      )
+      ..writeln()
+      ..writeln('Property read failure')
+      ..writeln('- object/core type id: ${error.typeKey}')
+      ..writeln('- object/core type name: ${error.typeName ?? 'unknown'}')
+      ..writeln('- object record index: ${error.recordIndex}')
+      ..writeln('- object record offset: ${_formatOffset(error.recordOffset)}')
+      ..writeln('- object name if known: ${objectName ?? 'unknown'}')
+      ..writeln('- property key: ${error.propertyKey}')
+      ..writeln('- property value offset: ${_formatOffset(error.valueOffset)}')
+      ..writeln(
+        '- encoded field type: ${_fieldTypeDescription(error.propertyKey)}',
+      )
+      ..writeln('- cause: ${error.cause}')
+      ..writeln(
+        '- surrounding property keys: previous=[${previousKeys.join(', ')}], '
+        'next-varuint-candidates=[${_readVarUintCandidates(error.valueOffset, 8).join(', ')}]',
+      )
+      ..writeln('- previous property details:')
+      ..writeln(_formatPropertyDetails(previousKeys))
+      ..writeln(
+        '- raw bytes span: ${_formatOffset(rawStart)}..${_formatOffset(rawEnd)}',
+      )
+      ..writeln(_formatHexSpan(rawStart, rawEnd))
+      ..writeln()
+      ..writeln('Parent relationship')
+      ..writeln(
+        '- parent id property: ${parentId ?? 'not present before failure'}',
+      )
+      ..writeln(
+        '- parent object: ${parentRecord == null ? 'unknown' : '${parentRecord.index} '
+                  'type=${parentRecord.typeKey} '
+                  'name=${parentRecord.typeName ?? 'unknown'} '
+                  'objectName=${_recordName(parentRecord) ?? 'unknown'}'}',
+      )
+      ..writeln()
+      ..writeln('Records parsed before failure: ${records.length}');
+    return buffer.toString();
   }
 
   RiveViewModelPropertyMetadata _viewModelPropertyFromRecord(
@@ -461,6 +881,174 @@ class _RiveMetadataParser {
     }
     return RiveViewModelPropertyType.unknown;
   }
+
+  int? _findNextMetadataRecordOffset(int startOffset) {
+    for (var offset = startOffset + 1; offset < _bytes.length; offset++) {
+      final type = _readVarUintAt(offset);
+      if (type == null || !_metadataRecoveryTypeKeys.contains(type.value)) {
+        continue;
+      }
+      final property = _readVarUintAt(type.nextOffset);
+      if (property == null ||
+          !_metadataRecoveryPropertyKeys.contains(property.value)) {
+        continue;
+      }
+      return offset;
+    }
+    return null;
+  }
+
+  String _formatPropertyDetails(List<int> propertyKeys) {
+    if (propertyKeys.isEmpty) {
+      return '  none';
+    }
+    return propertyKeys
+        .map((key) => '  $key: ${_fieldTypeDescription(key)}')
+        .join('\n');
+  }
+
+  String _fieldTypeDescription(int propertyKey) {
+    final schemaFieldType = RiveSchema.properties[propertyKey]?.type;
+    final skipFieldType = RiveSchema.corePropertyFieldTypes[propertyKey];
+    final headerFieldType = _header.propertyFieldTypes[propertyKey];
+    final parts = <String>[];
+    if (schemaFieldType != null) {
+      parts.add('vendored semantic schema=${schemaFieldType.name}');
+    }
+    if (skipFieldType != null) {
+      parts.add('vendored skip map=${skipFieldType.name}');
+    }
+    if (headerFieldType != null) {
+      parts.add('file header=${headerFieldType.name}');
+    }
+    return parts.isEmpty ? 'unknown' : parts.join(', ');
+  }
+
+  String _formatHexSpan(int start, int end) {
+    final buffer = StringBuffer();
+    for (var row = start; row < end; row += 16) {
+      final rowEnd = (row + 16).clamp(row, end);
+      final hex = [
+        for (var offset = row; offset < rowEnd; offset++)
+          _bytes[offset].toRadixString(16).padLeft(2, '0').toUpperCase(),
+      ].join(' ');
+      buffer.writeln('  ${_formatOffset(row)}  $hex');
+    }
+    return buffer.toString().trimRight();
+  }
+
+  List<int> _readVarUintCandidates(int offset, int count) {
+    final candidates = <int>[];
+    var cursor = offset;
+    for (var i = 0; i < count && cursor < _bytes.length; i++) {
+      var value = 0;
+      var shift = 0;
+      var valid = false;
+      for (
+        var byteCount = 0;
+        byteCount < 10 && cursor < _bytes.length;
+        byteCount++
+      ) {
+        final byte = _bytes[cursor++];
+        value |= (byte & 0x7f) << shift;
+        if ((byte & 0x80) == 0) {
+          valid = true;
+          break;
+        }
+        shift += 7;
+      }
+      if (!valid) {
+        break;
+      }
+      candidates.add(value);
+    }
+    return candidates;
+  }
+
+  _VarUintRead? _readVarUintAt(int offset) {
+    var value = 0;
+    var shift = 0;
+    var cursor = offset;
+    for (
+      var byteCount = 0;
+      byteCount < 10 && cursor < _bytes.length;
+      byteCount++
+    ) {
+      final byte = _bytes[cursor++];
+      value |= (byte & 0x7f) << shift;
+      if ((byte & 0x80) == 0) {
+        return _VarUintRead(value, cursor);
+      }
+      shift += 7;
+    }
+    return null;
+  }
+}
+
+const _metadataRecoveryTypeKeys = <int>{
+  RiveSchema.artboardTypeKey,
+  RiveSchema.linearAnimationTypeKey,
+  RiveSchema.stateMachineTypeKey,
+  RiveSchema.stateMachineNumberTypeKey,
+  RiveSchema.stateMachineBoolTypeKey,
+  RiveSchema.stateMachineTriggerTypeKey,
+  RiveSchema.viewModelTypeKey,
+  RiveSchema.viewModelPropertyNumberTypeKey,
+  RiveSchema.viewModelPropertyStringTypeKey,
+  RiveSchema.viewModelPropertyBooleanTypeKey,
+  RiveSchema.viewModelPropertyColorTypeKey,
+  RiveSchema.viewModelPropertyEnumTypeKey,
+  RiveSchema.viewModelPropertyListTypeKey,
+  RiveSchema.viewModelPropertyViewModelTypeKey,
+  RiveSchema.viewModelInstanceTypeKey,
+  RiveSchema.viewModelInstanceNumberTypeKey,
+  RiveSchema.viewModelInstanceStringTypeKey,
+  RiveSchema.viewModelInstanceBooleanTypeKey,
+  RiveSchema.viewModelInstanceColorTypeKey,
+  RiveSchema.viewModelInstanceEnumTypeKey,
+  RiveSchema.viewModelInstanceListTypeKey,
+  RiveSchema.viewModelInstanceViewModelTypeKey,
+};
+
+const _metadataRecoveryPropertyKeys = <int>{
+  RiveSchema.componentNamePropertyKey,
+  RiveSchema.animationNamePropertyKey,
+  RiveSchema.stateMachineComponentNamePropertyKey,
+  RiveSchema.viewModelComponentNamePropertyKey,
+  RiveSchema.viewModelInstanceViewModelIdPropertyKey,
+  RiveSchema.viewModelInstanceValuePropertyIdPropertyKey,
+};
+
+class _VarUintRead {
+  const _VarUintRead(this.value, this.nextOffset);
+
+  final int value;
+  final int nextOffset;
+}
+
+String _formatOffset(int? offset) =>
+    offset == null ? 'unknown' : '$offset (0x${offset.toRadixString(16)})';
+
+String? _recordName(_RiveRecord record) =>
+    record.stringProperty(RiveSchema.componentNamePropertyKey) ??
+    record.stringProperty(RiveSchema.animationNamePropertyKey) ??
+    record.stringProperty(RiveSchema.stateMachineComponentNamePropertyKey) ??
+    record.stringProperty(RiveSchema.viewModelComponentNamePropertyKey);
+
+String? _nameFromProperties(Map<int, Object?> properties) =>
+    _stringFrom(properties, RiveSchema.componentNamePropertyKey) ??
+    _stringFrom(properties, RiveSchema.animationNamePropertyKey) ??
+    _stringFrom(properties, RiveSchema.stateMachineComponentNamePropertyKey) ??
+    _stringFrom(properties, RiveSchema.viewModelComponentNamePropertyKey);
+
+String? _stringFrom(Map<int, Object?> properties, int key) {
+  final value = properties[key];
+  return value is String && value.isNotEmpty ? value : null;
+}
+
+int? _intFrom(Map<int, Object?> properties, int key) {
+  final value = properties[key];
+  return value is int ? value : null;
 }
 
 class _ViewModelBuilder {
@@ -573,8 +1161,81 @@ class _RiveRecord {
 }
 
 class _UnsupportedProperty implements Exception {
-  const _UnsupportedProperty(this.propertyKey, this.offset);
+  const _UnsupportedProperty(
+    this.propertyKey,
+    this.offset, {
+    this.recordIndex,
+    this.recordOffset,
+    this.typeKey,
+    this.typeName,
+    this.propertiesRead,
+    this.previousPropertyKeys,
+    this.valueOffset,
+  });
 
   final int propertyKey;
   final int offset;
+  final int? recordIndex;
+  final int? recordOffset;
+  final int? typeKey;
+  final String? typeName;
+  final Map<int, Object?>? propertiesRead;
+  final List<int>? previousPropertyKeys;
+  final int? valueOffset;
+  String? get objectName {
+    final properties = propertiesRead;
+    if (properties == null) {
+      return null;
+    }
+    return _nameFromProperties(properties);
+  }
+
+  _UnsupportedProperty withRecordContext({
+    required int recordIndex,
+    required int recordOffset,
+    required int typeKey,
+    required String? typeName,
+    required Map<int, Object?> propertiesRead,
+    required List<int> previousPropertyKeys,
+    required int valueOffset,
+  }) {
+    return _UnsupportedProperty(
+      propertyKey,
+      offset,
+      recordIndex: recordIndex,
+      recordOffset: recordOffset,
+      typeKey: typeKey,
+      typeName: typeName,
+      propertiesRead: propertiesRead,
+      previousPropertyKeys: previousPropertyKeys,
+      valueOffset: valueOffset,
+    );
+  }
+}
+
+class _PropertyReadFailure implements Exception {
+  const _PropertyReadFailure({
+    required this.propertyKey,
+    required this.offset,
+    required this.recordIndex,
+    required this.recordOffset,
+    required this.typeKey,
+    required this.typeName,
+    required this.propertiesRead,
+    required this.previousPropertyKeys,
+    required this.valueOffset,
+    required this.cause,
+  });
+
+  final int propertyKey;
+  final int offset;
+  final int recordIndex;
+  final int recordOffset;
+  final int typeKey;
+  final String? typeName;
+  final Map<int, Object?> propertiesRead;
+  final List<int> previousPropertyKeys;
+  final int valueOffset;
+  final Object cause;
+  String? get objectName => _nameFromProperties(propertiesRead);
 }

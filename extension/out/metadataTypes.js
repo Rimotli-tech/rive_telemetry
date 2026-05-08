@@ -7,6 +7,9 @@ function isRiveMetadata(value) {
     }
     return (value.schemaVersion === 1 &&
         typeof value.source === 'string' &&
+        typeof value.status === 'string' &&
+        isRecord(value.completeness) &&
+        isRecord(value.codegen) &&
         isRecord(value.header) &&
         typeof value.header.majorVersion === 'number' &&
         typeof value.header.minorVersion === 'number' &&

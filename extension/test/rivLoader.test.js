@@ -38,6 +38,21 @@ function metadata(overrides = {}) {
   return {
     schemaVersion: 1,
     source: 'demo.riv',
+    status: 'complete',
+    completeness: {
+      artboardsComplete: true,
+      stateMachinesComplete: true,
+      inputsComplete: true,
+      viewModelsComplete: true,
+      viewModelInstancesComplete: true,
+      animationsComplete: true,
+    },
+    codegen: {
+      canGenerateFlutter: true,
+      canGenerateTypeScript: true,
+      blockedReasons: [],
+      warnings: [],
+    },
     header: {
       majorVersion: 7,
       minorVersion: 0,

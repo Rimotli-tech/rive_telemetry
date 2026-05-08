@@ -15,6 +15,13 @@ class RiveBinaryReader {
   int get offset => _offset;
   bool get isEOF => _offset >= _bytes.length;
 
+  void seek(int offset) {
+    if (offset < 0 || offset > _bytes.length) {
+      throw RiveInspectionException('Invalid seek offset', offset: _offset);
+    }
+    _offset = offset;
+  }
+
   int readUint8() {
     _requireBytes(1);
     return _bytes[_offset++];

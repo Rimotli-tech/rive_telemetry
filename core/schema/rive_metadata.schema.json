@@ -7,6 +7,9 @@
   "required": [
     "schemaVersion",
     "source",
+    "status",
+    "completeness",
+    "codegen",
     "header",
     "artboards",
     "viewModels",
@@ -20,6 +23,15 @@
     },
     "source": {
       "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/inspectionStatus"
+    },
+    "completeness": {
+      "$ref": "#/$defs/completeness"
+    },
+    "codegen": {
+      "$ref": "#/$defs/codegenEligibility"
     },
     "header": {
       "$ref": "#/$defs/header"
@@ -52,6 +64,84 @@
     }
   },
   "$defs": {
+    "inspectionStatus": {
+      "enum": [
+        "complete",
+        "partialUsable",
+        "partialWithIntegrationRisk",
+        "failed"
+      ]
+    },
+    "warningSeverity": {
+      "enum": [
+        "info",
+        "warning",
+        "integrationRisk",
+        "fatal"
+      ]
+    },
+    "completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artboardsComplete",
+        "stateMachinesComplete",
+        "inputsComplete",
+        "viewModelsComplete",
+        "viewModelInstancesComplete",
+        "animationsComplete"
+      ],
+      "properties": {
+        "artboardsComplete": {
+          "type": "boolean"
+        },
+        "stateMachinesComplete": {
+          "type": "boolean"
+        },
+        "inputsComplete": {
+          "type": "boolean"
+        },
+        "viewModelsComplete": {
+          "type": "boolean"
+        },
+        "viewModelInstancesComplete": {
+          "type": "boolean"
+        },
+        "animationsComplete": {
+          "type": "boolean"
+        }
+      }
+    },
+    "codegenEligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canGenerateFlutter",
+        "canGenerateTypeScript",
+        "blockedReasons",
+        "warnings"
+      ],
+      "properties": {
+        "canGenerateFlutter": {
+          "type": "boolean"
+        },
+        "canGenerateTypeScript": {
+          "type": "boolean"
+        },
+        "blockedReasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "header": {
       "type": "object",
       "additionalProperties": false,
@@ -82,11 +172,15 @@
       "additionalProperties": false,
       "required": [
         "code",
+        "severity",
         "message"
       ],
       "properties": {
         "code": {
           "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/warningSeverity"
         },
         "message": {
           "type": "string"
@@ -98,6 +192,22 @@
         "propertyKey": {
           "type": "integer",
           "minimum": 0
+        },
+        "objectTypeKey": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "objectTypeName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "objectName": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
