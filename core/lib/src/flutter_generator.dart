@@ -104,6 +104,19 @@ class RiveFlutterIntegrationGenerator {
         diagnostics,
         '  ',
       );
+      buffer
+        ..writeln()
+        ..writeln('  RiveTelemetryBinding telemetry({')
+        ..writeln('    String? artboardName,')
+        ..writeln('    String? stateMachineName,')
+        ..writeln('    rive.StateMachine? stateMachine,')
+        ..writeln('  }) => RiveTelemetryBinding(')
+        ..writeln('    artboardName: artboardName,')
+        ..writeln('    stateMachineName: stateMachineName,')
+        ..writeln('    stateMachine: stateMachine,')
+        ..writeln('    viewModelName: viewModelName,')
+        ..writeln('    viewModelInstance: instance,')
+        ..writeln('  );');
     } else if (viewModels.length > 1) {
       buffer.writeln('  const $rootClassName({');
       for (var index = 0; index < viewModels.length; index++) {
@@ -346,6 +359,19 @@ class RiveFlutterIntegrationGenerator {
         diagnostics,
         '  ',
       );
+      buffer
+        ..writeln()
+        ..writeln('  RiveTelemetryBinding telemetry({')
+        ..writeln('    String? artboardName,')
+        ..writeln('    String? stateMachineName,')
+        ..writeln('    rive.StateMachine? stateMachine,')
+        ..writeln('  }) => RiveTelemetryBinding(')
+        ..writeln('    artboardName: artboardName,')
+        ..writeln('    stateMachineName: stateMachineName,')
+        ..writeln('    stateMachine: stateMachine,')
+        ..writeln('    viewModelName: viewModelName,')
+        ..writeln('    viewModelInstance: instance,')
+        ..writeln('  );');
       buffer
         ..writeln('}')
         ..writeln();

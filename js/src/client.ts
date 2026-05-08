@@ -24,7 +24,6 @@ export class RiveTelemetry {
   private readonly runtimeId: string;
   private readonly label: string;
   private readonly source: string;
-  private readonly stateMachineName: string;
   private readonly socketUrl: string;
   private readonly pollingIntervalMs: number;
   private readonly debug: boolean;
@@ -35,7 +34,6 @@ export class RiveTelemetry {
       options.runtimeId ?? `rive-js-runtime-${++nextGeneratedRuntimeId}`;
     this.label = options.label ?? this.runtimeId;
     this.source = options.source ?? 'javascript-app';
-    this.stateMachineName = options.stateMachineName ?? 'State Machine 1';
     this.socketUrl = options.socketUrl ?? 'ws://localhost:8080';
     this.pollingIntervalMs = options.pollingIntervalMs ?? 250;
     this.debug = options.debug ?? false;
@@ -200,12 +198,13 @@ export class RiveTelemetry {
       runtimeId: this.runtimeId,
       label: this.label,
       timestamp: new Date().toISOString(),
+      ...(this.artboardName ? { artboard: this.artboardName } : {}),
       stateMachine: this.stateMachineName,
       inputs: this.readInputs(),
       viewModel: captureViewModelTelemetry({
-        instance: this.options.viewModelInstance,
-        viewModelName: this.options.viewModelName,
-        instanceName: this.options.viewModelInstanceName,
+        instance: this.viewModelInstance,
+        viewModelName: this.viewModelName,
+        instanceName: this.viewModelInstanceName,
       }),
     };
   }
@@ -345,12 +344,12 @@ export class RiveTelemetry {
       return this.ignoreCommand('runtime mismatch');
     }
 
-    if (command.viewModelName !== this.options.viewModelName) {
+    if (command.viewModelName !== this.viewModelName) {
       return this.ignoreCommand('view model mismatch');
     }
 
     return setViewModelProperty({
-      instance: this.options.viewModelInstance,
+      instance: this.viewModelInstance,
       instanceName: command.instanceName,
       propertyName: command.propertyName,
       propertyType: command.propertyType,
@@ -398,6 +397,10 @@ export class RiveTelemetry {
   }
 
   private resolveStateMachine(): unknown {
+    if (this.options.binding?.stateMachine) {
+      return this.options.binding.stateMachine;
+    }
+
     if (this.options.stateMachine) {
       return this.options.stateMachine;
     }
@@ -448,6 +451,35 @@ export class RiveTelemetry {
     if (this.debug) {
       console.debug(message);
     }
+  }
+
+  private get artboardName(): string | undefined {
+    return this.options.binding?.artboardName;
+  }
+
+  private get stateMachineName(): string {
+    return (
+      this.options.binding?.stateMachineName ??
+      this.options.stateMachineName ??
+      'State Machine 1'
+    );
+  }
+
+  private get viewModelName(): string | undefined {
+    return this.options.binding?.viewModelName ?? this.options.viewModelName;
+  }
+
+  private get viewModelInstanceName(): string | undefined {
+    return (
+      this.options.binding?.viewModelInstanceName ??
+      this.options.viewModelInstanceName
+    );
+  }
+
+  private get viewModelInstance(): unknown {
+    return (
+      this.options.binding?.viewModelInstance ?? this.options.viewModelInstance
+    );
   }
 }
 

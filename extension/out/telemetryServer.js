@@ -197,6 +197,7 @@ class TelemetryServer {
         this.snapshots.set(runtimeId, {
             runtimeId: payload.runtimeId,
             label: payload.label,
+            artboard: payload.artboard,
             stateMachine: payload.stateMachine,
             capturedAt: new Date().toISOString(),
             inputs: payload.inputs.flatMap(toInputSnapshot),
@@ -277,6 +278,7 @@ function isTelemetryPayload(value) {
         value.runtimeId.length > 0 &&
         typeof value.label === 'string' &&
         typeof value.timestamp === 'string' &&
+        (value.artboard === undefined || typeof value.artboard === 'string') &&
         typeof value.stateMachine === 'string' &&
         Array.isArray(value.inputs) &&
         value.inputs.every(isTelemetryInput));
@@ -286,6 +288,7 @@ function toRuntimeSummary(payload) {
         runtimeId: payload.runtimeId,
         label: payload.label,
         source: payload.source,
+        artboard: payload.artboard,
         stateMachine: payload.stateMachine,
         timestamp: payload.timestamp,
     };

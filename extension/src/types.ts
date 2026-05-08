@@ -12,6 +12,7 @@ export interface RiveTelemetryPayload {
   runtimeId: string;
   label: string;
   timestamp: string;
+  artboard?: string;
   stateMachine: string;
   inputs: RiveTelemetryInput[];
   viewModel?: RiveViewModelTelemetry;
@@ -42,6 +43,7 @@ export interface InputSnapshot {
 export interface RuntimeSnapshot {
   runtimeId: string;
   label: string;
+  artboard?: string;
   stateMachine: string;
   capturedAt: string;
   inputs: InputSnapshot[];
@@ -68,6 +70,7 @@ export interface RiveRuntimeSummary {
   runtimeId: string;
   label: string;
   source: string;
+  artboard?: string;
   stateMachine: string;
   timestamp: string;
 }

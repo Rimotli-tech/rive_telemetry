@@ -12,7 +12,6 @@ export declare class RiveTelemetry {
     private readonly runtimeId;
     private readonly label;
     private readonly source;
-    private readonly stateMachineName;
     private readonly socketUrl;
     private readonly pollingIntervalMs;
     private readonly debug;
@@ -46,4 +45,9 @@ export declare class RiveTelemetry {
     private advanceRuntime;
     private ignoreCommand;
     private debugLog;
+    private get artboardName();
+    private get stateMachineName();
+    private get viewModelName();
+    private get viewModelInstanceName();
+    private get viewModelInstance();
 }

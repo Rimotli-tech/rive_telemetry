@@ -47,6 +47,27 @@ void main() {
     expect(find.text('view model ready'), findsOneWidget);
   });
 
+  testWidgets('RiveDebugger accepts schema-aware runtime binding', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: RiveDebugger(
+          enabled: false,
+          binding: RiveTelemetryBinding(
+            artboardName: 'Main',
+            stateMachineName: 'State Machine 1',
+            viewModelName: 'Test ViewModel',
+          ),
+          child: Text('binding ready'),
+        ),
+      ),
+    );
+
+    expect(find.text('binding ready'), findsOneWidget);
+  });
+
   test('ViewModelTelemetry serializes to JSON', () {
     const telemetry = ViewModelTelemetry(
       supported: true,

@@ -8,5 +8,6 @@ library;
 
 export 'src/generated_runtime_helpers.dart';
 export 'src/rive_debugger.dart';
+export 'src/runtime_binding.dart';
 export 'src/view_model_telemetry.dart';
 export 'src/view_model_telemetry_adapter.dart';

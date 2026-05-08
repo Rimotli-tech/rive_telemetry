@@ -3,6 +3,7 @@ export type {
   RiveTelemetryCommand,
   RiveTelemetryInput,
   RiveTelemetryInputType,
+  RiveTelemetryBinding,
   RiveTelemetryOptions,
   RiveTelemetryPayload,
   RiveViewModelPropertyTelemetry,

@@ -69,6 +69,8 @@ void main() {
         generated.source,
         contains("RtColor get faceColor => RtColor(instance, 'faceColor');"),
       );
+      expect(generated.source, contains('RiveTelemetryBinding telemetry({'));
+      expect(generated.source, contains('viewModelInstance: instance,'));
     },
   );
 

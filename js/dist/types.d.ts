@@ -22,6 +22,7 @@ export interface RiveTelemetryPayload {
     runtimeId: string;
     label: string;
     timestamp: string;
+    artboard?: string;
     stateMachine: string;
     inputs: RiveTelemetryInput[];
     viewModel?: RiveViewModelTelemetry;
@@ -62,6 +63,7 @@ export type RiveTelemetryCommand = {
     propertyType: 'trigger';
 };
 export interface RiveTelemetryOptions {
+    binding?: RiveTelemetryBinding;
     rive?: unknown;
     stateMachine?: unknown;
     runtimeId?: string;
@@ -75,4 +77,12 @@ export interface RiveTelemetryOptions {
     pollingIntervalMs?: number;
     debug?: boolean;
     WebSocketImpl?: typeof WebSocket;
+}
+export interface RiveTelemetryBinding {
+    artboardName?: string;
+    stateMachineName?: string;
+    stateMachine?: unknown;
+    viewModelName?: string;
+    viewModelInstanceName?: string;
+    viewModelInstance?: unknown;
 }

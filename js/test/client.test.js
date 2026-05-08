@@ -36,6 +36,37 @@ test('payload serializes web runtime state machine inputs', () => {
   ]);
 });
 
+test('payload prefers schema-aware runtime binding fields', () => {
+  const stateMachine = {
+    inputs: [{ name: 'ready', value: true }],
+  };
+  const viewModelInstance = {
+    name: 'Default',
+    properties: [],
+  };
+  const telemetry = new RiveTelemetry({
+    runtimeId: 'runtime-a',
+    stateMachineName: 'Loose State Machine',
+    viewModelName: 'LooseVM',
+    binding: {
+      artboardName: 'MainArtboard',
+      stateMachineName: 'Bound State Machine',
+      stateMachine,
+      viewModelName: 'BoundVM',
+      viewModelInstance,
+    },
+  });
+
+  const payload = telemetry.payload();
+
+  assert.equal(payload.artboard, 'MainArtboard');
+  assert.equal(payload.stateMachine, 'Bound State Machine');
+  assert.deepEqual(payload.inputs, [
+    { name: 'ready', type: 'boolean', value: true },
+  ]);
+  assert.equal(payload.viewModel?.viewModelName, 'BoundVM');
+});
+
 test('applyCommand mutates boolean and number inputs', () => {
   const inputs = [
     { name: 'enabled', value: false },
