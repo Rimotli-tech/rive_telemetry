@@ -57,7 +57,13 @@ Future<int> _runGenerate(
     return 64;
   }
 
-  final target = args.first;
+  final target = _GenerateTarget.parse(args.first);
+  if (target == null) {
+    err.writeln('Unknown generate target: ${args.first}');
+    _writeGenerateUsage(err);
+    return 64;
+  }
+
   final options = _CliOptions.parse(args.sublist(1), defaultPretty: false);
   if (options.error != null) {
     err.writeln(options.error);
@@ -71,20 +77,13 @@ Future<int> _runGenerate(
 
   final metadata = await inspectRivFile(options.paths.single);
   final generated = switch (target) {
-    'flutter' => _GeneratedSource.fromFlutter(
+    _GenerateTarget.flutter => _GeneratedSource.fromFlutter(
       const RiveFlutterIntegrationGenerator().generate(metadata),
     ),
-    'typescript' || 'ts' || 'js' => _GeneratedSource.fromTypeScript(
+    _GenerateTarget.typescript => _GeneratedSource.fromTypeScript(
       const RiveTypeScriptIntegrationGenerator().generate(metadata),
     ),
-    _ => null,
   };
-
-  if (generated == null) {
-    err.writeln('Unknown generate target: $target');
-    _writeGenerateUsage(err);
-    return 64;
-  }
 
   for (final diagnostic in generated.diagnostics) {
     final line =
@@ -96,6 +95,18 @@ Future<int> _runGenerate(
     }
   }
 
+  if (options.dryRun) {
+    out.write(
+      _formatGenerateDryRunSummary(
+        target: target,
+        inputPath: options.paths.single,
+        outputPath: options.outputPath,
+        generated: generated,
+      ),
+    );
+    return generated.hasErrors ? 1 : 0;
+  }
+
   if (options.outputPath == null) {
     out.write(generated.source);
   } else {
@@ -103,6 +114,24 @@ Future<int> _runGenerate(
   }
 
   return generated.hasErrors ? 1 : 0;
+}
+
+String _formatGenerateDryRunSummary({
+  required _GenerateTarget target,
+  required String inputPath,
+  required String? outputPath,
+  required _GeneratedSource generated,
+}) {
+  final buffer = StringBuffer()
+    ..writeln('Rive generation dry run')
+    ..writeln('target: ${target.name}')
+    ..writeln('source: $inputPath')
+    ..writeln('output: ${outputPath ?? 'stdout'}')
+    ..writeln('bytes: ${generated.source.length}')
+    ..writeln('diagnostics: ${generated.diagnostics.length}')
+    ..writeln('status: ${generated.hasErrors ? 'blocked' : 'ready'}');
+
+  return buffer.toString();
 }
 
 Future<int> _runInspect(
@@ -261,8 +290,21 @@ void _writeDebugUsage(StringSink sink) {
 void _writeGenerateUsage(StringSink sink) {
   sink.writeln(
     'Usage: rive-telemetry generate <flutter|typescript> '
-    '[--out integration.dart|integration.ts] <file.riv>',
+    '[--out integration.dart|integration.ts] [--dry-run] <file.riv>',
   );
+}
+
+enum _GenerateTarget {
+  flutter,
+  typescript;
+
+  static _GenerateTarget? parse(String value) {
+    return switch (value) {
+      'flutter' => _GenerateTarget.flutter,
+      'typescript' || 'ts' || 'js' => _GenerateTarget.typescript,
+      _ => null,
+    };
+  }
 }
 
 class _GeneratedSource {
@@ -288,6 +330,7 @@ class _CliOptions {
     required this.json,
     required this.pretty,
     this.outputPath,
+    this.dryRun = false,
     this.error,
   });
 
@@ -295,11 +338,13 @@ class _CliOptions {
   final bool json;
   final bool pretty;
   final String? outputPath;
+  final bool dryRun;
   final String? error;
 
   static _CliOptions parse(List<String> args, {required bool defaultPretty}) {
     var json = false;
     var pretty = defaultPretty;
+    var dryRun = false;
     String? outputPath;
     String? error;
     final paths = <String>[];
@@ -313,6 +358,8 @@ class _CliOptions {
           pretty = true;
         case '--compact':
           pretty = false;
+        case '--dry-run':
+          dryRun = true;
         case '--out':
           if (index + 1 >= args.length) {
             error = 'Missing path after --out';
@@ -333,6 +380,7 @@ class _CliOptions {
       json: json,
       pretty: pretty,
       outputPath: outputPath,
+      dryRun: dryRun,
       error: error,
     );
   }
