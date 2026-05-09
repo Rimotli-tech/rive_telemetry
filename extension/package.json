@@ -24,7 +24,9 @@
     "onCommand:riveTelemetry.openPanel",
     "onCommand:riveTelemetry.inspectFile",
     "onCommand:riveTelemetry.reloadFile",
+    "onCommand:riveTelemetry.clearSchema",
     "onCommand:riveTelemetry.exportMetadata",
+    "onCommand:riveTelemetry.generateIntegrationCode",
     "onCommand:riveTelemetry.generateFlutterIntegration",
     "onCommand:riveTelemetry.createMetadataDeliverable"
   ],
@@ -44,8 +46,16 @@
         "title": "RiveTelemetry: Reload Current .riv File"
       },
       {
+        "command": "riveTelemetry.clearSchema",
+        "title": "RiveTelemetry: Clear Loaded Schema"
+      },
+      {
         "command": "riveTelemetry.exportMetadata",
         "title": "RiveTelemetry: Export Metadata JSON"
+      },
+      {
+        "command": "riveTelemetry.generateIntegrationCode",
+        "title": "RiveTelemetry: Generate Integration Code"
       },
       {
         "command": "riveTelemetry.generateFlutterIntegration",
@@ -53,7 +63,7 @@
       },
       {
         "command": "riveTelemetry.createMetadataDeliverable",
-        "title": "RiveTelemetry: Create Metadata Deliverable"
+        "title": "RiveTelemetry: Create Metadata Package"
       }
     ],
     "configuration": {

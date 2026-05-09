@@ -91,6 +91,20 @@ class RivLoader {
         await runCoreCommand(['run', entrypoint, 'generate', 'flutter', '--out', outputPath, filePath], entrypoint, dartExecutable, this.output, this.execFile);
         this.output.appendLine(`Generated Flutter integration: ${outputPath}`);
     }
+    async generateTypeScriptIntegration(filePath, outputPath) {
+        const entrypoint = findCoreCliEntrypoint(this.context.extensionPath);
+        const dartExecutable = findDartExecutable(this.context.extensionPath);
+        await runCoreCommand([
+            'run',
+            entrypoint,
+            'generate',
+            'typescript',
+            '--out',
+            outputPath,
+            filePath,
+        ], entrypoint, dartExecutable, this.output, this.execFile);
+        this.output.appendLine(`Generated TypeScript integration: ${outputPath}`);
+    }
     async createMetadataDeliverable(filePath, outputDirectory, revPath) {
         const entrypoint = findCoreCliEntrypoint(this.context.extensionPath);
         const dartExecutable = findDartExecutable(this.context.extensionPath);

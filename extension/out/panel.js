@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RiveTelemetryPanel = void 0;
 const vscode = __importStar(require("vscode"));
+const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const webviewHtml_1 = require("./webviewHtml");
 class RiveTelemetryPanel {
@@ -43,7 +44,7 @@ class RiveTelemetryPanel {
         this.panel = panel;
         this.panel.webview.options = { enableScripts: true };
         const iconUri = this.panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'media', 'icon.png')));
-        this.panel.webview.html = (0, webviewHtml_1.getWebviewHtml)(this.telemetryServer.panelState, this.telemetryServer.status, RiveTelemetryPanel.staticMetadata, iconUri, this.panel.webview.cspSource);
+        this.panel.webview.html = (0, webviewHtml_1.getWebviewHtml)(this.telemetryServer.panelState, this.telemetryServer.status, RiveTelemetryPanel.staticMetadata, thumbnailUriForMetadata(this.panel.webview, RiveTelemetryPanel.staticMetadata), iconUri, this.panel.webview.cspSource);
         this.telemetrySubscription = this.telemetryServer.onTelemetry((state) => {
             this.updateTelemetry(state);
         });
@@ -59,8 +60,16 @@ class RiveTelemetryPanel {
                 vscode.commands.executeCommand('riveTelemetry.reloadFile');
                 return;
             }
+            if (isWebviewClearSchemaMessage(message)) {
+                vscode.commands.executeCommand('riveTelemetry.clearSchema');
+                return;
+            }
             if (isWebviewExportMetadataMessage(message)) {
                 vscode.commands.executeCommand('riveTelemetry.exportMetadata');
+                return;
+            }
+            if (isWebviewGenerateIntegrationMessage(message)) {
+                vscode.commands.executeCommand('riveTelemetry.generateIntegrationCode');
                 return;
             }
             if (isWebviewGenerateFlutterMessage(message)) {
@@ -141,19 +150,47 @@ class RiveTelemetryPanel {
         this.panel.webview.postMessage({
             type: 'metadata',
             metadata,
+            thumbnailUri: thumbnailUriForMetadata(this.panel.webview, metadata),
         });
     }
 }
 exports.RiveTelemetryPanel = RiveTelemetryPanel;
 RiveTelemetryPanel.staticMetadata = null;
+function thumbnailUriForMetadata(webview, metadata) {
+    if (!metadata) {
+        return null;
+    }
+    const parsed = path.parse(metadata.source);
+    const candidates = [
+        path.join(parsed.dir, `${parsed.name}.png`),
+        path.join(parsed.dir, `${parsed.name}.jpg`),
+        path.join(parsed.dir, `${parsed.name}.jpeg`),
+        path.join(parsed.dir, `${parsed.name}.webp`),
+        path.join(parsed.dir, '.thumbnails', `${parsed.name}.png`),
+        path.join(parsed.dir, '.thumbnails', `${parsed.name}.jpg`),
+        path.join(parsed.dir, '.thumbnails', `${parsed.name}.jpeg`),
+        path.join(parsed.dir, '.thumbnails', `${parsed.name}.webp`),
+    ];
+    const thumbnailPath = candidates.find((candidate) => fs.existsSync(candidate));
+    if (!thumbnailPath) {
+        return null;
+    }
+    return webview.asWebviewUri(vscode.Uri.file(thumbnailPath)).toString();
+}
 function isWebviewInspectFileMessage(value) {
     return isRecord(value) && value.command === 'inspectFile';
 }
 function isWebviewReloadFileMessage(value) {
     return isRecord(value) && value.command === 'reloadFile';
 }
+function isWebviewClearSchemaMessage(value) {
+    return isRecord(value) && value.command === 'clearSchema';
+}
 function isWebviewExportMetadataMessage(value) {
     return isRecord(value) && value.command === 'exportMetadata';
+}
+function isWebviewGenerateIntegrationMessage(value) {
+    return isRecord(value) && value.command === 'generateIntegrationCode';
 }
 function isWebviewGenerateFlutterMessage(value) {
     return isRecord(value) && value.command === 'generateFlutterIntegration';

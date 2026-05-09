@@ -9,6 +9,7 @@ export function getWebviewHtml(
   state: RiveTelemetryPanelState,
   status: RiveTelemetryServerStatus,
   metadata: RiveMetadata | null,
+  thumbnailUri: string | null,
   iconUri: vscode.Uri,
   cspSource: string,
 ): string {
@@ -16,6 +17,7 @@ export function getWebviewHtml(
   const initialState = JSON.stringify(state);
   const initialStatus = JSON.stringify(status);
   const initialMetadata = JSON.stringify(metadata);
+  const initialThumbnailUri = JSON.stringify(thumbnailUri);
   const brandIcon = JSON.stringify(iconUri.toString());
 
   return `<!DOCTYPE html>
@@ -61,17 +63,17 @@ export function getWebviewHtml(
       font-family: var(--rt-mono);
     }
     .layout {
-      width: min(960px, calc(100vw - 32px));
+      width: min(960px, calc(100vw - 48px));
       margin: 0 auto;
-      padding: 24px 0;
+      padding: 56px 0;
     }
     .app-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      padding-bottom: 16px;
-      margin-bottom: 24px;
+      padding-bottom: 18px;
+      margin-bottom: 28px;
       border-bottom: 1px solid var(--rt-border-soft);
     }
     .header-actions {
@@ -86,12 +88,12 @@ export function getWebviewHtml(
       align-items: center;
       gap: 12px;
       color: var(--rt-text);
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 700;
     }
     .brand-mark {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       display: block;
       object-fit: contain;
     }
@@ -148,7 +150,7 @@ export function getWebviewHtml(
     .stack {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 16px;
     }
     .card {
       border: 1px solid var(--rt-border-soft);
@@ -157,7 +159,88 @@ export function getWebviewHtml(
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
     }
     .runtime-card {
+      padding: 28px;
+    }
+    .schema-card {
+      display: grid;
+      grid-template-columns: 188px minmax(0, 1fr);
+      gap: 34px;
+      align-items: center;
+    }
+    .schema-preview {
+      width: 188px;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(159, 202, 255, 0.12);
+      background: linear-gradient(135deg, rgba(159, 202, 255, 0.12), rgba(196, 181, 253, 0.08));
+    }
+    .schema-thumbnail {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #d7d7d7;
+    }
+    .schema-thumbnail-fallback {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      height: 100%;
       padding: 16px;
+      box-sizing: border-box;
+      color: rgba(218, 227, 238, 0.72);
+      text-align: center;
+    }
+    .schema-thumbnail-mark {
+      color: var(--rt-primary);
+      font-family: var(--rt-mono);
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+    .schema-thumbnail-name {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: rgba(218, 227, 238, 0.82);
+      font-family: var(--rt-mono);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .schema-thumbnail-meta {
+      color: rgba(192, 199, 211, 0.62);
+      font-size: 11px;
+    }
+    .schema-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      min-width: 0;
+    }
+    .schema-fields {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(120px, 0.5fr);
+      gap: 28px;
+      max-width: 520px;
+    }
+    .schema-actions-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 28px;
+    }
+    .schema-actions-left,
+    .schema-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
     .runtime-top {
       display: flex;
@@ -274,10 +357,39 @@ export function getWebviewHtml(
       gap: 12px;
     }
     .section-panel {
-      padding: 16px;
+      padding: 0;
       border: 1px solid var(--rt-border-soft);
       border-radius: var(--rt-radius);
       background: var(--rt-surface-low);
+      overflow: hidden;
+    }
+    details.section-panel > summary.section-title {
+      cursor: pointer;
+      list-style: none;
+      min-height: 52px;
+      margin-bottom: 0;
+      padding: 0 18px;
+      user-select: none;
+    }
+    details.section-panel > summary.section-title::-webkit-details-marker {
+      display: none;
+    }
+    details.section-panel > summary.section-title::after {
+      content: "";
+      width: 0;
+      height: 0;
+      margin-left: auto;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--rt-muted);
+      transition: transform 120ms ease;
+    }
+    details.section-panel[open] > summary.section-title {
+      margin-bottom: 0;
+      border-bottom: 1px solid rgba(64, 71, 81, 0.36);
+    }
+    details.section-panel[open] > summary.section-title::after {
+      transform: rotate(180deg);
     }
     .inputs-panel {
       border-color: rgba(159, 202, 255, 0.16);
@@ -285,6 +397,9 @@ export function getWebviewHtml(
     }
     .inputs-panel .section-title {
       margin-bottom: 16px;
+    }
+    details.inputs-panel > summary.section-title {
+      margin-bottom: 0;
     }
     .view-model-panel {
       border-color: rgba(196, 181, 253, 0.17);
@@ -302,7 +417,7 @@ export function getWebviewHtml(
       color: rgba(255, 218, 214, 0.78);
     }
     .property-group {
-      margin-top: 16px;
+      margin: 16px;
     }
     .property-group:first-of-type {
       margin-top: 0;
@@ -480,6 +595,11 @@ export function getWebviewHtml(
     .primary-button:hover:not(:disabled) {
       background: rgba(159, 202, 255, 0.18);
       border-color: rgba(159, 202, 255, 0.38);
+    }
+    .empty-cta {
+      min-width: 160px;
+      padding: 9px 16px;
+      font-weight: 700;
     }
     .icon-button {
       display: inline-flex;
@@ -880,6 +1000,7 @@ export function getWebviewHtml(
     .view-model-summary {
       display: flex;
       gap: 16px;
+      margin-bottom: 12px;
       color: var(--rt-muted-soft);
       font-size: 12px;
       flex-wrap: wrap;
@@ -930,6 +1051,95 @@ export function getWebviewHtml(
       font-family: var(--rt-mono);
       font-size: 11px;
     }
+    .input-grid {
+      padding: 16px;
+    }
+    .property-group .input-grid {
+      padding: 0;
+    }
+    .section-count {
+      margin-left: 10px;
+      color: var(--rt-primary);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .view-model-empty {
+      padding: 16px;
+    }
+    .property-group .view-model-empty {
+      padding: 0;
+    }
+    .input-grid .view-model-empty {
+      padding: 0;
+    }
+    .danger-button {
+      color: var(--rt-red);
+      border-color: rgba(255, 180, 171, 0.62);
+      background: transparent;
+    }
+    .danger-button:hover:not(:disabled) {
+      color: #ffd6d0;
+      border-color: rgba(255, 180, 171, 0.84);
+      background: rgba(255, 180, 171, 0.08);
+    }
+    .strong-primary {
+      color: #07111d;
+      background: var(--rt-primary);
+      border-color: var(--rt-primary);
+    }
+    .strong-primary:hover:not(:disabled) {
+      color: #07111d;
+      background: #b4d7ff;
+      border-color: #b4d7ff;
+    }
+    .muted-button {
+      min-width: 106px;
+      color: rgba(192, 199, 211, 0.72);
+    }
+    .section-panel.view-model-unavailable {
+      border-color: rgba(255, 180, 171, 0.28);
+      background: rgba(255, 180, 171, 0.035);
+    }
+    .section-panel.view-model-unavailable > summary.section-title {
+      color: var(--rt-red);
+    }
+    .section-panel.view-model-unavailable .section-icon {
+      color: var(--rt-red);
+    }
+    .section-panel.view-model-unavailable .section-count {
+      color: var(--rt-red);
+    }
+    .snapshot-empty.empty-start {
+      min-height: calc(100vh - 260px);
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .empty-start .snapshot-copy {
+      max-width: 460px;
+      color: rgba(192, 199, 211, 0.72);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .empty-start .empty-cta {
+      width: min(370px, 70vw);
+      min-height: 80px;
+      border-radius: 14px;
+      color: #07111d;
+      background: var(--rt-primary);
+      border-color: var(--rt-primary);
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .empty-start .empty-cta:hover:not(:disabled) {
+      background: #b4d7ff;
+      border-color: #b4d7ff;
+    }
+    .empty-start .meta {
+      display: none;
+    }
     @media (max-width: 760px) {
       .layout {
         width: calc(100vw - 32px);
@@ -947,6 +1157,20 @@ export function getWebviewHtml(
       .runtime-grid,
       .input-grid {
         grid-template-columns: 1fr;
+      }
+      .schema-card {
+        grid-template-columns: 1fr;
+      }
+      .schema-preview {
+        width: min(188px, 100%);
+      }
+      .schema-fields,
+      .schema-actions-card {
+        grid-template-columns: 1fr;
+      }
+      .schema-actions-card {
+        align-items: stretch;
+        flex-direction: column;
       }
       .snapshot-meta-grid {
         grid-template-columns: 1fr;
@@ -985,6 +1209,7 @@ export function getWebviewHtml(
     let telemetryState = ${initialState};
     let serverStatus = ${initialStatus};
     let staticMetadata = ${initialMetadata};
+    let staticThumbnailUri = ${initialThumbnailUri};
     let lastCommandStatus = '';
     let highlightedInput = null;
     let changedInputs = new Set();
@@ -1009,6 +1234,7 @@ export function getWebviewHtml(
         render();
       } else if (event.data?.type === 'metadata') {
         staticMetadata = event.data.metadata;
+        staticThumbnailUri = event.data.thumbnailUri ?? null;
         render();
       } else if (event.data?.type === 'commandSent') {
         lastCommandStatus = 'Command sent: ' + event.data.timestamp;
@@ -1026,14 +1252,12 @@ export function getWebviewHtml(
       const telemetryStale = Boolean(serverStatus.telemetryStale);
       const receiving = Boolean(activePayload) && hasClients && !serverFailed;
       const controlsDisabled = !hasClients || serverFailed;
-      const schemaLoaded = Boolean(staticMetadata) && !activePayload;
-      const statusClass = serverFailed ? 'failed' : receiving ? 'receiving' : schemaLoaded ? 'schema-loaded' : telemetryStale ? 'stale' : '';
+      const schemaLoaded = Boolean(staticMetadata);
+      const statusClass = serverFailed ? 'failed' : receiving ? 'receiving' : telemetryStale ? 'stale' : '';
       const statusText = serverFailed
         ? 'Server failed to start'
         : receiving
           ? 'Receiving telemetry'
-          : schemaLoaded
-            ? 'Schema loaded'
           : telemetryStale
             ? 'Telemetry stale'
             : 'Waiting for telemetry...';
@@ -1041,12 +1265,13 @@ export function getWebviewHtml(
       if (!activePayload) {
         app.innerHTML = \`
           <div class="layout">
-            \${renderHeader(statusClass, statusText, telemetryStale)}
+            \${renderHeader(statusClass, statusText, telemetryStale, schemaLoaded)}
             \${staticMetadata ? renderStaticSchema(staticMetadata, serverFailed, null, null, true) : renderWaitingForTelemetry(serverFailed)}
           </div>
         \`;
         bindInspectRivControl();
         bindReloadRivControl();
+        bindClearSchemaControl();
         bindGenerateControls();
         bindCopyControls();
         bindClearTelemetryControl();
@@ -1063,7 +1288,7 @@ export function getWebviewHtml(
 
       app.innerHTML = \`
         <div class="layout">
-          \${renderHeader(statusClass, statusText, telemetryStale)}
+          \${renderHeader(statusClass, statusText, telemetryStale, schemaLoaded)}
           <div class="stack">
             \${renderRuntimeCard(activePayload, serverFailed, telemetryStale)}
             \${orderedSections}
@@ -1075,6 +1300,7 @@ export function getWebviewHtml(
       bindDropdowns();
       bindInspectRivControl();
       bindReloadRivControl();
+      bindClearSchemaControl();
       bindGenerateControls();
       bindCopyControls();
       bindClearTelemetryControl();
@@ -1087,7 +1313,7 @@ export function getWebviewHtml(
       }
     }
 
-    function renderHeader(statusClass, statusText, telemetryStale) {
+    function renderHeader(statusClass, statusText, telemetryStale, schemaLoaded) {
       return \`
         <header class="app-header">
           <div class="brand">
@@ -1095,9 +1321,8 @@ export function getWebviewHtml(
             <span>RiveTelemetry</span>
           </div>
           <div class="header-actions">
-            <button type="button" class="primary-button" data-inspect-riv>Load .riv</button>
-            \${staticMetadata ? '<button type="button" data-reload-riv>Reload</button>' : ''}
             \${telemetryStale ? '<button type="button" class="secondary" data-clear-telemetry>Clear telemetry</button>' : ''}
+            \${schemaLoaded ? '<div class="status schema-loaded"><span class="dot"></span><span>Schema loaded</span></div>' : ''}
             <div class="status \${statusClass}">
               <span class="dot"></span>
               <span>\${escapeHtml(statusText)}</span>
@@ -1109,10 +1334,9 @@ export function getWebviewHtml(
 
     function renderWaitingForTelemetry(serverFailed) {
       return \`
-        <section class="snapshot-panel snapshot-empty">
-          <span class="snapshot-icon">&#9676;</span>
+        <section class="snapshot-panel snapshot-empty empty-start">
+          <button type="button" class="primary-button empty-cta" data-inspect-riv>Load .riv</button>
           <div>
-            <h3 class="snapshot-title">Waiting for telemetry</h3>
             <p class="snapshot-copy">Load a .riv file to inspect its schema, or connect a runtime for live telemetry.</p>
           </div>
           <div class="meta">
@@ -1139,45 +1363,47 @@ export function getWebviewHtml(
       const animations = metadata.artboards.flatMap((artboard) =>
         (artboard.animations ?? []).map((animation) => ({...animation, artboardName: artboard.name ?? 'Unnamed Artboard'}))
       );
+      const viewModels = metadata.viewModels ?? [];
+      const schemaSummary = [
+        metadata.artboards.length + ' artboard(s)',
+        stateMachines.length + ' state machine(s)',
+        inputs.length + ' input(s)',
+        metadata.warnings.length + ' warning(s)',
+        animations.length + ' animation(s)',
+      ].join(' ');
 
       return \`
         <div class="stack">
-          <section class="card runtime-card">
-            <div class="runtime-top">
+          <section class="card runtime-card schema-card">
+            \${renderSchemaThumbnail(metadata, viewModels, animations)}
+            <div class="schema-summary">
               <div>
                 <h3 class="runtime-title">Loaded Rive Schema</h3>
-                <div class="runtime-meta">
-                  <span>\${escapeHtml(metadata.artboards.length)} artboard(s)</span>
-                  <span class="separator">&bull;</span>
-                  <span>\${escapeHtml(stateMachines.length)} state machine(s)</span>
-                  <span class="separator">&bull;</span>
-                  <span>\${escapeHtml(inputs.length)} input(s)</span>
-                  <span class="separator">&bull;</span>
-                  <span>\${escapeHtml(metadata.warnings.length)} warning(s)</span>
-                  <span class="separator">&bull;</span>
-                  <span>\${escapeHtml(metadata.status ?? 'unknown')}</span>
-                </div>
+                <div class="runtime-meta">\${escapeHtml(schemaSummary)}</div>
               </div>
-              <div class="snapshot-actions">
-                <button type="button" class="primary-button" data-create-metadata-deliverable>Create Metadata Doc</button>
-                <button type="button" class="primary-button" data-generate-flutter>Generate Flutter Integration</button>
-                <button type="button" data-export-metadata>Export Metadata JSON</button>
-                <button type="button" data-reload-riv>Reload</button>
-                <button type="button" class="secondary" data-copy-text="\${escapeAttribute(metadata.source)}">Copy source</button>
+              <div class="schema-fields">
+                \${renderRuntimeField('Source', metadata.source, true)}
+                \${renderRuntimeField('Runtime Version', metadata.header.majorVersion + '.' + metadata.header.minorVersion, true)}
               </div>
+              <div>
+                <button type="button" class="muted-button" data-copy-text="\${escapeAttribute(metadata.source)}">Copy Source</button>
+              </div>
+              \${renderCodegenNotes(metadata.codegen)}
             </div>
-            <div class="runtime-grid">
-              \${renderRuntimeField('Source', metadata.source, true)}
-              \${renderRuntimeField('Runtime Version', metadata.header.majorVersion + '.' + metadata.header.minorVersion, true)}
-              \${renderRuntimeField('Records', String(metadata.recordCount), true)}
-              \${renderRuntimeField('Unknown Records', String(metadata.unknownRecordCount), true)}
-              \${renderRuntimeField('Flutter Codegen', metadata.codegen?.canGenerateFlutter ? 'available' : 'blocked', true)}
-              \${renderRuntimeField('TypeScript Codegen', metadata.codegen?.canGenerateTypeScript ? 'available' : 'blocked', true)}
-            </div>
-            \${renderCodegenNotes(metadata.codegen)}
             \${serverFailed ? '<p class="snapshot-copy">' + escapeHtml(serverStatus.serverError) + '</p>' : ''}
           </section>
-          \${activePayload ? renderMergedViewModels(metadata.viewModels ?? [], liveViewModel, controlsDisabled) : renderStaticViewModels(metadata.viewModels ?? [])}
+          <section class="card schema-actions-card">
+            <div class="schema-actions-left">
+              <button type="button" class="primary-button strong-primary" data-create-metadata-deliverable>Create Metadata Package</button>
+              <button type="button" class="primary-button" data-generate-integration>Generate Integration Code</button>
+              <button type="button" class="muted-button" data-reload-riv>Reload</button>
+            </div>
+            <div class="schema-actions-right">
+              <button type="button" class="muted-button" data-inspect-riv>Load new</button>
+              <button type="button" class="danger-button" data-clear-schema>Clear schema</button>
+            </div>
+          </section>
+          \${activePayload ? renderMergedViewModels(viewModels, liveViewModel, controlsDisabled) : renderStaticViewModels(viewModels)}
           \${activePayload ? renderMergedStateMachines(metadata.artboards ?? [], activePayload) : renderStaticStateMachines(metadata.artboards ?? [])}
           \${activePayload ? renderMergedInputs(inputs, activePayload.inputs ?? [], controlsDisabled) : renderStaticInputs(inputs)}
           \${renderStaticAnimations(animations)}
@@ -1201,6 +1427,34 @@ export function getWebviewHtml(
           \${warnings.map((warning) => '<div>Warning: ' + escapeHtml(warning) + '</div>').join('')}
         </div>
       \`;
+    }
+
+    function renderSchemaThumbnail(metadata, viewModels, animations) {
+      if (staticThumbnailUri) {
+        return \`
+          <div class="schema-preview">
+            <img class="schema-thumbnail" src="\${escapeAttribute(staticThumbnailUri)}" alt="Rive file thumbnail">
+          </div>
+        \`;
+      }
+
+      const fileName = basename(metadata.source);
+      const summary = metadata.artboards.length + ' artboard(s) · ' + viewModels.length + ' ViewModel(s) · ' + animations.length + ' animation(s)';
+      return \`
+        <div class="schema-preview" aria-label="Rive file thumbnail unavailable">
+          <div class="schema-thumbnail-fallback">
+            <div class="schema-thumbnail-mark">RIV</div>
+            <div class="schema-thumbnail-name">\${escapeHtml(fileName)}</div>
+            <div class="schema-thumbnail-meta">\${escapeHtml(summary)}</div>
+          </div>
+        </div>
+      \`;
+    }
+
+    function basename(filePath) {
+      const normalized = String(filePath ?? '').replace(/\\\\/g, '/');
+      const parts = normalized.split('/');
+      return parts[parts.length - 1] || 'file.riv';
     }
 
     function renderStaticViewModels(viewModels) {
@@ -1234,12 +1488,12 @@ export function getWebviewHtml(
       }).join('');
 
       return \`
-        <section class="section-panel view-model-panel">
-          <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModels</h3>
+        <details class="section-panel view-model-panel">
+          <summary class="section-title"><span class="section-icon">&#9638;</span>ViewModels<span class="section-count">\${escapeHtml(String(viewModels.length))}</span></summary>
           \${viewModels.length === 0
             ? '<p class="view-model-empty">No ViewModels found in the loaded schema.</p>'
             : rows}
-        </section>
+        </details>
       \`;
     }
 
@@ -1333,11 +1587,11 @@ export function getWebviewHtml(
       }
 
       return \`
-        <section class="section-panel view-model-panel">
-          <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModels</h3>
+        <details class="section-panel view-model-panel">
+          <summary class="section-title"><span class="section-icon">&#9638;</span>ViewModels<span class="section-count">\${escapeHtml(String(viewModels.length))}</span></summary>
           \${!live && liveViewModel?.state === 'unsupported' ? '<p class="view-model-empty">Runtime ViewModel not available: ' + escapeHtml(liveViewModel.reason || '') + '</p>' : ''}
           \${groups.length === 0 ? '<p class="view-model-empty">No ViewModels found in the loaded schema.</p>' : groups.join('')}
-        </section>
+        </details>
       \`;
     }
 
@@ -1390,11 +1644,13 @@ export function getWebviewHtml(
         ? '<div class="property-group"><div class="property-group-title">Runtime only</div><div class="input-grid">' + renderMergedInfoCard(runtimeStateMachine, 'state machine', 'Runtime state machine was not found in loaded schema', 'unexpected-runtime', runtimeStateMachine) + '</div></div>'
         : '';
 
+      const count = artboards.reduce((total, artboard) => total + (artboard.stateMachines ?? []).length, 0);
+
       return \`
-        <section class="section-panel">
-          <h3 class="section-title"><span class="section-icon">&#9672;</span>State Machines</h3>
+        <details class="section-panel">
+          <summary class="section-title"><span class="section-icon">&#9672;</span>State Machines<span class="section-count">\${escapeHtml(String(count))}</span></summary>
           \${rows}\${unexpected}
-        </section>
+        </details>
       \`;
     }
 
@@ -1443,12 +1699,12 @@ export function getWebviewHtml(
       }
 
       return \`
-        <section class="section-panel inputs-panel">
-          <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
+        <details class="section-panel inputs-panel">
+          <summary class="section-title"><span class="section-icon">&#8801;</span>Inputs Control<span class="section-count">\${escapeHtml(String(rows.length))}</span></summary>
           \${rows.length === 0
             ? '<p class="view-model-empty">No inputs found in the loaded schema or runtime.</p>'
             : renderGroupedItems(rows, (input) => input.type, (input) => renderMergedInputCard(input, controlsDisabled))}
-        </section>
+        </details>
       \`;
     }
 
@@ -1533,30 +1789,32 @@ export function getWebviewHtml(
         \`;
       }).join('');
 
+      const count = artboards.reduce((total, artboard) => total + (artboard.stateMachines ?? []).length, 0);
+
       return \`
-        <section class="section-panel">
-          <h3 class="section-title"><span class="section-icon">&#9672;</span>State Machines</h3>
+        <details class="section-panel">
+          <summary class="section-title"><span class="section-icon">&#9672;</span>State Machines<span class="section-count">\${escapeHtml(String(count))}</span></summary>
           \${rows}
-        </section>
+        </details>
       \`;
     }
 
     function renderStaticInputs(inputs) {
       if (inputs.length === 0) {
         return \`
-          <section class="section-panel inputs-panel">
-            <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
+          <details class="section-panel inputs-panel">
+            <summary class="section-title"><span class="section-icon">&#8801;</span>Inputs Control<span class="section-count">0</span></summary>
             <p class="view-model-empty">No inputs found in the loaded schema.</p>
-          </section>
+          </details>
         \`;
       }
 
       return \`
-        <section class="section-panel inputs-panel">
-          <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
+        <details class="section-panel inputs-panel">
+          <summary class="section-title"><span class="section-icon">&#8801;</span>Inputs Control<span class="section-count">\${escapeHtml(String(inputs.length))}</span></summary>
           <p class="view-model-empty">Static schema loaded. Controls activate when matching telemetry connects.</p>
           \${renderGroupedItems(inputs, (input) => input.type, (input) => renderStaticInputCard(input))}
-        </section>
+        </details>
       \`;
     }
 
@@ -1579,12 +1837,12 @@ export function getWebviewHtml(
 
     function renderStaticAnimations(animations) {
       return \`
-        <section class="section-panel">
-          <h3 class="section-title"><span class="section-icon">&#9655;</span>Animations</h3>
+        <details class="section-panel">
+          <summary class="section-title"><span class="section-icon">&#9655;</span>Animations<span class="section-count">\${escapeHtml(String(animations.length))}</span></summary>
           \${animations.length === 0
             ? '<p class="view-model-empty">No animations found in the loaded schema.</p>'
             : '<div class="input-grid">' + animations.map((animation) => renderStaticInfoCard(animation.name ?? 'Unnamed Animation', 'animation', animation.artboardName + (animation.durationSeconds !== null && animation.durationSeconds !== undefined ? ' &middot; ' + animation.durationSeconds + 's' : ''), animation.name ?? '')).join('') + '</div>'}
-        </section>
+        </details>
       \`;
     }
 
@@ -1594,10 +1852,10 @@ export function getWebviewHtml(
       }
 
       return \`
-        <section class="section-panel view-model-unavailable">
-          <h3 class="section-title"><span class="section-icon">&#9888;</span>Parser Warnings</h3>
+        <details class="section-panel view-model-unavailable">
+          <summary class="section-title"><span class="section-icon">&#9888;</span>Parser Warnings<span class="section-count">\${escapeHtml(String(warnings.length))}</span></summary>
           <div class="input-grid">\${warnings.map((warning) => renderStaticInfoCard(warning.code, warning.severity ?? 'warning', warning.message, warning.message)).join('')}</div>
-        </section>
+        </details>
       \`;
     }
 
@@ -1803,45 +2061,43 @@ export function getWebviewHtml(
       }
 
       return \`
-        <section class="section-panel inputs-panel">
-          <h3 class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</h3>
+        <details class="section-panel inputs-panel" open>
+          <summary class="section-title"><span class="section-icon">&#8801;</span>Inputs Control</summary>
           \${renderGroupedItems(inputs, (input) => input.type, (input) => renderInputCard(input, disabled))}
-        </section>
+        </details>
       \`;
     }
 
     function renderViewModelSection(viewModel) {
       if (viewModel.state === 'not-enabled') {
         return \`
-          <section class="section-panel view-model-panel view-model-unavailable">
-            <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
+          <details class="section-panel view-model-panel view-model-unavailable" open>
+            <summary class="section-title"><span class="section-icon">&#9638;</span>ViewModel</summary>
             <p class="view-model-empty">ViewModel telemetry not enabled</p>
-          </section>
+          </details>
         \`;
       }
 
       if (viewModel.state === 'unsupported') {
         return \`
-          <section class="section-panel view-model-panel view-model-unavailable">
-            <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
+          <details class="section-panel view-model-panel view-model-unavailable" open>
+            <summary class="section-title"><span class="section-icon">&#9638;</span>ViewModel</summary>
             <p class="view-model-empty">ViewModel not available\${viewModel.reason ? ': ' + escapeHtml(viewModel.reason) : ''}</p>
-          </section>
+          </details>
         \`;
       }
 
       return \`
-        <section class="\${viewModel.properties.length > 0 ? 'section-panel view-model-panel' : ''}">
-          <div class="view-model-header">
-            <h3 class="section-title"><span class="section-icon">&#9638;</span>ViewModel</h3>
-            <div class="view-model-summary">
+        <details class="section-panel view-model-panel" open>
+          <summary class="section-title"><span class="section-icon">&#9638;</span>ViewModel</summary>
+          <div class="view-model-summary">
               <span>Name: <strong>\${escapeHtml(viewModel.viewModelName || '—')}</strong></span>
               <span>Instance: <strong>\${escapeHtml(viewModel.instanceName || '—')}</strong></span>
-            </div>
           </div>
           \${viewModel.properties.length === 0
             ? '<p class="view-model-empty">No ViewModel properties reported.</p>'
             : renderGroupedItems(viewModel.properties, (property) => property.type, (property) => renderViewModelPropertyRow(viewModel, property))}
-        </section>
+        </details>
       \`;
     }
 
@@ -2189,14 +2445,11 @@ export function getWebviewHtml(
     }
 
     function bindInspectRivControl() {
-      const control = app.querySelector('[data-inspect-riv]');
-      if (!control) {
-        return;
-      }
-
-      control.addEventListener('click', () => {
-        vscode.postMessage({
-          command: 'inspectFile',
+      app.querySelectorAll('[data-inspect-riv]').forEach((control) => {
+        control.addEventListener('click', () => {
+          vscode.postMessage({
+            command: 'inspectFile',
+          });
         });
       });
     }
@@ -2211,19 +2464,21 @@ export function getWebviewHtml(
       });
     }
 
-    function bindGenerateControls() {
-      app.querySelectorAll('[data-export-metadata]').forEach((control) => {
+    function bindClearSchemaControl() {
+      app.querySelectorAll('[data-clear-schema]').forEach((control) => {
         control.addEventListener('click', () => {
           vscode.postMessage({
-            command: 'exportMetadata',
+            command: 'clearSchema',
           });
         });
       });
+    }
 
-      app.querySelectorAll('[data-generate-flutter]').forEach((control) => {
+    function bindGenerateControls() {
+      app.querySelectorAll('[data-generate-integration]').forEach((control) => {
         control.addEventListener('click', () => {
           vscode.postMessage({
-            command: 'generateFlutterIntegration',
+            command: 'generateIntegrationCode',
           });
         });
       });

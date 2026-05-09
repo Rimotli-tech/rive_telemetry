@@ -8,6 +8,12 @@ import { RiveMetadata } from './metadataTypes';
 let telemetryServer: TelemetryServer | undefined;
 let outputChannel: vscode.OutputChannel | undefined;
 
+interface IntegrationTarget extends vscode.QuickPickItem {
+  readonly id: 'flutter' | 'typescript';
+  readonly suffix: string;
+  readonly filters: Record<string, string[]>;
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   console.log('RiveTelemetry extension activated');
 
@@ -79,6 +85,16 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   );
 
+  const clearSchemaCommand = vscode.commands.registerCommand(
+    'riveTelemetry.clearSchema',
+    () => {
+      lastInspectedPath = undefined;
+      lastMetadata = undefined;
+      RiveTelemetryPanel.updateStaticMetadata(null);
+      vscode.window.showInformationMessage('Cleared loaded Rive schema.');
+    },
+  );
+
   const exportMetadataCommand = vscode.commands.registerCommand(
     'riveTelemetry.exportMetadata',
     async () => {
@@ -115,46 +131,91 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   );
 
-  const generateFlutterCommand = vscode.commands.registerCommand(
-    'riveTelemetry.generateFlutterIntegration',
-    async () => {
-      if (!lastInspectedPath) {
-        vscode.window.showInformationMessage(
-          'Load a .riv file before generating Flutter integration.',
-        );
-        return;
-      }
+  async function generateIntegrationCode(
+    preselectedTarget?: IntegrationTarget['id'],
+  ): Promise<void> {
+    if (!lastInspectedPath) {
+      vscode.window.showInformationMessage(
+        'Load a .riv file before generating integration code.',
+      );
+      return;
+    }
 
-      const target = await vscode.window.showSaveDialog({
-        defaultUri: defaultGeneratedUri(lastInspectedPath, '_rive.dart'),
+    const targets: IntegrationTarget[] = [
+      {
+        id: 'flutter',
+        label: 'Flutter / Dart',
+        description: 'Runtime helpers for package:rive and rive_telemetry',
+        suffix: '_rive.dart',
         filters: {
           'Dart files': ['dart'],
         },
-        saveLabel: 'Generate Flutter Integration',
-        title: 'Generate Flutter Rive Integration',
-      });
-      if (!target) {
-        return;
-      }
+      },
+      {
+        id: 'typescript',
+        label: 'TypeScript / JavaScript',
+        description: 'Typed constants and access helpers for JS runtimes',
+        suffix: '_rive.ts',
+        filters: {
+          'TypeScript files': ['ts'],
+        },
+      },
+    ];
 
-      try {
-        await vscode.window.withProgress(
-          {
-            location: vscode.ProgressLocation.Notification,
-            title: 'Generating Flutter integration',
-          },
-          () => rivLoader.generateFlutterIntegration(lastInspectedPath!, target.fsPath),
-        );
-        vscode.window.showInformationMessage(
-          `Generated Flutter integration: ${vscode.workspace.asRelativePath(target)}`,
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        outputChannel?.appendLine(`Flutter integration generation failed: ${message}`);
-        vscode.window.showErrorMessage(
-          `Flutter integration generation failed: ${message}`,
-        );
-      }
+    const selectedTarget = preselectedTarget
+      ? targets.find((target) => target.id === preselectedTarget)
+      : await vscode.window.showQuickPick(targets, {
+          placeHolder: 'Select a runtime target',
+          title: 'Generate Rive Integration Code',
+        });
+
+    if (!selectedTarget) {
+      return;
+    }
+
+    const target = await vscode.window.showSaveDialog({
+      defaultUri: defaultGeneratedUri(lastInspectedPath, selectedTarget.suffix),
+      filters: selectedTarget.filters,
+      saveLabel: 'Generate Integration Code',
+      title: `Generate ${selectedTarget.label} Integration`,
+    });
+    if (!target) {
+      return;
+    }
+
+    try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Generating ${selectedTarget.label} integration`,
+        },
+        () =>
+          selectedTarget.id === 'flutter'
+            ? rivLoader.generateFlutterIntegration(lastInspectedPath!, target.fsPath)
+            : rivLoader.generateTypeScriptIntegration(
+                lastInspectedPath!,
+                target.fsPath,
+              ),
+      );
+      vscode.window.showInformationMessage(
+        `Generated ${selectedTarget.label} integration: ${vscode.workspace.asRelativePath(target)}`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      outputChannel?.appendLine(`Integration generation failed: ${message}`);
+      vscode.window.showErrorMessage(`Integration generation failed: ${message}`);
+    }
+  }
+
+  const generateIntegrationCommand = vscode.commands.registerCommand(
+    'riveTelemetry.generateIntegrationCode',
+    () => generateIntegrationCode(),
+  );
+
+  const generateFlutterCommand = vscode.commands.registerCommand(
+    'riveTelemetry.generateFlutterIntegration',
+    async () => {
+      await generateIntegrationCode('flutter');
     },
   );
 
@@ -163,7 +224,7 @@ export function activate(context: vscode.ExtensionContext): void {
     async () => {
       if (!lastInspectedPath) {
         vscode.window.showInformationMessage(
-          'Load a .riv file before creating a metadata document.',
+          'Load a .riv file before creating a metadata package.',
         );
         return;
       }
@@ -202,8 +263,8 @@ export function activate(context: vscode.ExtensionContext): void {
       );
       const deliverableFolder = await vscode.window.showSaveDialog({
         defaultUri: defaultFolder,
-        saveLabel: 'Create Metadata Deliverable',
-        title: 'Create Metadata Deliverable Folder',
+        saveLabel: 'Create Metadata Package',
+        title: 'Create Metadata Package Folder',
       });
       if (!deliverableFolder) {
         return;
@@ -213,7 +274,7 @@ export function activate(context: vscode.ExtensionContext): void {
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
-            title: 'Creating Rive metadata deliverable',
+            title: 'Creating Rive metadata package',
           },
           () =>
             rivLoader.createMetadataDeliverable(
@@ -223,13 +284,13 @@ export function activate(context: vscode.ExtensionContext): void {
             ),
         );
         vscode.window.showInformationMessage(
-          `Created metadata deliverable: ${vscode.workspace.asRelativePath(deliverableFolder)}`,
+          `Created metadata package: ${vscode.workspace.asRelativePath(deliverableFolder)}`,
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        outputChannel?.appendLine(`Metadata deliverable creation failed: ${message}`);
+        outputChannel?.appendLine(`Metadata package creation failed: ${message}`);
         vscode.window.showErrorMessage(
-          `Metadata deliverable creation failed: ${message}`,
+          `Metadata package creation failed: ${message}`,
         );
       }
     },
@@ -239,7 +300,9 @@ export function activate(context: vscode.ExtensionContext): void {
     openPanelCommand,
     inspectFileCommand,
     reloadFileCommand,
+    clearSchemaCommand,
     exportMetadataCommand,
+    generateIntegrationCommand,
     generateFlutterCommand,
     createMetadataDeliverableCommand,
     telemetryServer,
