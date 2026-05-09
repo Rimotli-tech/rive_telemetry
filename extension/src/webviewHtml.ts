@@ -9,7 +9,6 @@ export function getWebviewHtml(
   state: RiveTelemetryPanelState,
   status: RiveTelemetryServerStatus,
   metadata: RiveMetadata | null,
-  thumbnailUri: string | null,
   iconUri: vscode.Uri,
   cspSource: string,
 ): string {
@@ -17,7 +16,6 @@ export function getWebviewHtml(
   const initialState = JSON.stringify(state);
   const initialStatus = JSON.stringify(status);
   const initialMetadata = JSON.stringify(metadata);
-  const initialThumbnailUri = JSON.stringify(thumbnailUri);
   const brandIcon = JSON.stringify(iconUri.toString());
 
   return `<!DOCTYPE html>
@@ -174,13 +172,6 @@ export function getWebviewHtml(
       overflow: hidden;
       border: 1px solid rgba(159, 202, 255, 0.12);
       background: linear-gradient(135deg, rgba(159, 202, 255, 0.12), rgba(196, 181, 253, 0.08));
-    }
-    .schema-thumbnail {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: #d7d7d7;
     }
     .schema-thumbnail-fallback {
       display: flex;
@@ -1209,7 +1200,6 @@ export function getWebviewHtml(
     let telemetryState = ${initialState};
     let serverStatus = ${initialStatus};
     let staticMetadata = ${initialMetadata};
-    let staticThumbnailUri = ${initialThumbnailUri};
     let lastCommandStatus = '';
     let highlightedInput = null;
     let changedInputs = new Set();
@@ -1234,7 +1224,6 @@ export function getWebviewHtml(
         render();
       } else if (event.data?.type === 'metadata') {
         staticMetadata = event.data.metadata;
-        staticThumbnailUri = event.data.thumbnailUri ?? null;
         render();
       } else if (event.data?.type === 'commandSent') {
         lastCommandStatus = 'Command sent: ' + event.data.timestamp;
@@ -1430,14 +1419,6 @@ export function getWebviewHtml(
     }
 
     function renderSchemaThumbnail(metadata, viewModels, animations) {
-      if (staticThumbnailUri) {
-        return \`
-          <div class="schema-preview">
-            <img class="schema-thumbnail" src="\${escapeAttribute(staticThumbnailUri)}" alt="Rive file thumbnail">
-          </div>
-        \`;
-      }
-
       const fileName = basename(metadata.source);
       const summary = metadata.artboards.length + ' artboard(s) · ' + viewModels.length + ' ViewModel(s) · ' + animations.length + ' animation(s)';
       return \`

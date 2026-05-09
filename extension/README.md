@@ -10,6 +10,7 @@ RiveTelemetry connects Rive runtimes, including Flutter and JavaScript apps, to 
 - Control boolean, number, and trigger inputs from VS Code
 - Inspect ViewModel telemetry
 - Mutate supported ViewModel properties
+- Load a `.riv` file and inspect its static schema before runtime telemetry connects
 - Support multiple Rive runtimes with `runtimeId` and `label`
 - Preserve last-known telemetry when the app disconnects
 - Clear retained telemetry manually from the panel
@@ -29,6 +30,9 @@ Then open the command palette and run:
 ```text
 RiveTelemetry: Open Panel
 ```
+
+Use **Load .riv** in the panel to inspect a Rive file. The schema summary shows
+a compact `.riv` preview card with the filename and extracted schema counts.
 
 The extension starts a local WebSocket server at:
 

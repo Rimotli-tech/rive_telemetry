@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import { RiveMetadata } from './metadataTypes';
 import { TelemetryServer } from './telemetryServer';
@@ -32,7 +31,6 @@ export class RiveTelemetryPanel {
       this.telemetryServer.panelState,
       this.telemetryServer.status,
       RiveTelemetryPanel.staticMetadata,
-      thumbnailUriForMetadata(this.panel.webview, RiveTelemetryPanel.staticMetadata),
       iconUri,
       this.panel.webview.cspSource,
     );
@@ -182,37 +180,8 @@ export class RiveTelemetryPanel {
     this.panel.webview.postMessage({
       type: 'metadata',
       metadata,
-      thumbnailUri: thumbnailUriForMetadata(this.panel.webview, metadata),
     });
   }
-}
-
-function thumbnailUriForMetadata(
-  webview: vscode.Webview,
-  metadata: RiveMetadata | null,
-): string | null {
-  if (!metadata) {
-    return null;
-  }
-
-  const parsed = path.parse(metadata.source);
-  const candidates = [
-    path.join(parsed.dir, `${parsed.name}.png`),
-    path.join(parsed.dir, `${parsed.name}.jpg`),
-    path.join(parsed.dir, `${parsed.name}.jpeg`),
-    path.join(parsed.dir, `${parsed.name}.webp`),
-    path.join(parsed.dir, '.thumbnails', `${parsed.name}.png`),
-    path.join(parsed.dir, '.thumbnails', `${parsed.name}.jpg`),
-    path.join(parsed.dir, '.thumbnails', `${parsed.name}.jpeg`),
-    path.join(parsed.dir, '.thumbnails', `${parsed.name}.webp`),
-  ];
-
-  const thumbnailPath = candidates.find((candidate) => fs.existsSync(candidate));
-  if (!thumbnailPath) {
-    return null;
-  }
-
-  return webview.asWebviewUri(vscode.Uri.file(thumbnailPath)).toString();
 }
 
 interface WebviewCommandMessage {
